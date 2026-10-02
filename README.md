@@ -1,0 +1,182 @@
+## 2.5.0 realistic pacing and Pearson input update
+
+The small in-page assistant popup now includes Instant Auto, Timed Auto, Human pace and Manual review. Human pace asks the AI for a question-specific working-time estimate, accounts for reading, calculator or written work, splits the estimate across fields, and offers Faster, Typical and More deliberate speeds. AI wait time is counted toward the estimate, and the existing Timed Auto countdown remains unchanged.
+
+Pearson Auto now discovers custom dropdown options after Pearson moves them into its menu, selects them through the visible control, and leaves an explicit answer preview/manual instruction when a custom control cannot be automated. Numeric editors receive one native character at a time. Labels use the question and printed subpart hierarchy across supported adapters, including table row and column context. Final Submit remains manual.
+
+Background AI response handling now completes on DOM changes instead of waiting for a long stability timer. Short pacing waits use the extension worker so hidden tabs do not stretch every keystroke. Loaded, unfrozen AI tabs are still required because Chrome can throttle or discard background pages.
+
+## 2.4.2 Pearson preview and navigation update
+
+Recognizes the question-level Final check control as well as Check Answer, excluding final Submit controls and hidden copies. No-pause Auto checks and advances; final assignment submission stays manual.
+
+Previews preserve detected printed question/subpart labels, identify number boxes and dropdowns, group paired Above/Below fields into a table, and show long single answers at full width. Undetected field labels fall back to Field numbering. Explanations request plain text; common math delimiters are cleaned in the preview. Unsupported dropdowns are not invented or silently claimed complete.
+
+## 2.4.2 McGraw navigation fix
+
+Uses visible responsive copies of Check my work and Next. When pause after fill is off, automatic modes record journal entries, check work (when enabled), and advance. Final assignment submission remains manual. A missing Next is no longer treated as proof that the assignment is complete.
+
+# Study Assistant 2.5.0
+
+One Chrome extension containing the original Auto-McGraw SmartBook/Connect adapters, Pearson MyLab, Canvas and Cengage MindTap Aplia. It selects the adapter by the website and uses one shared AI/NotebookLM connection. Each platform has its own settings.
+
+## New in 2.4.2: clearer modes and answer review
+
+Automation pace uses three clickable illustrated cards in Settings and first-use setup, with bundled PNG icons. There is no visible pace dropdown. **Instant Auto** adds no countdown; **Timed Auto** continues automatically after each countdown; **Review each step** waits for Continue now. Existing saved mode keys and behavior are retained.
+
+**Guided walkthrough:** after first-use preferences are saved, a 12-step tour highlights the actual assistant controls. Settings and Back steps let you click the highlighted button; other steps explain the controls without triggering them. Back, Next, Skip walkthrough and Escape are available. Replay it from **Help → Walkthrough** when no run, AI request or answer edit is active. Skipping the tour keeps your preferences and does not skip the first-use acknowledgement. The tour never starts a request, enters answers or changes the selected mode.
+
+Pearson previews now show **Part 1, Part 2, …**, with available label, table row/column or option context. The small Pearson menu uses a readable answer table; the side panel receives the same structured labels. Technical fixture wording such as “Embedded number” is replaced by its visible option context or a numbered part.
+
+The assistant shows the current stage: Read, Ask AI, Prepare, Enter or Check. It highlights observed activity, rather than claiming every stage completed. **Recent activity** contains up to eight observed updates for the selected assignment while the panel is open. It is temporary and clears on panel close or assignment change. Original SmartBook/older Connect have a limited stage summary.
+
+An **Attention needed** card translates connection and unsupported-control messages into next steps. Available buttons can refresh the connection, open a chatbot/notebook, focus the assignment or explicitly ask again. They do not replay a save or grading action. Go to assignment only focuses that tab; use Stop all before taking over a running task. Raw troubleshooting text stays under Details.
+
+**Edit answer** is available for supported prepared answers in newer Connect MAP, Pearson, Canvas and MindTap. Use Ask AI with Auto Fill after Ask AI off, then edit the preview before filling. Saving updates the prepared answer used by Fill answers; it does not enter answers, save the assignment or grade. Exact choices and existing adapter validators apply. The editor invalidates on a question change, answer revision or running/filling workflow. Once filling has been attempted, ask again to prepare a fresh answer. Current nonempty native values are shown for comparison; replacement settings still apply when filling.
+
+Journal account/debit/credit cells are separate editable fields, with the original row count and balance checks. Adding/removing journal rows is not supported. Edited answers replace the AI explanation with a notice that its original explanation and citations may no longer support the edits. Original SmartBook and older Connect do not support this editor. No new permissions were added.
+
+## Included from 2.3.3: structured settings
+
+Settings keeps the same dark cards, colors and illustrated pace options, with a stable header, category navigation, platform selector and save-status footer. Only the selected category scrolls inside the content area; the browser page no longer grows into one long stack. Wide tabs use a navigation rail and grouped columns. The narrow side panel uses compact category buttons and a single content column.
+
+- **Automation:** pace, answer controls and tab behavior.
+- **AI & readings:** chatbot preference and per-platform NotebookLM sources.
+- **Pictures:** question-image capture and its requirements.
+- **Platform options:** site selection, checking/grading options, custom Canvas access and support details.
+
+Countdown values are under **Countdown settings**, available for Timed Auto and Review each step. Each category remembers its scroll position while you stay in Settings. Every control still saves automatically; existing preference keys and automation behavior are retained.
+
+Normal Settings stays inside the side panel. **Expanded view** opens a full browser tab for deeper configuration, preserving the selected platform. Chrome’s Options command also opens the full settings page. Expansion remains an explicit click. The Feature guide returns to the same Settings view when opened from the side panel.
+
+Layout references: [Carbon navigation shell](https://carbondesignsystem.com/patterns/global-header/) and [Nielsen Norman Group progressive disclosure](https://www.nngroup.com/articles/progressive-disclosure/).
+
+## Included from 2.3.1: first-use setup
+
+The first use shows an acknowledgement over the side panel. It explains AI mistakes, course rules, question text sent to connected AI services, assignment changes/attempts and activity logging. Check the acknowledgement, then choose your AI, automation pace, Pause after fill, Watch automation and NotebookLM preference. The last step says which platform receives its own pace/pause/readings preferences; AI and tab behavior apply to all platforms. Finishing saves the choices and leaves the assistant in the side panel without starting a run.
+
+Completion is remembered locally for this extension in this Chrome profile, across reloads and ordinary updates. It is not synced to other profiles/devices. Before completion, the side panel is blocked and the worker rejects run starts, AI requests, new image captures and fill/resume commands. Stop remains available. The original on-page controls are hidden behind a small **Set up Study Assistant** launcher until setup finishes.
+
+Chrome requires a user gesture to open its side panel. On a reloaded supported assignment, click the setup launcher or the extension icon. The extension cannot automatically force open Chrome’s side panel just because it was installed or enabled. Setup also works before an assignment connects.
+
+**Why NotebookLM?** Questions tied to readings may expect a particular author’s definition, example or wording. NotebookLM uses the sources you select and can supply citations to check. That can be more useful than a broad chatbot answer that does not match your course. Add the relevant assigned readings and keep that notebook open. This extension asks it for a source-based answer, then a regular chatbot formats that response for entry. It does not send the whole notebook to that chatbot. Missing/irrelevant sources and AI mistakes still need review. The walkthrough, Settings and Help all explain this choice.
+
+API/source references: [Chrome side panel](https://developer.chrome.com/docs/extensions/reference/api/sidePanel), [Google source-based chat](https://support.google.com/notebooklm/answer/16179559?hl=en).
+
+## Included from 2.3.0
+
+Connect MAP now distinguishes numeric accounting worksheets from journal entries. Numeric cells use the native editor and saved-value verification, with separate pacing for each cell. Computed totals and other read-only cells are left to the site. Negative amounts, decimals and displayed currency formatting are supported. Non-numeric widgets and multi-frame questions still stop for manual entry. Journal A/B/C and later-entry behavior is retained.
+
+**Settings** opens inside the side panel, with **Back to assistant** returning to the run. The small McGraw page menu opens that same panel instead of a new settings tab. The settings controls adapt to narrow widths and apply to the selected assignment’s platform. Chrome’s own extension Options command can still open the standalone settings page.
+
+The panel holds a direct connection to the selected assignment’s local controls. Closing the panel restores the small menu immediately on disconnect; normal status polling no longer hides it afterward. Switching between assistant and embedded Settings keeps that connection. The old timed fallback remains for older/unconnected panel probes.
+
+**Instant Auto**, **Timed Auto**, and **Review each step** have illustrated selection cards and plain descriptions. Timed Auto continues automatically when each countdown ends; Review each step waits for your click. Help and the Settings feature guide open inside the panel with Back navigation. Existing pace preferences keep their behavior.
+
+## Included from 2.2.1: background by default
+
+Automatic AI requests and replies leave your current tab and window in place. **Watch automation** is off by default, including upgraded settings without this option. Turn it on in the side panel or Settings to follow each AI/NotebookLM/assignment transition. It applies to all four platforms and the original McGraw adapters. Changes apply at the next transition, including during a pending request; turning it on does not immediately move to the current AI step. AI hyperlinks and Open selected AI still switch tabs when you click them.
+
+Background operation requires loaded, unfrozen AI tabs. Frozen/unloaded tabs show an attention message; the extension does not automatically activate them or change Chrome memory settings. Background scheduling may delay timers or replies, and live provider compatibility remains unverified. Picture capture still requires the assignment to be the visible active tab. The experimental SmartBook duplicate-tab workflow requires Watch automation because Chrome activates duplicates; turn Double Credit off for background operation. No new permissions.
+
+## Included from 2.2.0
+
+The compact panel keeps assignment actions together, shows readable answer tables and plain-text explanations, and hides raw responses behind **Nerd mode**. Click any AI card to focus its open tab or open that service. Saved progress and reading sources are collapsed until needed. A new original book-and-spark icon replaces the blue square.
+
+Connect MAP now reviews each journal account/debit/credit cell separately, waits for rebuilt transactions, and follows every available journal tab rather than assuming A/B only. Already recorded transactions are skipped. After the last entry, it uses **Check my work** when available, then **Next**. A visible **Pause after fill** control chooses whether to review between entries or continue automatically. A conflict offers **Enable replacement & restart Auto**; that explicitly enables replacement for McGraw until disabled in Settings.
+
+The monitor also stops cleanly when Chrome invalidates an old extension after update/reload. Refresh the assignment and AI tabs after upgrading. No new permissions were added.
+
+## Install
+
+1. Extract **study-assistant-2.5.0.zip**.
+2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the **Study-Assistant-2.5.0** folder containing **manifest.json**. Do not select its parent folder or the ZIP.
+3. Disable the separate Auto-McGraw, Pearson, Canvas and MindTap extensions so their AI connectors do not compete with this one.
+4. Reload your assignment and any open Gemini, ChatGPT, DeepSeek or NotebookLM tabs. Sign into the AI services and leave their prompt boxes empty.
+5. Click the extension icon on the assignment tab to open the **Study Assistant side panel**. Leave **Run on** set to **Automatic** in Settings. Pick an assignment in the panel and choose Ask AI or Start Auto. Chrome 116 or newer is required.
+6. If upgrading, disable the older combined extension and load this complete folder. Do not merge it with older extracted folders. Reload the assignment and AI tabs afterward. Your prior settings belong to the old extension unless Chrome treats this as an in-place update.
+
+The panel resizes with Chrome’s sidebar. **Settings** opens inside the side panel. Use **Back to assistant** to return. Local page controls are hidden while the panel is connected and return immediately when the panel’s direct connection closes (the timeout remains only as a fallback). Assignment selection stays with its page when the chatbot tab becomes active, including assignments in another Chrome window. An assignment must have loaded supported controls before it appears. **Run on** can restrict the extension to a single platform or turn all platforms off. A mode change stops current work; reload the assignment afterward. This selector does not turn an unsupported website into a supported one.
+
+**Stop all automation** cancels pending answers, ends the active run and closes only a temporary duplicate tab created by the original SmartBook workflow. Entered answers remain. It does not stop generation already underway on an AI website.
+
+## Panel status and saved progress
+
+The panel shows the adapter’s current status, confirmed-question count, readable answers/explanations and active review countdown. **Nerd mode** shows the original structured response. AI cards focus an existing service tab or open it; they do not send a prompt by themselves. **Saved progress** and **Reading sources** expand when needed. Pause, Continue now, Resume Auto and Stop use the existing adapter controls. **Stop all** is available even if an assignment is no longer connected. The AI cards distinguish ready tabs, missing tabs, drafts, generation/upload activity and NotebookLM source selection. They report connector readiness; they do not measure the correctness of an answer.
+
+Modern adapters stop after a document reload instead of automatically continuing. Use **Resume saved run** for a recent checkpoint; it never starts on its own. Canvas preserves confirmed question hashes and existing entries. MindTap, Pearson and Connect require partly entered answers to be reviewed/saved manually and an unanswered question opened first. Interrupted grading or an uncertain save/navigation is blocked for manual review; use Start Auto after resolving that transition. Original SmartBook/older Connect retain current-question restart behavior and have no saved-progress recovery.
+
+Connect stores a hashed marker only after a journal transaction is confirmed recorded. Canvas stores question markers after its simulated/observed save condition; MindTap increments progress after save/advance succeeds. The count is a local record, not proof of a live server grade or save. Persistent checkpoints hold only platform, count, opaque markers, phase and timestamp—no question text, answers, images, raw URLs or credentials. At most 20 checkpoints are retained; entries older than seven days cannot be restored and are pruned on the next write. **Clear saved progress** removes this assignment’s checkpoint; Start Auto starts a fresh count. The temporary preview/request data remains in Chrome session storage for the active workflow.
+
+The extension’s original book-and-spark artwork and generation prompt are documented in **assets/ICON-DESIGN.md**. The three chatbot icons are bundled PNGs from public official assets. See **assets/ATTRIBUTION.md** for sources and trademark ownership.
+
+## Platform controls and settings
+
+Click **McGraw**, **Pearson**, **Canvas** or **MindTap** under **Settings for** to edit that platform's options. This selection edits settings; **Run on** controls which adapters may run. The preferred AI model is shared. Another ready supported chatbot is used if the preferred one is unavailable. Only one assignment run/request can use the AI connection at a time.
+
+- **McGraw-Hill:** original SmartBook, older EZTO Connect and the newer Connect MAP player. The MAP adapter supports native choices/text/selects and embedded numeric worksheets and journal worksheets with exact account menus, balanced entry checks, native model verification, all available journal transaction tabs, Record entry, Check my work and Next. It leaves final submission manual. Original SmartBook parsing, confidence, feedback and navigation remain. SmartBook duplicate mode is experimental, off by default, and requires Instant Auto and Watch automation; extra-credit effects are not verified.
+- **Pearson MyLab:** use the unified panel or expand MyLab Assistant in the tdx.acs.pearson.com player, including separate windows. Start Auto fills supported numeric editors, text, native dropdowns and choices, checks homework answers and navigates test questions. Existing correction/retry behavior is retained. Final test submission stays manual.
+- **Canvas:** use the unified panel or expand Canvas Quiz Assistant on the quiz-taking page. Classic native choice, checkbox, text, numeric and select fields are supported. New Quizzes/Learnosity support remains experimental. Start Auto answers supported unanswered questions and advances when a supported Next control is present. It does not click final Submit Quiz. Canvas itself may auto-submit timed quizzes or save inputs independently of this extension.
+- **MindTap:** use the unified panel or expand MindTap Assistant inside the Aplia assignment frame. Start Auto fills supported q4 dropdowns, categorization rows, choices and native numeric/text/select fields, then uses Save & Continue. Enable Grade Before Advance only if you want a grading attempt when saving alone is unavailable. Final assignment submission stays manual. CNOWv2, SAM and other MindTap players are not implemented.
+
+**Pause after fill** is also directly available in the side panel and saves the selected platform’s setting. Turning it off while paused resumes that selected run. **Pause After Fill** is on by default for Pearson, Canvas and MindTap. Turn it off in the relevant platform settings for continuous answering. SmartBook's Pause Before Submit is also on by default in this combined build. New Connect uses the same default pause before recording or advancing. Older Connect waits for Continue now after filling when its pause setting is enabled. Original SmartBook and older Connect otherwise retain their original navigation/submission behavior.
+
+**Auto Fill after Ask AI** controls single-question filling on Pearson, Canvas and MindTap; Start Auto always fills supported fields. **Show Explanations** controls their preview. New Connect also supports these settings. Original SmartBook and older Connect keep their original Ask AI automation and do not use these single-question options.
+
+**Check work before Next** is on by default for Connect MAP. It uses an available enabled Check my work control once after the final journal transaction or native answer. Checking may consume a website attempt. An unrecognized result or dialog stops for review instead of repeating the check. Disable this setting to advance without it. Final assignment submission remains manual.
+
+## Automation pace and feature guide
+
+Each platform has its own **Automation pace**, shown as three illustrated cards. Help in the side panel opens a plain-language feature guide in place; the Settings feature guide returns to Settings when closed. The default is **Instant Auto** and it preserves full automatic answering without an added review countdown. Pacing does not switch automation off.
+
+- **Instant Auto:** automatic input and supported navigation.
+- **Timed Auto:** automatic input after a visible countdown for each answer field/group or journal cell; another countdown before checking, saving or advancing.
+- **Review each step:** each countdown waits for **Continue now**, including after it reaches zero.
+
+The timer has **Pause**, **Continue now** and **Stop**. Stop cancels the pending input/advance and leaves already entered values. **Pause After Fill / Pause Before Submit** is independent: switch it off for continuous automation in Instant Auto or Timed Auto, or keep it on for an additional review before saving. Timed Auto does not require pressing Continue; Review each step does.
+
+The chatbot can return a suggested total review budget. The extension bounds it between your minimum and maximum, uses a configured fallback when absent, and divides it across fields/groups or journal cells (account, debit and credit separately). Before-advance seconds are additional. Defaults: fallback 30 seconds, minimum 5, maximum 120, before-advance 3. Suggestions are estimates, not measured reading times. Matching in original SmartBook uses one review period before its existing matching routine; it does not pace each drag.
+
+Countdowns are local and can run late if Chrome suspends/backgrounds a tab. Website quiz timers, autosave and input logging continue normally. There are no simulated human keystrokes, fake cursor movements or detection-evasion features.
+
+## Optional picture questions — experimental
+
+**Include Question Pictures** is off by default. Enable it for the desired platform, activate the assignment tab, click the extension icon once, then use the side panel and start from the assignment controls. Chrome's temporary [activeTab grant](https://developer.chrome.com/docs/extensions/develop/concepts/activeTab) permits [visible-tab capture](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-captureVisibleTab); navigating to another origin may require clicking the icon again.
+
+The extension finds visible question graphics, translates iframe coordinates, captures the active assignment and crops to the graphics before sending the image. All graphics must fit fully in the visible window; clipped pictures stop the request. The image is limited to 2 MB, tied to one tab/frame/request, and expires after 30 seconds if unused. Capture does not run with another assignment's request in progress. Keep the assignment active until capture finishes.
+
+Gemini or ChatGPT receives the cropped picture with the question. DeepSeek's picture interface is not supported; an open ready Gemini/ChatGPT tab is required. When NotebookLM is preferred and open, the flow is **picture → chatbot visual description → selected notebook readings → chatbot answer formatting with the original picture**. NotebookLM receives the description, not the image itself. No AI-written code is executed.
+
+Upload controls and readiness checks were tested with synthetic browser previews; Gemini's current live upload controls were inspected without sending an image. Real chatbot uploads and live picture-based answers have not been tested end to end. UI changes, image quality and model mistakes can still require manual entry. Complex drawing, graph manipulation, video, drag and specialized widgets remain unsupported even when a picture is captured.
+
+## NotebookLM
+
+**Prefer NotebookLM** is on by default for Canvas and off by default for the other platforms. You can enable it separately for any platform.
+
+Open a specific notebook at notebook.google.com or notebooklm.google.com, select its sources and keep a regular chatbot open. Select **Readings notebook for this platform** when multiple notebooks are open.
+
+The flow is: notebook gives a source-grounded answer with citations → regular chatbot maps it to the exact answer format → extension fills the fields using the site's adapter. AI-generated code is never executed. The original McGraw answer string/array format is translated at the worker boundary so it also uses the common connection.
+
+With no notebook open, a ready regular chatbot answers directly. A busy notebook, unsent draft, missing selected sources, unsupported source answer or missing citation stops the request. If other notebooks are open but the selected notebook is absent, it stops rather than choosing a different notebook. Original McGraw controls do not display a source preview; citations remain in the NotebookLM/chatbot conversations. Other adapters display source-grounded previews.
+
+## School-hosted Canvas
+
+In Canvas settings, open the school’s HTTPS Canvas page in the active tab, enter its origin and click **Enable this Canvas site**. The extension uses Chrome’s temporary active-tab access to inject the adapter into that tab only; enable it again after a reload or origin change. Default support includes instructure.com subdomains and canvas.csuchico.edu. No wildcard host permission is requested.
+
+## Limits and verification
+
+All four adapters and the original SmartBook code were checked in Chrome using synthetic questions, AI replies and saves. The Connect journal tests verify native model commits, record-before-advance, existing-answer conflicts and cancellation. Pearson 2.0 tests use a synthetic editor bridge contract; previous native vendor-editor verification is separate. New Quiz patterns and image uploads remain experimental. See **VERIFICATION.md** for the precise test scope.
+
+This 2.3 update has not been installed and exercised end to end on a live assignment, and no live homework answers, grading or new AI messages were sent during these checks. It does not promise support for every question/player layout. Canvas itself may auto-submit timed quizzes. Programmatic inputs may be distinguished and logged; hidden instructor/server-side flags were not inspected.
+
+## Permissions and source
+
+Required host access is limited to the named learning platforms and AI services. Optional school Canvas access is granted per site. Settings use Chrome storage; pending requests and run metadata use session storage. Visible question text/options, optional notebook answers and optional cropped question pictures are sent to the selected AI services. The full capture is cropped in memory; only the crop enters session storage for delivery, and it is cleared after completion/cancellation. No API keys, login cookies or authentication tokens are read. Hidden answer APIs are not used by the shared worker.
+
+Original MIT license and attribution are retained in LICENSE. The supplied Auto-McGraw code is the basis of the McGraw adapters; its old per-provider AI scripts and release updater are replaced with one correlated connection and this unified settings page. No proprietary Pearson/Cengage source library or question bank is bundled. The extension is unofficial and unaffiliated with the platforms or AI providers.
+
+## Could this be published?
+
+It can technically be submitted to the Chrome Web Store, but this local build is not a store-ready release and approval is not guaranteed. Before public distribution, review live compatibility, requested permissions, disclosures/consent for assignment text or pictures sent to third-party AI services, automated-message controls, provider terms and logo use. Remove the experimental duplicate-credit workflow from a public release. No extension has been submitted or published here.
+
+Chrome’s publish guidance: https://developer.chrome.com/docs/webstore/publish . Program policies: https://developer.chrome.com/docs/webstore/program-policies/policies . Provider branding: assets/ATTRIBUTION.md .

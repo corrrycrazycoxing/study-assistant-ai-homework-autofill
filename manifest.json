@@ -1,0 +1,202 @@
+{
+  "manifest_version": 3,
+  "name": "Study Assistant \u2014 McGraw, Pearson, Canvas & MindTap",
+  "version": "2.5.0",
+  "description": "Compact study panel with readable answers, linked AI tabs, cell review pacing and saved progress.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "scripting",
+    "activeTab",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://learning.mheducation.com/*",
+    "https://ezto.mheducation.com/*",
+    "https://tdx.acs.pearson.com/*",
+    "https://mylab.pearson.com/*",
+    "https://mylabmastering.pearson.com/*",
+    "https://*.instructure.com/*",
+    "https://canvas.csuchico.edu/*",
+    "https://ng.cengage.com/*",
+    "https://aplia.apps.ng.cengage.com/*",
+    "https://chatgpt.com/*",
+    "https://gemini.google.com/*",
+    "https://chat.deepseek.com/*",
+    "https://notebooklm.google.com/*",
+    "https://notebook.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png"
+    },
+    "default_title": "Study Assistant"
+  },
+  "options_ui": {
+    "page": "popup/settings.html",
+    "open_in_tab": true
+  },
+  "minimum_chrome_version": "116",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://learning.mheducation.com/*",
+        "https://ezto.mheducation.com/*",
+        "https://tdx.acs.pearson.com/*",
+        "https://mylab.pearson.com/*",
+        "https://mylabmastering.pearson.com/*",
+        "https://*.instructure.com/*",
+        "https://canvas.csuchico.edu/*",
+        "https://ng.cengage.com/*",
+        "https://aplia.apps.ng.cengage.com/*"
+      ],
+      "js": [
+        "shared/capture-frame.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://ezto.mheducation.com/ext/common/accountingtool/*"
+      ],
+      "js": [
+        "content-scripts/mcgraw-accounting-bridge.js"
+      ],
+      "all_frames": true,
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://tdx.acs.pearson.com/Player/*",
+        "https://mylab.pearson.com/*"
+      ],
+      "js": [
+        "content-scripts/editor-bridge.js",
+        "content-scripts/player-bridge.js"
+      ],
+      "all_frames": true,
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://learning.mheducation.com/static/awd/*"
+      ],
+      "js": [
+        "shared/config.js",
+        "shared/security.js",
+        "shared/platform.js",
+        "shared/monitor.js",
+        "shared/pacing.js",
+        "shared/media.js",
+        "content-scripts/mheducation.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://ezto.mheducation.com/*"
+      ],
+      "js": [
+        "shared/config.js",
+        "shared/security.js",
+        "shared/platform.js",
+        "shared/monitor.js",
+        "shared/pacing.js",
+        "shared/media.js",
+        "shared/mcgraw-schema.js",
+        "content-scripts/mcgraw-map.js",
+        "content-scripts/ezto-mheducation.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://tdx.acs.pearson.com/Player/*",
+        "https://mylab.pearson.com/*"
+      ],
+      "js": [
+        "shared/config.js",
+        "shared/security.js",
+        "shared/platform.js",
+        "shared/monitor.js",
+        "shared/pacing.js",
+        "shared/media.js",
+        "content-scripts/pearson.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.instructure.com/*",
+        "https://canvas.csuchico.edu/*"
+      ],
+      "js": [
+        "shared/config.js",
+        "shared/security.js",
+        "shared/platform.js",
+        "shared/monitor.js",
+        "shared/pacing.js",
+        "shared/media.js",
+        "content-scripts/canvas.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://aplia.apps.ng.cengage.com/*"
+      ],
+      "js": [
+        "shared/config.js",
+        "shared/security.js",
+        "shared/platform.js",
+        "shared/monitor.js",
+        "shared/pacing.js",
+        "shared/media.js",
+        "content-scripts/mindtap.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://gemini.google.com/*",
+        "https://chat.deepseek.com/*"
+      ],
+      "js": [
+        "content-scripts/image-upload.js",
+        "content-scripts/assistant.js"
+      ]
+    },
+    {
+      "matches": [
+        "https://notebooklm.google.com/*",
+        "https://notebook.google.com/*"
+      ],
+      "js": [
+        "content-scripts/notebook.js"
+      ]
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel/panel.html"
+  }
+}

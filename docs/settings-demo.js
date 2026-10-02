@@ -1,0 +1,3 @@
+/* Synthetic options fixture: no real site, permissions or AI requests. */
+let settingsData={platformMode:'auto',aiModel:'gemini',platformSettings:{},canvasOrigins:[],watchAutomation:false};
+window.chrome={runtime:window.parent!==window&&window.parent.chrome?.runtime||{sendMessage:async()=>({received:true}),getURL:path=>new URL('../'+path,location.href).href},storage:{sync:{get:async()=>structuredClone(settingsData),set:async value=>{Object.assign(settingsData,value);document.getElementById('saved').textContent='Saved';}}},tabs:{query:async()=>[],create:async value=>{document.getElementById('saved').dataset.openedUrl=value.url;document.getElementById('saved').textContent='PASS requested expanded view';return value;}}};

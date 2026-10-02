@@ -1,0 +1,7 @@
+# Study Assistant 2.5.0 verification
+
+The production JavaScript files pass `node --check`. The Node regression harness passes the Human pace estimate bounds and Faster/Typical/More deliberate profiles, question-type fallback estimates, malformed timing rejection, event-driven AI response completion, stale/partial JSON handling, recycled response nodes, duplicate-delivery prevention and cancellation cleanup.
+
+The browser fixtures verified Pearson answer editing, printed part and table labels, multipart preview, Above/Below grouping, custom dropdown menus whose options move into a popup with duplicate IDs, full Auto checking and navigation, native numeric character entry, stop during typing, manual dropdown fallback, and the small-popup Human speed and Manual controls. The Connect MAP fixtures verified native numeric editing, journal account menus, all available transactions, check-and-advance, conflicts, replacement, stale transaction protection, unsupported controls, cancellation and popup pace controls.
+
+Live Pearson markup was inspected without submitting homework. The live player uses a hidden question-level control, visible printed `a.`/`b.` parts, custom `.xlFillin` dropdowns, and a Next button outside the control panel; those structures are covered by the adapter and local fixture. Canvas and MindTap source paths were syntax-checked but their browser fixture run could not be repeated after the browser test service reached its usage limit.

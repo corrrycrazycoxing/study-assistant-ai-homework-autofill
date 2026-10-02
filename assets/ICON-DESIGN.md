@@ -1,0 +1,5 @@
+# Study Assistant icon
+
+Generated with the built-in image_gen tool, September 30, 2026. Original book-and-spark artwork; not a provider logo. Transparent alpha is retained. PNG variants at 16, 32, 48, 128 and 512 pixels use the same artwork, downsampled for Chrome/UI packaging.
+
+Final prompt: Use case: logo-brand. Asset type: original Chrome extension app icon for Study Assistant. Create a polished, distinctive square app icon: a bold white open book with a single luminous cyan four-point spark rising from its pages, integrated into a deep indigo and violet rounded-square tile. Modern dimensional illustration with very subtle depth and a clean strong silhouette. Centered, large symbol, thick readable shapes, minimal details; must remain recognizable at 16 and 32 pixels in a Chrome toolbar and look excellent enlarged in a dark side panel. The tile fills most of the square with modest transparent padding only outside its rounded corners. No words, letters, numbers, watermark, third-party logos or extra objects. Cool, confident, helpful study-tool character, high contrast white book and cyan spark against rich indigo/violet.
