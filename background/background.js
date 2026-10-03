@@ -5,6 +5,16 @@ const origins={chatgpt:'https://chatgpt.com',gemini:'https://gemini.google.com',
 const notebookHosts=['https://notebooklm.google.com/*','https://notebook.google.com/*'];
 const expiry=600000,runExpiry=14400000;
 let queue=Promise.resolve();
+// Chrome downloads extension updates in the background and emits this event
+// when a new package is ready. Keep the notice in session storage so the
+// panel can explain the state without reloading an active assignment.
+async function recordUpdateAvailable(version){
+  if(typeof version==='string'&&version)await chrome.storage.session.set({updateAvailable:{version,detectedAt:Date.now()}});
+}
+chrome.runtime.onUpdateAvailable?.addListener(details=>{recordUpdateAvailable(details?.version).catch(()=>{});});
+chrome.runtime.onInstalled?.addListener(details=>{
+  if(details.reason==='update')chrome.storage.session.remove('updateAvailable').catch(()=>{});
+});
 const config=()=>chrome.storage.sync.get(['platformMode','platformSettings','aiModel','canvasOrigins','watchAutomation']);
 const same=(sender,state)=>sender.tab?.id===state?.tab&&sender.frameId===state?.frame&&(!state.documentId||!sender.documentId||state.documentId===sender.documentId);
 async function sourcePlatform(sender){

@@ -56,10 +56,10 @@ async function panelSnapshot(m){
     try{const r=await chrome.tabs.sendMessage(page.tab,{type:'studyPageProbe'},page.documentId?{documentId:page.documentId}:{frameId:page.frame});if(!r?.state||r.state.pageId!==page.pageId)page=null;else page={...page,...r.state};}catch{page=null;}
   }
   const data=await config(),preferences=page?StudyConfig.preferences(data,page.platform):{};
-  const {pending}=await chrome.storage.session.get('pending');const checkpoint=page?await readCheckpoint(page.checkpointKey):null;
+  const {pending,updateAvailable}=await chrome.storage.session.get(['pending','updateAvailable']);const checkpoint=page?await readCheckpoint(page.checkpointKey):null;
   return {received:true,onboardingRequired:!await setupComplete(),setupDefaults:{aiModel:data.aiModel||'gemini',watchAutomation:data.watchAutomation===true,platformSettings:Object.fromEntries(StudyConfig.platforms.map(p=>[p,StudyConfig.preferences(data,p)]))},settingsIntent,pages:pages.map(p=>({tab:p.tab,pageId:p.pageId,platform:p.platform,title:p.title})),page:page?{pageId:page.pageId,tab:page.tab,frame:page.frame,documentId:page.documentId,platform:page.platform,kind:page.kind,status:page.status,preview:page.preview,controls:page.controls,timer:page.timer,recoverable:page.recoverable}:null,
     run:run?{platform:run.platform,tab:run.tab,count:run.count||0,phase:run.phase||'answer'}:null,phase:pending&&page&&pending.tab===page.tab?pending.phase:null,
-    checkpoint:checkpoint?{count:checkpoint.count,done:checkpoint.done.length,phase:checkpoint.phase,updated:checkpoint.updated}:null,connections:await connections(preferences),preferences:{pacingMode:preferences.pacingMode,pauseBeforeSubmit:preferences.pauseBeforeSubmit,preferNotebook:preferences.preferNotebook,aiModel:preferences.aiModel,watchAutomation:data.watchAutomation===true}};
+    checkpoint:checkpoint?{count:checkpoint.count,done:checkpoint.done.length,phase:checkpoint.phase,updated:checkpoint.updated}:null,updateAvailable:updateAvailable||null,connections:await connections(preferences),preferences:{pacingMode:preferences.pacingMode,pauseBeforeSubmit:preferences.pauseBeforeSubmit,preferNotebook:preferences.preferNotebook,aiModel:preferences.aiModel,watchAutomation:data.watchAutomation===true}};
 }
 async function panelCommand(m){
   if(!['stop','timerStop'].includes(m.action))await requireSetup();

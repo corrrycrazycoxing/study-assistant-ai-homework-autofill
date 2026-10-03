@@ -99,6 +99,9 @@ function render(s){
  const phases={vision:'Reading the picture',grounding:'Checking NotebookLM readings',formatting:'Formatting the source answer',answer:'Waiting for AI'};
  $('phase').textContent=s.phase?phases[s.phase]||s.phase:page?.timer?'Review countdown':s.run&&page&&s.run.tab===page.tab?'Auto in progress':page?'Assignment connected':'Open a supported assignment';
  $('status').textContent=page?.status||'Reload a supported assignment after loading this version. Its page controls remain available when this panel is closed.';
+ const update=s.updateAvailable;
+ $('update-banner').hidden=!update;
+ $('update-message').textContent=update?`Version ${update.version} is ready.`:'';
  for(const b of document.querySelectorAll('[data-action]')){const a=b.dataset.action;b.disabled=busy||!!draftState||!page||(!a.startsWith('timer')&&a!=='recover'&&!page.controls?.[a]);if(a==='resume'||a==='stop')b.hidden=!page?.controls?.[a];}
  $('conflict').hidden=!page?.controls?.replaceStart;
  $('timer').hidden=!page?.timer;if(page?.timer){$('timer-label').textContent=page.timer.label;$('timer-note').textContent=page.timer.note;$('timer-progress').value=page.timer.progress;document.querySelector('[data-action="timerPause"]').textContent=page.timer.pauseLabel;}

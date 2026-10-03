@@ -1,3 +1,15 @@
+# Study Assistant 2.5.1
+
+[Latest GitHub release](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest) · [Changelog](CHANGELOG.md) · [Privacy policy](PRIVACY.md) · [Terms of use](TERMS.md) · [Publication checklist](PUBLISHING.md) · [Security notes](SECURITY.md)
+
+## Getting update notifications
+
+On GitHub, choose **Watch → Custom → Releases** to receive notifications when a new version is published. Each release should have a matching `vX.Y.Z` tag, release notes and an installable extension ZIP. A commit alone is not a release notification. The latest-release link above becomes available after the first release is published. See [GitHub's release guidance](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases).
+
+Chrome Web Store installations use Chrome's automatic updates. The side panel shows **Update ready** and the version when Chrome reports a downloaded update. It does not poll GitHub, force a reload or interrupt a run. Chrome may install an update while the extension is idle, so a notice is not guaranteed to remain visible. See [Chrome's runtime update API](https://developer.chrome.com/docs/extensions/reference/api/runtime#event-onUpdateAvailable).
+
+If installed using **Load unpacked** from a GitHub download, update manually: download the new release ZIP, extract it, reload the extension in `chrome://extensions`, then reload the assignment and AI tabs. Unpacked installations do not receive Chrome Web Store updates.
+
 ## 2.5.0 realistic pacing and Pearson input update
 
 The small in-page assistant popup now includes Instant Auto, Timed Auto, Human pace and Manual review. Human pace asks the AI for a question-specific working-time estimate, accounts for reading, calculator or written work, splits the estimate across fields, and offers Faster, Typical and More deliberate speeds. AI wait time is counted toward the estimate, and the existing Timed Auto countdown remains unchanged.
@@ -15,8 +27,6 @@ Previews preserve detected printed question/subpart labels, identify number boxe
 ## 2.4.2 McGraw navigation fix
 
 Uses visible responsive copies of Check my work and Next. When pause after fill is off, automatic modes record journal entries, check work (when enabled), and advance. Final assignment submission remains manual. A missing Next is no longer treated as proof that the assignment is complete.
-
-# Study Assistant 2.5.0
 
 One Chrome extension containing the original Auto-McGraw SmartBook/Connect adapters, Pearson MyLab, Canvas and Cengage MindTap Aplia. It selects the adapter by the website and uses one shared AI/NotebookLM connection. Each platform has its own settings.
 
