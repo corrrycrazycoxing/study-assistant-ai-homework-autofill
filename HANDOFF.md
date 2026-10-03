@@ -21,7 +21,7 @@ Current source version: 2.5.5. The local checkout folder may still be named 2.5.
 - 2.5.4 makes AI homework autofill explicit in the name, description and README.
 
 ## Current publication status
-The previous v2.5.4 release is published. Version 2.5.5 fixes Pearson completed-control detection and updates the shared pace UI/panel scrolling; check GitHub for its publication status. GitHub About and topics were successfully updated through the signed-in Safari owner UI. The description now explicitly says AI homework autofill. Read DECISIONS.md for evidence and remaining limitations.
+Version 2.5.5 is published and independently verified with the installable ZIP (900,134 bytes). Source/tag commit: 0dbe56a55c40f2b94c8b1bc1496ac7c97f20ac2c. It fixes Pearson completed-control detection and updates the shared pace UI/panel scrolling. GitHub About and topics were successfully updated through the signed-in Safari owner UI. The description now explicitly says AI homework autofill. Read DECISIONS.md for evidence and remaining limitations.
 
 ## Verification and release procedure
 Run `node scripts/check.cjs`, `python3 scripts/package.py v2.5.5`, and `git diff --check`. Tests cover mocked timing/relay/security/update lifecycle; browser fixtures are in docs/.

@@ -50,3 +50,5 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Repository metadata:** Saved and visually verified the GitHub About description in Safari: “AI homework autofill Chrome extension for supported McGraw Connect, Pearson MyLab, Canvas and MindTap questions.” Topics: chrome-extension, homework-autofill, ai-study-assistant, mcgraw-connect, pearson-mylabs, canvas-lms, mindtap. This supersedes the prior blocked About note.
 
 **Updates:** User asked about automatic updates outside the Web Store. Explained a permanent unpacked folder plus a separate updater could reduce installation to a Chrome Reload click. No updater or scheduled update task has been implemented.
+
+**Publication verified:** main and v2.5.5 were pushed at 0dbe56a55c40f2b94c8b1bc1496ac7c97f20ac2c. GitHub release-by-tag independently returned draft=false and study-assistant-2.5.5.zip (900,134 bytes). Release: https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.5 .
