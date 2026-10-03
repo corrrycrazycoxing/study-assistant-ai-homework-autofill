@@ -2,6 +2,11 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.4 — October 2, 2026
+
+- Make AI homework autofill explicit in the extension name, description and repository overview.
+- Keep supported-site claims precise and preserve manual final submission.
+
 ## 2.5.3 — October 2, 2026
 
 - Put a direct ZIP download and four-step Chrome installation guide at the top of the repository README.

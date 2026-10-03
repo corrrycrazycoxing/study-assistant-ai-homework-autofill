@@ -1,8 +1,10 @@
-# Study Assistant 2.5.3
+# Study Assistant — AI Homework Autofill (2.5.4)
+
+Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas and MindTap** using a connected ChatGPT, Gemini or DeepSeek tab. Review answers before final submission.
 
 ## Download and install
 
-**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/download/v2.5.3/study-assistant-2.5.3.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest)
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/download/v2.5.4/study-assistant-2.5.4.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest)
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
@@ -111,7 +113,7 @@ The monitor also stops cleanly when Chrome invalidates an old extension after up
 
 ## Install
 
-1. Extract **study-assistant-2.5.3.zip**.
+1. Extract **study-assistant-2.5.4.zip**.
 2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the extracted folder containing **manifest.json**. Do not select its parent folder or the ZIP.
 3. Disable the separate Auto-McGraw, Pearson, Canvas and MindTap extensions so their AI connectors do not compete with this one.
 4. Reload your assignment and any open Gemini, ChatGPT, DeepSeek or NotebookLM tabs. Sign into the AI services and leave their prompt boxes empty.

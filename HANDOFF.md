@@ -1,7 +1,7 @@
 # Start here when continuing in another chat
 
 Repository: https://github.com/corrrycrazycoxing/study-assistant-extension
-Current source version: 2.5.3. The local checkout folder may still be named 2.5.0; manifest.json is authoritative.
+Current source version: 2.5.4. The local checkout folder may still be named 2.5.0; manifest.json is authoritative.
 
 ## Already implemented
 - Pearson printed question/subpart labels, paired Above/Below preview tables, dropdown handling and question-level Final check/Next.
@@ -18,10 +18,12 @@ Current source version: 2.5.3. The local checkout folder may still be named 2.5.
 4. Picture-question uploads and Canvas New Quizzes are experimental.
 5. Accessibility, third-party asset licensing and public-distribution review remain in PUBLISHING.md. No Chrome Web Store publication was requested here.
 
+- 2.5.4 makes AI homework autofill explicit in the name, description and README.
+
 ## Current publication status
-The `v2.5.3` release and `study-assistant-2.5.3.zip` asset are published and independently verified. The repository README links directly to the ZIP and explains installation. Read [DECISIONS.md](DECISIONS.md) for publication history.
+The `v2.5.3` release and ZIP asset are published and independently verified. The 2.5.4 release is pending until its ZIP asset is verified. The repository README links directly to the ZIP and explains installation. Read [DECISIONS.md](DECISIONS.md) for publication history.
 
 ## Verification and release procedure
-Run `node scripts/check.cjs`, `python3 scripts/package.py v2.5.3`, and `git diff --check`. Tests cover mocked timing/relay/security/update lifecycle; browser fixtures are in docs/.
+Run `node scripts/check.cjs`, `python3 scripts/package.py v2.5.4`, and `git diff --check`. Tests cover mocked timing/relay/security/update lifecycle; browser fixtures are in docs/.
 For future versions update manifest, visible badges, CHANGELOG.md and RELEASE-NOTES.md. Inspect remote changes, run checks, review diff/secrets, commit, show hash, push source and a matching version tag. Run `python3 scripts/publish-release.py` to publish the ZIP after pushing the tag. Confirm the release asset before reporting publication. Never replace an existing tag.
 Update this file with actual results and remaining work each turn. The owner authorized source pushes and matching GitHub releases for requested updates; this does not authorize unrelated features or store submission.

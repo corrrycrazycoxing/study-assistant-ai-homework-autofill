@@ -1,8 +1,8 @@
-Study Assistant 2.5.3
+Study Assistant 2.5.4
 
-- Added a direct download link and concise Chrome installation steps at the top of the repository README.
-- Updated visible version labels to match this package.
+- Renamed the extension to Study Assistant — AI Homework Autofill so its main function is clear.
+- Updated the description and repository overview to list the supported sites and connected AI tabs.
 
-Download the attached `study-assistant-2.5.3.zip`. Extract it, open `chrome://extensions`, enable Developer mode, and select the extracted folder containing `manifest.json` with Load unpacked. Reload assignment and AI tabs after replacing an older installation.
+Download the attached `study-assistant-2.5.4.zip`, extract it, and load the folder containing `manifest.json` through `chrome://extensions` → Developer mode → Load unpacked. Reload assignment and AI tabs after replacing an older installation.
 
-No answer or automation logic changed in this release. Final assignment submission remains manual.
+Autofill applies to supported controls; unsupported questions require manual work. Final assignment submission remains manual. No answer or automation logic changed in this release.
