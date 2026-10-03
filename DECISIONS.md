@@ -34,4 +34,6 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 
 **Why:** The old name listed websites but did not state that the extension autofills supported homework fields, making the main function hard to find or understand.
 
-**Checks and publication:** Pending release verification. No answer or automation behavior changed.
+**Checks and publication:** Node regression tests, JavaScript syntax, ZIP integrity, `git diff --check` and a secret-pattern scan passed. Commit `0178f849f6c7358977be74846a07774e89738c3f` was pushed as `v2.5.4`. GitHub independently confirmed the public release and `study-assistant-2.5.4.zip` asset (898,588 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.4 . No answer or automation behavior changed.
+
+**GitHub About remains:** The separate repository description still reads “Privacy-focused Chrome extension for guided study assistance on Pearson, McGraw Hill, Canvas, and MindTap.” The existing publishing token returned HTTP 403 for the repository-settings API, and the open Chrome GitHub page was signed out. Suggested replacement: “AI homework autofill Chrome extension for supported McGraw Connect, Pearson MyLab, Canvas and MindTap questions.” Repository topics can also be added by an admin: `chrome-extension`, `homework-autofill`, `ai-study-assistant`, `mcgraw-connect`, `pearson-mylab`, `canvas-lms`, `mindtap`. Do not claim these settings were changed.

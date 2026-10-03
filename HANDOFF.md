@@ -21,7 +21,7 @@ Current source version: 2.5.4. The local checkout folder may still be named 2.5.
 - 2.5.4 makes AI homework autofill explicit in the name, description and README.
 
 ## Current publication status
-The `v2.5.3` release and ZIP asset are published and independently verified. The 2.5.4 release is pending until its ZIP asset is verified. The repository README links directly to the ZIP and explains installation. Read [DECISIONS.md](DECISIONS.md) for publication history.
+The `v2.5.4` release and `study-assistant-2.5.4.zip` are published and independently verified. The extension name, description, README title and download links are updated. GitHub’s short About description still uses its older wording; the publishing token received HTTP 403 for repository settings, and the open Chrome GitHub page was signed out. A repository admin can edit About after signing in. The repository README links directly to the ZIP and explains installation. Read [DECISIONS.md](DECISIONS.md) for publication history.
 
 ## Verification and release procedure
 Run `node scripts/check.cjs`, `python3 scripts/package.py v2.5.4`, and `git diff --check`. Tests cover mocked timing/relay/security/update lifecycle; browser fixtures are in docs/.
