@@ -15,7 +15,7 @@ subprocess.run(['git','merge-base','--is-ancestor',tag,'HEAD'],cwd=root,check=Tr
 packaged=['manifest.json','LICENSE','PRIVACY.md','TERMS.md','README.md','CHANGELOG.md','assets','background','content-scripts','popup','shared','sidepanel']
 subprocess.run(['git','diff','--exit-code',tag,'HEAD','--',*packaged],cwd=root,check=True,stdout=subprocess.DEVNULL)
 refs=subprocess.check_output(['git','ls-remote','origin','refs/heads/main','refs/tags/'+tag],cwd=root,text=True)
-assert all(head+'\t'+ref in refs for ref in ['refs/heads/main','refs/tags/'+tag]), 'Push source and tag first'
+assert head+'\trefs/heads/main' in refs and tag_commit+'\trefs/tags/'+tag in refs, 'Push source and tag first'
 subprocess.run(['node','scripts/check.cjs'],cwd=root,check=True)
 subprocess.run(['python3','scripts/package.py',tag],cwd=root,check=True)
 credential=subprocess.check_output(['git','credential','fill'],input='protocol=https\nhost=github.com\n\n',text=True)
