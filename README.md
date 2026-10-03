@@ -1,10 +1,10 @@
-# Study Assistant — AI Homework Autofill (2.5.5)
+# Study Assistant — AI Homework Autofill (2.5.6)
 
 Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas and MindTap** using a connected ChatGPT, Gemini or DeepSeek tab. Review answers before final submission.
 
 ## Download and install
 
-**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/download/v2.5.5/study-assistant-2.5.5.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest)
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/download/v2.5.6/study-assistant-2.5.6.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest)
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
@@ -23,6 +23,8 @@ On GitHub, choose **Watch → Custom → Releases** to receive notifications whe
 Chrome Web Store installations use Chrome's automatic updates. The side panel shows **Update ready** and the version when Chrome reports a downloaded update. It does not poll GitHub, force a reload or interrupt a run. Chrome may install an update while the extension is idle, so a notice is not guaranteed to remain visible. See [Chrome's runtime update API](https://developer.chrome.com/docs/extensions/reference/api/runtime#event-onUpdateAvailable).
 
 If installed using **Load unpacked** from a GitHub download, update manually: download the new release ZIP, extract it, reload the extension in `chrome://extensions`, then reload the assignment and AI tabs. Unpacked installations do not receive Chrome Web Store updates.
+
+For a reusable unpacked folder, the optional [update helper](scripts/update-unpacked.py) checks the latest GitHub release and replaces the extension files in that same folder. Run `python3 scripts/update-unpacked.py "/path/to/your/loaded/folder" --check` to see whether an update exists, or use `--apply` to install it. The helper keeps unrelated files in the folder and checks the release ZIP and version before replacing extension files. Then click **Reload** for Study Assistant in `chrome://extensions` and refresh assignment and AI tabs. This is a local update command, not a background Chrome update; keep a copy of the prior ZIP if you may need to roll back.
 
 ## 2.5.0 realistic pacing and Pearson input update
 
@@ -113,7 +115,7 @@ The monitor also stops cleanly when Chrome invalidates an old extension after up
 
 ## Install
 
-1. Extract **study-assistant-2.5.5.zip**.
+1. Extract **study-assistant-2.5.6.zip**.
 2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the extracted folder containing **manifest.json**. Do not select its parent folder or the ZIP.
 3. Disable the separate Auto-McGraw, Pearson, Canvas and MindTap extensions so their AI connectors do not compete with this one.
 4. Reload your assignment and any open Gemini, ChatGPT, DeepSeek or NotebookLM tabs. Sign into the AI services and leave their prompt boxes empty.

@@ -1,5 +1,5 @@
 let fixtureEditor;window.StudyMonitor={setEditor:e=>fixtureEditor=e,setRecovery:()=>{},setReplacement:()=>{},notice:()=>{}};
-let listener,storageListener,index=0,scenario='all',prompts=[],run=null,nexts=0,submits=0,backup=false,lastBackup=0,lastAnswer=null,persisted={},backups=0;
+let listener,storageListener,index=0,scenario='all',prompts=[],run=null,nexts=0,submits=0,backup=false,lastBackup=0,persisted={},backups=0;
 const config={autoFill:false,pauseBeforeSubmit:false,showExplanation:true};
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 const choice=(q,text,i,type)=>'<div class="answer"><label class="answer_row"><span class="answer_input">'+(type==='checkbox'?'<input type="hidden" value="0">':'')+'<input class="question_input" type="'+type+'" name="question_'+q+'" id="q'+q+'a'+i+'" aria-labelledby="q'+q+'label'+i+'"></span><div id="q'+q+'label'+i+'">'+text+'</div></label></div>';
@@ -42,9 +42,7 @@ function render(){
  if(scenario==='review')content=questions[0].replaceAll('class="question_input"','disabled class="question_input"');
  quiz.innerHTML='<form id="submit_quiz_form"><div id="questions" class="assessing">'+content+'</div><span id="last_saved_indicator">Quiz saved at initial</span>'+(scenario==='paged'&&index<4?'<button class="next-question" type="submit" aria-label="Next Question">Next</button>':'')+'<button class="quiz_submit" type="submit" id="submit_quiz_button">Submit Quiz</button></form>';
  quiz.querySelector('form').onsubmit=e=>e.preventDefault();
- quiz.querySelector('#questions').addEventListener('mousedown',e=>lastAnswer=e.target.closest('.answer'));
- quiz.querySelector('#questions').addEventListener('mouseup',()=>lastAnswer=null);
- quiz.querySelector('#questions').addEventListener('change',e=>{if(e.target.type==='checkbox'||e.target.type==='radio'){if(lastAnswer===e.target.closest('.answer'))save();}else save();});
+ quiz.querySelector('#questions').addEventListener('change',save);
  quiz.querySelector('.quiz_submit').onclick=()=>submits++;
  const next=quiz.querySelector('.next-question');if(next)next.onclick=()=>{if(!Object.values(values()).some(v=>v===true||typeof v==='string'&&v))throw Error('Empty advance');nexts++;index++;lastBackup=0;render();};
 }

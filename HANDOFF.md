@@ -1,7 +1,7 @@
 # Start here when continuing in another chat
 
 Repository: https://github.com/corrrycrazycoxing/study-assistant-extension
-Current source version: 2.5.5. The local checkout folder may still be named 2.5.0; manifest.json is authoritative.
+Current source version: 2.5.6. The local checkout folder may still be named 2.5.0; manifest.json is authoritative.
 
 ## Already implemented
 - Pearson printed question/subpart labels, paired Above/Below preview tables, dropdown handling and question-level Final check/Next.

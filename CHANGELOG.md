@@ -2,6 +2,12 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.6 — October 3, 2026
+
+- Added an optional local helper to update a Load unpacked installation from the latest GitHub release in place. Chrome still needs a manual Reload.
+- Added offline validation tests for the updater and documented the update command.
+- Fixed Canvas Classic Quiz autosave verification so it cannot switch a selected radio answer; refreshed the browser fixture's change-event behavior.
+
 ## 2.5.5 — October 3, 2026
 
 - Ignore graded Pearson answer widgets when checking whether active controls were captured, allowing later-part dropdowns to be read.
