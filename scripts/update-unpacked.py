@@ -35,19 +35,23 @@ def verify_archive(archive, expected):
     if archive.testzip() is not None:
         raise ValueError('Release ZIP failed integrity check')
     names = archive.namelist()
-    if not names or 'manifest.json' not in names:
-        raise ValueError('Release ZIP has no root manifest')
+    folder = f'Study-Assistant-{expected}'
+    prefix = '' if 'manifest.json' in names else folder + '/' if folder + '/manifest.json' in names else None
+    if not names or prefix is None:
+        raise ValueError('Release ZIP has no extension manifest')
     if len(names) != len(set(names)):
         raise ValueError('Release ZIP contains duplicate paths')
     for name in names:
-        path = PurePosixPath(name)
-        if path.is_absolute() or '..' in path.parts or not path.parts or not (
-            path.parts[0] in PACKAGE_ROOTS or name in PACKAGE_FILES
+        relative = name.removeprefix(prefix) if name.startswith(prefix) else None
+        path = PurePosixPath(relative or '')
+        if relative is None or path.is_absolute() or '..' in path.parts or not path.parts or not (
+            path.parts[0] in PACKAGE_ROOTS or relative in PACKAGE_FILES
         ):
             raise ValueError(f'Unexpected release path: {name}')
-    manifest = json.loads(archive.read('manifest.json'))
+    manifest = json.loads(archive.read(prefix + 'manifest.json'))
     if manifest.get('version') != expected or manifest.get('name', '').find('Study Assistant') < 0:
         raise ValueError('Release manifest does not match the release tag')
+    return prefix
 
 
 def main():
@@ -80,14 +84,14 @@ def main():
         zip_path = temp / asset_name
         zip_path.write_bytes(fetch(asset['browser_download_url']))
         with zipfile.ZipFile(zip_path) as archive:
-            verify_archive(archive, latest)
+            prefix = verify_archive(archive, latest)
             archive.extractall(temp / 'new')
         old = temp / 'old'
         old.mkdir()
         moved = []
         try:
             for name in sorted(PACKAGE_ROOTS | PACKAGE_FILES):
-                source = temp / 'new' / name
+                source = temp / 'new' / prefix / name
                 target = folder / name
                 if not source.exists():
                     continue

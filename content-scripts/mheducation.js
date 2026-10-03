@@ -1504,6 +1504,11 @@ async function processChatGPTResponse(responseText) {
   if (!container) return;
   const questionType = detectQuestionType(container);
   const response = StudySecurity.parse(responseText);
+  if(legacySettings.pacingMode==='review'){
+    isAutomating=false;updateUnifiedStopped();
+    alert('Guided answer: '+JSON.stringify(response.answer)+'\n\n'+String(response.explanation||''));
+    return;
+  }
   const mine=legacyEpoch,signature=getQuestionSignature(container);
   const current=()=>isAutomating&&mine===legacyEpoch&&container.isConnected&&getQuestionSignature(container)===signature;
   legacyPacer.begin(response.studyTiming||response.suggestedReviewSeconds,container.querySelectorAll('input.fitb-input').length||1,{text:container.textContent,fields:[...container.querySelectorAll('input.fitb-input')].map((el,i)=>({key:'legacy.'+i,el}))});

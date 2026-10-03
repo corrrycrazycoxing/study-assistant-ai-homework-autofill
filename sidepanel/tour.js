@@ -3,18 +3,16 @@
  'use strict';
  const $=id=>document.getElementById(id);
  const steps=[
-  {target:'#assignment',title:'1. Choose your assignment',text:'This is the page the assistant will work on. Pick it here when several assignments are open. If the list is empty, reload a supported assignment first.'},
-  {target:'.connections',title:'2. Connect an AI tab',text:'Click an AI card outside the tour to open or switch to that service. Keep it signed in with an empty prompt box. NotebookLM can answer from your selected course readings; a chatbot then formats that answer for entry.'},
-  {target:'.main-actions',title:'3. Ask, fill, or run Auto',text:'Ask AI prepares an answer. Fill answers enters the prepared answer. Start Auto repeats that flow and continues where supported. This tour explains the buttons without starting any work.'},
-  {target:'#activity',title:'4. Follow what is happening',text:'The progress bar follows the five stages of the current question. The labels below it are status indicators, not buttons. This is stage progress, not a time estimate or an assignment completion percentage. Countdown controls appear here during timed review: Pause freezes the countdown, Continue now moves on, and Stop cancels the pending action. Website quiz timers keep running.'},
-  {target:'.answer-card',title:'5. Review the answer',text:'Read numbered answers and their explanations here. Edit answer appears for supported drafts before filling. Save changes updates the draft; Fill answers enters it. Nerd mode reveals technical details only when you want them.'},
-  {target:'.run-options',title:'6. Decide when to pause',text:'Pause after fill adds a review stop after a question is entered. Watch automation follows tab switches; leaving it off keeps your current tab visible. These are separate from the pace mode.'},
-  {target:'#settings',title:'7. Open Settings',text:'Click the highlighted Settings button to see where the four pace cards live. Settings opens inside this panel.',action:'settings',button:'Open Settings →'},
-  {frame:'#settings-frame',target:'.pace-cards',title:'8. Pick an automation pace',text:'Instant Auto adds no countdown. Timed Auto continues automatically when each countdown ends. Human pace uses an adjustable AI estimate for the question. Review each step waits for Continue now. Click a card when configuring your preferences; this tour leaves your saved mode unchanged.',modes:true},
-  {frame:'#settings-frame',target:'.settings-nav',title:'9. Find the other features',text:'Automation holds pace and answer controls. AI & readings holds chatbot and NotebookLM preferences. Pictures enables visible question graphics. Platform options holds site access and checking settings. Changes save automatically.'},
-  {target:'#back-to-assistant',title:'10. Return to your assistant',text:'Click the highlighted Back button to return. Expanded view in Settings is available when you want a full browser tab.',action:'back',button:'Back to assistant →'},
-  {target:'.activity-history',title:'11. Recover carefully',text:'Recent activity keeps the last eight observed updates while this panel is open. Saved progress appears when supported. Attention cards explain problems and offer actions. Uncertain saves or grading still require your review.'},
-  {target:'#stop-all',title:'12. You are in control',text:'Stop all cancels pending automation; values already entered remain. Review answers and follow your course rules. You can replay this walkthrough from Help whenever you want.',button:'Finish walkthrough ✓'}
+  {target:'#assignment',title:'1. Choose your assignment',text:'Pick the assignment you want help with. If it is missing, reload its page first.'},
+  {target:'.connections',title:'2. Connect an AI tab',text:'Open your preferred chatbot and sign in. NotebookLM can use selected course readings when you enable it. Opening a tab alone does not send a question.'},
+  {target:'.main-actions',title:'3. Choose how to get help',text:'Ask AI shows one answer. Fill answers enters it in Auto modes. Start Auto repeats the supported flow. In Guided Answers, Guide me shows the answer and explanation; you enter it yourself.'},
+  {target:'.answer-card',title:'4. Read the answer',text:'Find each answer beside its question or field label, then read the explanation. Edit answer changes a prepared draft before filling. Nerd mode shows technical details.'},
+  {target:'#activity',title:'5. Follow progress',text:'The bar shows the current question stage, not assignment completion. Timed modes show countdown controls here. Guided Answers has no countdown or automatic entry.'},
+  {target:'#settings',title:'6. Open Settings',text:'Choose the highlighted Settings button. It opens within this side panel.',action:'settings',button:'Open Settings →'},
+  {frame:'#settings-frame',target:'.pace-cards',title:'7. Pick a mode',text:'Instant Auto fills when ready; Timed Auto waits a set time; Human pace uses an AI working-time estimate. Guided Answers leaves entry and navigation to you. Pause after fill applies only to Auto modes.',modes:true},
+  {frame:'#settings-frame',target:'.settings-nav',title:'8. Find other preferences',text:'Use AI & readings for chatbots and NotebookLM, Pictures for visible graphics, and Platform options for site controls. Changes save automatically.'},
+  {target:'#back-to-assistant',title:'9. Return to the assistant',text:'Choose Back to return to the assignment controls. Expanded view is available if you want more room.',action:'back',button:'Back to assistant →'},
+  {target:'#stop-all',title:'10. Stop when needed',text:'Stop all cancels pending work; entered values remain. Reopen this walkthrough from Help whenever you want.',button:'Finish walkthrough ✓'}
  ];
  let index=-1,hooks=null,clock=null,returnFocus=null,currentTarget=null;
  const layer=document.createElement('div');layer.id='tour-layer';layer.hidden=true;
@@ -40,7 +38,7 @@
  }
  function scrollTarget(){const found=locate();if(found){found.el.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});}position();}
  function show(){const step=steps[index];$('tour-progress').textContent='WALKTHROUGH · '+(index+1)+' / '+steps.length;$('tour-title').textContent=step.title;$('tour-description').textContent=step.text;$('tour-back').disabled=index===0;$('tour-next').textContent=step.button||'Next →';$('tour-mode-legend').hidden=!step.modes;
-  if(step.modes&&!$('tour-mode-legend').children.length)for(const [src,name] of [['instant','Instant Auto'],['timed','Timed Auto'],['review','Review each step']]){const row=document.createElement('span'),img=document.createElement('img');img.src='../assets/mode-'+src+'.png';img.alt='';row.append(img,document.createTextNode(name));$('tour-mode-legend').append(row);}
+  if(step.modes&&!$('tour-mode-legend').children.length)for(const [src,name] of [['instant','Instant Auto'],['timed','Timed Auto'],['review','Guided Answers']]){const row=document.createElement('span'),img=document.createElement('img');img.src='../assets/mode-'+src+'.png';img.alt='';row.append(img,document.createTextNode(name));$('tour-mode-legend').append(row);}
   if(step.frame){hooks.openSettings();const frame=$('settings-frame');const doc=frame.contentDocument;doc?.querySelector('[data-category="automation"]')?.click();frame.addEventListener('load',scrollTarget,{once:true});}
   else if(step.target!=='#back-to-assistant')hooks.closeSettings();
   scrollTarget();$('tour-next').focus();

@@ -305,7 +305,7 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
   }
   // Call open directly during the content-script button gesture. Queuing the
   // API call behind unrelated work can lose Chrome's user-gesture permission.
-  if(['openSettings','studyOpenWelcome'].includes(message?.type)&&sender.tab&&(StudyConfig.detect(sender.url)||message.type==='studyOpenWelcome')){
+  if(['openSettings','studyOpenWelcome','studyOpenPanel'].includes(message?.type)&&sender.tab&&(StudyConfig.detect(sender.url)||message.type==='studyOpenWelcome')){
     let opening;try{opening=chrome.sidePanel.open({tabId:sender.tab.id}).then(()=>null,error=>error);}catch(error){reply({received:false,error:error.message});return;}
     const job=queue.then(async()=>{const failure=await opening;if(failure)throw failure;const platform=await sourcePlatform(sender);if(!platform)return {received:false};return message.type==='openSettings'?settingsIntent(sender,StudyConfig.detect(sender.url)):{received:true};});queue=job.catch(()=>{});job.then(reply,error=>reply({received:false,error:error.message}));return true;
   }

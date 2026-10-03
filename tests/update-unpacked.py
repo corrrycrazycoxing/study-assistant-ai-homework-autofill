@@ -33,6 +33,8 @@ class UpdaterTests(unittest.TestCase):
         manifest = json.dumps({'name': 'Study Assistant', 'version': '2.5.6'})
         with archive({'manifest.json': manifest, 'popup/index.html': 'ok'}) as bundle:
             updater.verify_archive(bundle, '2.5.6')
+        with archive({'Study-Assistant-2.5.6/manifest.json': manifest, 'Study-Assistant-2.5.6/popup/index.html': 'ok'}) as bundle:
+            self.assertEqual(updater.verify_archive(bundle, '2.5.6'), 'Study-Assistant-2.5.6/')
         for files in [
             {'manifest.json': manifest, '../escape': 'bad'},
             {'manifest.json': manifest, 'evil.js': 'bad'},
@@ -52,8 +54,8 @@ class UpdaterTests(unittest.TestCase):
             release = {'tag_name': 'v2.5.6', 'assets': [{'name': 'study-assistant-2.5.6.zip', 'browser_download_url': 'https://example.test/archive'}]}
             payload = io.BytesIO()
             with zipfile.ZipFile(payload, 'w') as bundle:
-                bundle.writestr('manifest.json', json.dumps({'name': 'Study Assistant', 'version': '2.5.6'}))
-                bundle.writestr('popup/new.html', 'new')
+                bundle.writestr('Study-Assistant-2.5.6/manifest.json', json.dumps({'name': 'Study Assistant', 'version': '2.5.6'}))
+                bundle.writestr('Study-Assistant-2.5.6/popup/new.html', 'new')
             with patch.object(updater, 'fetch', side_effect=[json.dumps(release).encode(), payload.getvalue()]):
                 with patch('sys.argv', ['update-unpacked.py', str(folder), '--apply']):
                     updater.main()

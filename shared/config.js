@@ -2,7 +2,7 @@
   const onboardingVersion=1;
   const onboardingMessage='Complete first-use setup in the Study Assistant side panel before answering.';
   const platforms=['mcgraw','pearson','canvas','mindtap'];
-  const pacingNames={normal:'Instant Auto',slow:'Timed Auto',human:'Human pace',review:'Review each step'};
+  const pacingNames={normal:'Instant Auto',slow:'Timed Auto',human:'Human pace',review:'Guided Answers'};
   const names={mcgraw:'McGraw-Hill',pearson:'Pearson MyLab',canvas:'Canvas',mindtap:'MindTap Aplia'};
   const defaults=Object.fromEntries(platforms.map(p=>[p,{autoFill:false,pauseBeforeSubmit:true,showExplanation:true,preferNotebook:p==='canvas',notebookUrl:'',gradeBeforeAdvance:false,checkMapWork:true,doubleCreditMode:false,randomConfidence:false,replaceExisting:false,pacingMode:'normal',humanSpeed:'typical',humanMinSeconds:15,humanMaxSeconds:3600,useSuggestedTime:true,reviewSeconds:30,reviewMinSeconds:5,reviewMaxSeconds:120,advanceSeconds:3,smoothScroll:true,includePictures:false}]));
   function detect(url,custom=[]){

@@ -20,7 +20,7 @@ StudyConfig.boot('pearson', (chrome) => {
   let pending=null,answer=null,explanation='',timer=null,panel,shadow,status,preview,apply,ask,cancel;
   let settings={...StudyConfig.defaults.pearson,autoFill:false,pauseBeforeSubmit:true,showExplanation:true};
   let loopGeneration=0;
-  let running=false,runId=null,runCount=0,responseWaiter=null,pauseWaiter=null,correction=null;
+  let running=false,guided=false,runId=null,runCount=0,responseWaiter=null,pauseWaiter=null,correction=null;
   let startButton,stopButton,resumeButton;
   const settingsReady=
   chrome.storage.sync.get(settings).then(values=>Object.assign(settings,values));
@@ -115,6 +115,7 @@ StudyConfig.boot('pearson', (chrome) => {
     });
   }
   async function stop(message='Stopped.') {
+    guided=false;
     pacer.cancel();
     loopGeneration++;running=false;
     if(startButton){startButton.disabled=filling;stopButton.disabled=true;resumeButton.hidden=true;}
@@ -128,6 +129,7 @@ StudyConfig.boot('pearson', (chrome) => {
   }
   async function request() {
     try {
+      guided=settings.pacingMode==='review';
       const snap=snapshot();
       if(snap.incomplete)throw Error('The page shows an answer control that was not captured. Review it manually before asking AI.');
       pending={...snap,id:crypto.randomUUID(),started:Date.now()};answer=null;preview.textContent='';shadow.getElementById('answer-display').replaceChildren();apply.disabled=true;ask.disabled=true;cancel.disabled=false;
@@ -168,9 +170,10 @@ StudyConfig.boot('pearson', (chrome) => {
   });
   let filling=false;
   async function fill(checkAfter=!settings.pauseBeforeSubmit) {
+    if(guided||settings.pacingMode==='review')throw Error('Guided Answers leaves entry to you. Choose an Auto mode to use Fill answers.');
     if(filling)return null;filling=true;ask.disabled=true;apply.disabled=true;startButton.disabled=true;cancel.disabled=false;stopButton.disabled=false;
     try{answerFilled=true;return await fillAnswers(checkAfter);}
-    finally{filling=false;ask.disabled=running;startButton.disabled=running;apply.disabled=running||!pending||!answer;cancel.disabled=!pending;stopButton.disabled=!running;}
+    finally{filling=false;ask.disabled=running;startButton.disabled=running;apply.disabled=guided||settings.pacingMode==='review'||running||!pending||!answer;cancel.disabled=!pending;stopButton.disabled=!running;}
   }
   async function fillAnswers(checkAfter) {
     apply.disabled=true;
@@ -236,8 +239,8 @@ StudyConfig.boot('pearson', (chrome) => {
       suggestion=data.studyTiming||data.suggestedReviewSeconds;manualImageReview=data.manualReviewRequired===true;answer=data.answer;answerRevision++;answerFilled=false;explanation=String(data.explanation||'');
       const fields=validate();
       answerPreview(fields,settings.showExplanation?explanation:'',message.grounded||'');
-      apply.disabled=running||!fields.length||(pending.hasDiagram&&!pending.imageToken);
-      say(pending.hasDiagram&&!pending.imageToken?'Diagram detected: the AI received text only. Review and enter answers manually.':fields.length?'AI answer ready. Review the preview before filling.':'Completed review: explanation ready. No answers changed.');
+      apply.disabled=guided||settings.pacingMode==='review'||running||!fields.length||(pending.hasDiagram&&!pending.imageToken);
+      say(guided?'Guided answer ready. Enter it yourself, then open the next question and choose Guide me again.':pending.hasDiagram&&!pending.imageToken?'Diagram detected: the AI received text only. Review and enter answers manually.':fields.length?'AI answer ready. Review the preview before filling.':'Completed review: explanation ready. No answers changed.');
       reply({received:true});
 
       if(responseWaiter){const waiter=responseWaiter;responseWaiter=null;waiter.resolve(fields);}
@@ -317,6 +320,9 @@ StudyConfig.boot('pearson', (chrome) => {
   }
   async function startAuto(resumed=null) {
     if(running)return;
+    await settingsReady;
+    if(settings.pacingMode==='review'&&!resumed){guided=true;await request();return;}
+    guided=false;
     const generation=++loopGeneration;
     try {
       await settingsReady;
@@ -389,12 +395,12 @@ StudyConfig.boot('pearson', (chrome) => {
     panel=document.createElement('div');panel.id='mylab-assistant-panel';
     panel.style.cssText='position:fixed;right:14px;bottom:78px;z-index:2147483647;max-width:calc(100vw - 28px)';
     shadow=panel.attachShadow({mode:'open'});
-    shadow.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#eee}*{box-sizing:border-box}details{width:330px;max-width:calc(100vw - 28px);background:#141414;border:1px solid #414141;border-radius:14px;box-shadow:0 8px 30px #0004;padding:14px}summary{cursor:pointer;font-weight:650;font-size:15px}.badge{color:#8f96ff;font-size:11px;margin:8px 0}button{font:inherit;margin:8px 5px 0 0;padding:8px 12px;border:0;border-radius:8px;background:#5264ff;color:white;cursor:pointer}button.secondary{background:#303030}button:disabled{opacity:.45;cursor:default}pre{white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;font:13px/1.5 system-ui}#status{color:#c3c3c3}#answer-display{overflow:auto;max-height:270px}#answer-display table{width:100%;border-collapse:collapse;font-size:12px}#answer-display caption{text-align:left;font-weight:650;padding:10px 0}#answer-display th,#answer-display td{padding:8px 6px;border-bottom:1px solid #414141;text-align:left;vertical-align:top;overflow-wrap:anywhere}#answer-display th{width:32%;font-weight:500;color:#b8c5e5}#answer-display td{font-weight:650}#answer-display p{white-space:pre-wrap}#answer-display details{width:auto;border:0;padding:8px;box-shadow:none}[hidden]{display:none!important}small{color:#999}</style><details><summary>✦ MyLab Assistant</summary><div class="badge">STUDY ASSISTANT · PEARSON MYLAB 2.5.6</div><button id="start">Start Auto</button><button id="stop" class="secondary" disabled>Stop</button><button id="resume" hidden>Resume Auto</button><br><button id="ask">Ask AI</button><button id="apply" disabled>Fill answers</button><button id="cancel" class="secondary" disabled>Cancel</button><pre id="status">Ready. Ask AI sends the visible question to your selected AI tab. Use Start Auto to fill and advance. Turn Pause Before Submit off in settings for continuous answering.</pre><pre id="preview" hidden></pre><div id="answer-display"></div><small>Settings are available from the extension icon.</small></details>';
+    shadow.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#eee}*{box-sizing:border-box}details{width:330px;max-width:calc(100vw - 28px);background:#141414;border:1px solid #414141;border-radius:14px;box-shadow:0 8px 30px #0004;padding:14px}summary{cursor:pointer;font-weight:650;font-size:15px}.badge{color:#8f96ff;font-size:11px;margin:8px 0}button{font:inherit;margin:8px 5px 0 0;padding:8px 12px;border:0;border-radius:8px;background:#5264ff;color:white;cursor:pointer}button.secondary{background:#303030}button:disabled{opacity:.45;cursor:default}pre{white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;font:13px/1.5 system-ui}#status{color:#c3c3c3}#answer-display{overflow:auto;max-height:270px}#answer-display table{width:100%;border-collapse:collapse;font-size:12px}#answer-display caption{text-align:left;font-weight:650;padding:10px 0}#answer-display th,#answer-display td{padding:8px 6px;border-bottom:1px solid #414141;text-align:left;vertical-align:top;overflow-wrap:anywhere}#answer-display th{width:32%;font-weight:500;color:#b8c5e5}#answer-display td{font-weight:650}#answer-display p{white-space:pre-wrap}#answer-display details{width:auto;border:0;padding:8px;box-shadow:none}[hidden]{display:none!important}small{color:#999}</style><details><summary>✦ MyLab Assistant</summary><div class="badge">STUDY ASSISTANT · PEARSON MYLAB 2.5.7</div><button id="start">Start Auto</button><button id="stop" class="secondary" disabled>Stop</button><button id="resume" hidden>Resume Auto</button><br><button id="ask">Ask AI</button><button id="apply" disabled>Fill answers</button><button id="cancel" class="secondary" disabled>Cancel</button><pre id="status">Ready. Ask AI sends the visible question to your selected AI tab. Use Start Auto to fill and advance. Turn Pause Before Submit off in settings for continuous answering.</pre><pre id="preview" hidden></pre><div id="answer-display"></div><small>Settings are available from the extension icon.</small></details>';
     ask=shadow.getElementById('ask');apply=shadow.getElementById('apply');cancel=shadow.getElementById('cancel');status=shadow.getElementById('status');preview=shadow.getElementById('preview');
     startButton=shadow.getElementById('start');stopButton=shadow.getElementById('stop');resumeButton=shadow.getElementById('resume');
     startButton.onclick=()=>startAuto();stopButton.onclick=()=>stop();resumeButton.onclick=()=>{resumeButton.hidden=true;const waiter=pauseWaiter;pauseWaiter=null;waiter?.resolve();};
     ask.onclick=request;apply.onclick=()=>fill();cancel.onclick=()=>stop();startButton.disabled=running;stopButton.disabled=!running;ask.disabled=running;document.body.append(panel);pacer.attach(shadow);
-    document.addEventListener('input',event=>{if(event.isTrusted&&!applyingChoice&&pending?.root.contains(event.target))stop('You edited an answer. Auto stopped; your changes remain.');},true);
+    document.addEventListener('input',event=>{if(!guided&&event.isTrusted&&!applyingChoice&&pending?.root.contains(event.target))stop('You edited an answer. Auto stopped; your changes remain.');},true);
   }
   new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});mount();
   chrome.runtime.sendMessage({type:'pearsonRunState'}).then(async state=>{if(state?.running){await chrome.runtime.sendMessage({type:'pearsonRunStop',runId:state.runId});say('Reloaded. Review entered answers; use Resume saved run in the extension panel.');globalThis.StudyMonitor?.notice('Reloaded. Review entered answers before recovering.');}}).catch(()=>{});

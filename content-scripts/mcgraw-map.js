@@ -29,7 +29,7 @@ if(window.top===window&&location.pathname.startsWith('/ext/map/'))StudyConfig.bo
   function key(){return JSON.stringify([location.href,S.text($('.footer__progress__heading')?.textContent),S.text($('#question-info-holder')?.textContent),problemText()]);}
   function guard(snap,token){if(token!==epoch||snap.key!==key()||!root())throw Error('Stopped: the question changed.');}
   function status(text){if(ui)ui.querySelector('[data-status]').textContent=text;}
-  function controls(){if(!ui)return;ui.querySelector('[data-stop]').disabled=!run&&!busy&&!request;ui.querySelector('[data-start]').disabled=!!run||busy||!!request;ui.querySelector('[data-ask]').disabled=busy||!!request||!!run;ui.querySelector('[data-fill]').disabled=!result||busy||!!paused;ui.querySelector('[data-resume]').hidden=!paused;}
+  function controls(){if(!ui)return;ui.querySelector('[data-stop]').disabled=!run&&!busy&&!request;ui.querySelector('[data-start]').disabled=!!run||busy||!!request;ui.querySelector('[data-ask]').disabled=busy||!!request||!!run;ui.querySelector('[data-fill]').disabled=settings.pacingMode==='review'||!result||busy||!!paused;ui.querySelector('[data-resume]').hidden=!paused;}
   function preview(data){StudyConfig.showPreview(ui.querySelector('[data-preview]'),data);}
   async function prefs(){settings=await chrome.storage.sync.get(null);ui.querySelector('[data-replace]').checked=!!settings.replaceExisting;}
   async function message(type,values={}){const response=await chrome.runtime.sendMessage({type:'mcgrawMap'+type,...values});if(response?.error)throw Error(response.error);return response;}
@@ -287,6 +287,7 @@ if(window.top===window&&location.pathname.startsWith('/ext/map/'))StudyConfig.bo
     }
   }
   async function fill(){
+    if(settings.pacingMode==='review'){status('Guided Answers leaves entry to you. Choose an Auto mode to fill fields.');return;}
     if(!result||busy||paused)return;const snap=result.snap,token=epoch;busy=true;controls();
     try{
       await prefs();guard(snap,token);if(snap.type!=='journal')pacer.begin(result.data.studyTiming||result.data.suggestedReviewSeconds,snap.fields.length,{text:problemText(),fields:snap.fields});answerFilled=true;status('Filling and verifying worksheet data…');
@@ -341,6 +342,8 @@ if(window.top===window&&location.pathname.startsWith('/ext/map/'))StudyConfig.bo
     finally{if(token===epoch)busy=false;controls();}
   }
   async function start(resumed=null){
+    await prefs();
+    if(settings.pacingMode==='review'&&!resumed){await ask();return;}
     if(busy||request||run)return;const token=epoch;busy=true;controls();
     try{const state=resumed||await message('RunStart');if(token!==epoch){if(state?.runId)await message('RunStop',{runId:state.runId});return;}run=state;if(!run?.running)throw Error('Automation could not start.');count=run.count||0;completed=new Set(run.done||[]);busy=false;await ask();}catch(error){await stop(error.message);}controls();
   }
@@ -377,7 +380,7 @@ if(window.top===window&&location.pathname.startsWith('/ext/map/'))StudyConfig.bo
   function mount(){
     if(ui||!root())return;
     const host=document.createElement('div');host.id='study-connect-assistant';document.body.append(host);ui=host.attachShadow({mode:'open'});
-    ui.innerHTML='<style>:host{all:initial;position:fixed;right:18px;bottom:70px;width:330px;max-width:calc(100vw - 36px);z-index:2147483000;font:14px/1.45 system-ui;color:#eee}*{box-sizing:border-box}section{background:#17191f;border:1px solid #555c74;border-radius:14px;padding:16px;box-shadow:0 8px 30px #0005}h3{font-size:17px;margin:0 0 8px}small{color:#adb7cf}p{margin:10px 0;overflow-wrap:anywhere}button{border:1px solid #58637d;border-radius:7px;background:#2d364c;color:white;padding:8px 10px;cursor:pointer}button:disabled{opacity:.4;cursor:default}.actions{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}label{display:block;font-size:12px;margin-top:10px}pre{white-space:pre-wrap;overflow:auto;max-height:210px;font:12px/1.4 monospace}[hidden]{display:none!important}</style><section><h3>Study Assistant <small>Connect · 2.5.6</small></h3><p data-status role="status">Ready. Open an AI tab, then choose Ask AI or Start Auto.</p><div class="actions"><button data-start>Start Auto</button><button data-stop disabled>Stop</button><button data-resume hidden>Resume Auto</button></div><div class="actions"><button data-ask>Ask AI</button><button data-fill disabled>Fill Answers</button><button data-settings>Settings</button></div><label><input type="checkbox" data-replace> Replace existing answers on this question</label><small>Worksheets use native saved cell data; calculated totals are left to the site. Final submission stays manual.</small><details><summary>Answer preview</summary><pre data-preview></pre></details></section>';
+    ui.innerHTML='<style>:host{all:initial;position:fixed;right:18px;bottom:70px;width:330px;max-width:calc(100vw - 36px);z-index:2147483000;font:14px/1.45 system-ui;color:#eee}*{box-sizing:border-box}section{background:#17191f;border:1px solid #555c74;border-radius:14px;padding:16px;box-shadow:0 8px 30px #0005}h3{font-size:17px;margin:0 0 8px}small{color:#adb7cf}p{margin:10px 0;overflow-wrap:anywhere}button{border:1px solid #58637d;border-radius:7px;background:#2d364c;color:white;padding:8px 10px;cursor:pointer}button:disabled{opacity:.4;cursor:default}.actions{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}label{display:block;font-size:12px;margin-top:10px}pre{white-space:pre-wrap;overflow:auto;max-height:210px;font:12px/1.4 monospace}[hidden]{display:none!important}</style><section><h3>Study Assistant <small>Connect · 2.5.7</small></h3><p data-status role="status">Ready. Open an AI tab, then choose Ask AI or Start Auto.</p><div class="actions"><button data-start>Start Auto</button><button data-stop disabled>Stop</button><button data-resume hidden>Resume Auto</button></div><div class="actions"><button data-ask>Ask AI</button><button data-fill disabled>Fill Answers</button><button data-settings>Settings</button></div><label><input type="checkbox" data-replace> Replace existing answers on this question</label><small>Worksheets use native saved cell data; calculated totals are left to the site. Final submission stays manual.</small><details><summary>Answer preview</summary><pre data-preview></pre></details></section>';
     ui.querySelector('[data-start]').onclick=()=>start();ui.querySelector('[data-stop]').onclick=()=>stop();ui.querySelector('[data-resume]').onclick=resume;ui.querySelector('[data-ask]').onclick=ask;ui.querySelector('[data-fill]').onclick=fill;
     ui.querySelector('[data-settings]').onclick=()=>chrome.runtime.sendMessage({type:'openSettings'}).then(r=>{if(!r?.received)status(r?.error||'Click the extension icon to open Settings in the side panel.');}).catch(()=>status('Reload the extension and assignment to open Settings.'));
     ui.querySelector('[data-replace]').onchange=async e=>{const replace=e.target.checked;settings.replaceExisting=replace;const {platformSettings={}}=await globalThis.chrome.storage.sync.get('platformSettings');await globalThis.chrome.storage.sync.set({platformSettings:{...platformSettings,mcgraw:{...platformSettings.mcgraw,replaceExisting:replace}}});};
@@ -398,7 +401,7 @@ if(window.top===window&&location.pathname.startsWith('/ext/map/'))StudyConfig.bo
         const allowed=['requestId','snapshotHash','answer','explanation','studyTiming','suggestedReviewSeconds','manualReviewRequired'];if(Object.keys(data).some(key=>!allowed.includes(key)))throw Error('AI journal response contained an unsupported field.');
         S.journal(data.answer,snap.rows.length,snap.options);
       }else StudySecurity.validateEnvelope(data,{requestId:snap.id,snapshot:snap.securitySnapshot,fields:snap.fields});
-      result={snap,data};answerRevision++;answerFilled=false;preview({...settings.showExplanation?data:{answer:data.answer},...snap.fields?{fieldLabels:Object.fromEntries(snap.fields.map((f,i)=>[f.id,StudyConfig.answerLabel(f,i)]))}:{},...m.grounded?{sourceAnswer:m.grounded}:{}});status('Answer received. Review the preview or fill the fields.');reply({received:true});controls();
+      result={snap,data};answerRevision++;answerFilled=false;preview({...settings.showExplanation?data:{answer:data.answer},...snap.fields?{fieldLabels:Object.fromEntries(snap.fields.map((f,i)=>[f.id,StudyConfig.answerLabel(f,i)]))}:{},...m.grounded?{sourceAnswer:m.grounded}:{}});status(settings.pacingMode==='review'?'Guided answer ready. Enter it yourself, then open the next question and choose Guide me again.':'Answer received. Review the preview or fill the fields.');reply({received:true});controls();
       if(run)fill();
     }catch(error){stop(error.message);reply({received:false});}
   });

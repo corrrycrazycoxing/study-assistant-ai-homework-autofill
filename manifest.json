@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Study Assistant — AI Homework Autofill",
-  "version": "2.5.6",
+  "version": "2.5.7",
   "description": "Autofill supported homework fields on McGraw Connect, Pearson MyLab, Canvas and MindTap using ChatGPT, Gemini or DeepSeek.",
   "permissions": [
     "tabs",

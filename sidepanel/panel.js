@@ -110,10 +110,12 @@ function render(s){
  for(const service of s.connections.services){const el=document.querySelector('[data-service="'+service.model+'"]');el.textContent=service.status;el.title=service.status;document.querySelector('[data-dot="'+service.model+'"]').classList.toggle('ready',service.ready);}
  const book=s.connections.notebook;$('notebook-status').textContent=book.status+(book.sources?' · '+book.sources+' sources':'');$('notebook-dot').classList.toggle('ready',book.ready);
  const p=s.preferences;$('preferences').textContent=page?((StudyConfig.pacingNames[p.pacingMode]||StudyConfig.pacingNames.normal)+' · '+(p.preferNotebook?'Notebook readings':'Chatbot answers')):'';
+ document.querySelector('[data-action="start"]').textContent=p.pacingMode==='review'?'Guide me':'Start Auto';
+ document.querySelector('[data-action="fill"]').disabled=p.pacingMode==='review'||!page?.controls?.fill||busy||!!draftState;
  $('watch-automation').checked=p.watchAutomation===true;$('watch-automation').disabled=busy;
  $('watch-hint').textContent=p.watchAutomation?'Switches tabs at each step':'Stays on your tab';
- $('pause-after-fill').checked=!!p.pauseBeforeSubmit;$('pause-after-fill').disabled=busy||!page;
- $('continuation-hint').textContent=p.pauseBeforeSubmit?'Review, then resume':p.pacingMode==='review'?'Continue each countdown':p.pacingMode==='human'?'AI-estimated working time':'Automatic continuation';
+ $('pause-after-fill').checked=!!p.pauseBeforeSubmit;$('pause-after-fill').disabled=busy||!page||p.pacingMode==='review';
+ $('continuation-hint').textContent=p.pacingMode==='review'?'You enter answers yourself':p.pauseBeforeSubmit?'Review, then resume':p.pacingMode==='human'?'AI-estimated working time':'Automatic continuation';
  renderPreview(page?.preview||'');nerdMode();renderActivity(s);renderAttention(s);
  $('edit-answer').hidden=!page?.controls?.edit;$('edit-answer').disabled=busy||!!draftState||!!s.phase||!!s.run;
  $('edit-hint').textContent=draftState?'Editing · run controls are paused here':page?.controls?.edit?'Save edits before filling':page?.preview?'Ask AI with Auto Fill off to edit a supported prepared answer.':'';

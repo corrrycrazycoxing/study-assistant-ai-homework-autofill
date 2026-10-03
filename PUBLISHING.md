@@ -24,10 +24,10 @@ This page tracks work to review before a public release. Documents alone do not 
 1. Increment manifest.json and the displayed version together for each new package.
 2. Run the relevant regression checks and inspect the package for secrets and development files.
 3. When publishing is explicitly requested, commit and push to the existing repository.
-4. Publish a GitHub release with the matching tag (for this update, `v2.5.1`), changelog notes and the installable ZIP as an attached asset.
+4. Publish a GitHub release with the matching tag (such as `v2.5.7`), changelog notes and the installable ZIP as an attached asset.
 5. Confirm the README's latest-release link opens that release. Users can select **Watch → Custom → Releases** for notifications.
 
-Pushing source changes does not publish a release or update an installed extension. GitHub's generated source archive contains a repository folder; the attached extension ZIP should have manifest.json at its root.
+Pushing source changes does not publish a release or update an installed extension. GitHub's generated source archive contains a repository folder; the attached extension ZIP extracts to a single `Study-Assistant-<version>` folder with `manifest.json` directly inside it. Select that extracted folder with Chrome’s **Load unpacked**; Chrome cannot load the ZIP itself.
 
 ## Chrome Web Store steps
 

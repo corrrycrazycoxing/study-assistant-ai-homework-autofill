@@ -1,12 +1,12 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><title>Study Assistant 2.5.6 setup</title><style>body{font:15px/1.6 system-ui;background:#121212;color:#eee;max-width:850px;margin:45px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}@media(min-width:1200px){body{max-width:none;margin:28px;padding:0 24px}pre{column-count:2;column-gap:48px}}</style><pre># Study Assistant 2.5.6
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Study Assistant 2.5.7 setup</title><style>body{font:15px/1.6 system-ui;background:#121212;color:#eee;max-width:850px;margin:45px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}@media(min-width:1200px){body{max-width:none;margin:28px;padding:0 24px}pre{column-count:2;column-gap:48px}}</style><pre># Study Assistant 2.5.7
 
 One Chrome extension containing the original Auto-McGraw SmartBook/Connect adapters, Pearson MyLab, Canvas and Cengage MindTap Aplia. It selects the adapter by the website and uses one shared AI/NotebookLM connection. Each platform has its own settings.
 
 ## Clearer modes and answer review
 
-Automation pace uses four clickable illustrated cards in Settings and first-use setup, with bundled PNG icons. There is no visible pace dropdown. **Instant Auto** adds no countdown; **Timed Auto** continues automatically after each countdown; **Review each step** waits for Continue now. Existing saved mode keys and behavior are retained.
+Automation pace uses four clickable illustrated cards in Settings and first-use setup, with bundled PNG icons. There is no visible pace dropdown. **Instant Auto** adds no countdown; **Timed Auto** continues automatically after each countdown; **Guided Answers** shows the answer and explanation, then you enter it yourself. Existing saved mode keys are retained; the former Review steps choice now uses guided manual entry.
 
-**Guided walkthrough:** after first-use preferences are saved, a 12-step tour highlights the actual assistant controls. Settings and Back steps let you click the highlighted button; other steps explain the controls without triggering them. Back, Next, Skip walkthrough and Escape are available. Replay it from **Help → Walkthrough** when no run, AI request or answer edit is active. Skipping the tour keeps your preferences and does not skip the first-use acknowledgement. The tour never starts a request, enters answers or changes the selected mode.
+**Guided walkthrough:** after first-use preferences are saved, a 10-step tour highlights the actual assistant controls. Settings and Back steps let you click the highlighted button; other steps explain the controls without triggering them. Back, Next, Skip walkthrough and Escape are available. Replay it from **Help → Walkthrough** when no run, AI request or answer edit is active. Skipping the tour keeps your preferences and does not skip the first-use acknowledgement. The tour never starts a request, enters answers or changes the selected mode.
 
 Pearson previews now show **Part 1, Part 2, …**, with available label, table row/column or option context. The small Pearson menu uses a readable answer table; the side panel receives the same structured labels. Technical fixture wording such as “Embedded number” is replaced by its visible option context or a numbered part.
 
@@ -27,7 +27,7 @@ Settings keeps the same dark cards, colors and illustrated pace options, with a 
 - **Pictures:** question-image capture and its requirements.
 - **Platform options:** site selection, checking/grading options, custom Canvas access and support details.
 
-Countdown values are under **Countdown settings**, available for Timed Auto and Review each step. Each category remembers its scroll position while you stay in Settings. Every control still saves automatically; existing preference keys and automation behavior are retained.
+Countdown values are under **Countdown settings**, available for Timed Auto. Each category remembers its scroll position while you stay in Settings. Every control still saves automatically; existing preference keys and automation behavior are retained.
 
 Normal Settings stays inside the side panel. **Expanded view** opens a full browser tab for deeper configuration, preserving the selected platform. Chrome’s Options command also opens the full settings page. Expansion remains an explicit click. The Feature guide returns to the same Settings view when opened from the side panel.
 
@@ -53,7 +53,7 @@ Connect MAP now distinguishes numeric accounting worksheets from journal entries
 
 The panel holds a direct connection to the selected assignment’s local controls. Closing the panel restores the small menu immediately on disconnect; normal status polling no longer hides it afterward. Switching between assistant and embedded Settings keeps that connection. The old timed fallback remains for older/unconnected panel probes.
 
-**Instant Auto**, **Timed Auto**, and **Review each step** have illustrated selection cards and plain descriptions. Timed Auto continues automatically when each countdown ends; Review each step waits for your click. Help and the Settings feature guide open inside the panel with Back navigation. Existing pace preferences keep their behavior.
+**Instant Auto**, **Timed Auto**, and **Guided Answers** have illustrated selection cards and plain descriptions. Timed Auto continues automatically when each countdown ends; Guided Answers leaves entry and navigation to you. Help and the Settings feature guide open inside the panel with Back navigation. Instant, Timed and Human pace keep their behavior.
 
 ## Included from 2.2.1: background by default
 
@@ -71,7 +71,7 @@ The monitor also stops cleanly when Chrome invalidates an old extension after up
 
 ## Install
 
-1. Extract **study-assistant-2.5.6.zip**.
+1. Extract **study-assistant-2.5.7.zip**.
 2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the extracted folder containing **manifest.json**. Do not select its parent folder or the ZIP.
 3. Disable the separate Auto-McGraw, Pearson, Canvas and MindTap extensions so their AI connectors do not compete with this one.
 4. Reload your assignment and any open Gemini, ChatGPT, DeepSeek or NotebookLM tabs. Sign into the AI services and leave their prompt boxes empty.
@@ -113,9 +113,9 @@ Each platform has its own **Automation pace**, shown as four illustrated cards. 
 
 - **Instant Auto:** automatic input and supported navigation.
 - **Timed Auto:** automatic input after a visible countdown for each answer field/group or journal cell; another countdown before checking, saving or advancing.
-- **Review each step:** each countdown waits for **Continue now**, including after it reaches zero.
+- **Guided Answers:** the assistant shows the current answer and explanation; you enter it and move on yourself.
 
-The timer has **Pause**, **Continue now** and **Stop**. Stop cancels the pending input/advance and leaves already entered values. **Pause After Fill / Pause Before Submit** is independent: switch it off for continuous automation in Instant Auto or Timed Auto, or keep it on for an additional review before saving. Timed Auto does not require pressing Continue; Review each step does.
+The timer has **Pause**, **Continue now** and **Stop**. Stop cancels the pending input/advance and leaves already entered values. **Pause After Fill / Pause Before Submit** is independent: switch it off for continuous automation in Instant Auto or Timed Auto, or keep it on for an additional review before saving. Timed Auto does not require pressing Continue; Guided Answers does not use countdowns.
 
 The chatbot can return a suggested total review budget. The extension bounds it between your minimum and maximum, uses a configured fallback when absent, and divides it across fields/groups or journal cells (account, debit and credit separately). Before-advance seconds are additional. Defaults: fallback 30 seconds, minimum 5, maximum 120, before-advance 3. Suggestions are estimates, not measured reading times. Matching in original SmartBook uses one review period before its existing matching routine; it does not pace each drag.
 

@@ -1,6 +1,6 @@
 let fixtureEditor;window.StudyMonitor={setEditor:e=>fixtureEditor=e,setRecovery:()=>{},setReplacement:()=>{},notice:()=>{}};
 let listener,storageListener,index=0,scenario='all',prompts=[],run=null,nexts=0,submits=0,backup=false,lastBackup=0,persisted={},backups=0;
-const config={autoFill:false,pauseBeforeSubmit:false,showExplanation:true};
+const config={autoFill:false,pauseBeforeSubmit:false,showExplanation:true,pacingMode:'normal'};
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 const choice=(q,text,i,type)=>'<div class="answer"><label class="answer_row"><span class="answer_input">'+(type==='checkbox'?'<input type="hidden" value="0">':'')+'<input class="question_input" type="'+type+'" name="question_'+q+'" id="q'+q+'a'+i+'" aria-labelledby="q'+q+'label'+i+'"></span><div id="q'+q+'label'+i+'">'+text+'</div></label></div>';
 const questions=[
@@ -50,10 +50,11 @@ const panel=()=>document.getElementById('canvas-assistant-panel').shadowRoot;
 function assert(ok,label){if(!ok)throw Error(label);results.textContent+='\nPASS: '+label;}
 async function until(fn,timeout=22000){const start=Date.now();while(!fn()){if(Date.now()-start>timeout)throw Error('Timeout: '+panel().getElementById('status').textContent);await delay(40);}}
 async function test(name){try{
- scenario=name;index=0;prompts=[];nexts=submits=backups=0;lastBackup=0;persisted={};backup=false;run=null;config.pauseBeforeSubmit=name==='pause';notifySettings({pauseBeforeSubmit:{newValue:config.pauseBeforeSubmit}},'sync');render();results.textContent=name;panel().querySelector('details').open=true;panel().getElementById('start').click();
+ scenario=name;index=0;prompts=[];nexts=submits=backups=0;lastBackup=0;persisted={};backup=false;run=null;config.pauseBeforeSubmit=name==='pause';config.pacingMode=name==='guided'?'review':'normal';notifySettings({pauseBeforeSubmit:{newValue:config.pauseBeforeSubmit},pacingMode:{newValue:config.pacingMode}},'sync');render();results.textContent=name;panel().querySelector('details').open=true;panel().getElementById('start').click();
  await until(()=>prompts.length>0||panel().getElementById('status').textContent.includes('manual entry'));
  if(name==='pause'){for(let q=0;q<5;q++){await until(()=>!panel().getElementById('resume').hidden);assert(prompts.length===q+1,'paused after question '+(q+1));panel().getElementById('resume').click();await until(()=>panel().getElementById('resume').hidden);}}
  if(name==='stop'){await until(()=>prompts.length===1);panel().getElementById('stop').click();await delay(1000);assert(!values().q1a1&&!run&&submits===0,'Stop rejects late response');}
+ else if(name==='guided'){await until(()=>panel().getElementById('status').textContent.includes('Guided answer ready'));assert(prompts.length===1&&!values().q1a1&&!values().q1a2,'Guided answer leaves site fields untouched');assert(panel().getElementById('fill').disabled&&submits===0,'Guided answer cannot fill or submit');}
  else if(name==='stale'){await until(()=>prompts.length===1);quiz.querySelector('.question_text').textContent='Changed question';await until(()=>!run);assert(!values().q1a1,'Changed question rejects old answer');}
  else if(name==='invalid'){await until(()=>panel().getElementById('status').textContent.includes('match'));assert(!values().q1a1&&submits===0,'Invalid option rejected before filling');}
  else if(name==='unsupported'||name==='review'){await until(()=>panel().getElementById('status').textContent.includes('manual entry'));assert(prompts.length===0&&submits===0,'Unsupported or read-only question does not send or fill');}
@@ -67,7 +68,7 @@ async function test(name){try{
  }
  results.textContent+='\nALL CHECKS PASSED';
 }catch(e){results.textContent+='\nFAIL: '+e.message;panel().getElementById('stop').click();}}
-for(const name of ['all','paged','pause','new','notebook','stop','stale','invalid','unsupported','review']){const b=document.createElement('button');b.textContent='Test '+name;b.onclick=()=>test(name);document.getElementById('cases').append(b);}
+for(const name of ['all','paged','pause','new','notebook','guided','stop','stale','invalid','unsupported','review']){const b=document.createElement('button');b.textContent='Test '+name;b.onclick=()=>test(name);document.getElementById('cases').append(b);}
 render();
 
 function notifySettings(changes,area){const old={...config};for(const [key,c] of Object.entries(changes))old[key]=!c.newValue;storageListener?.({platformSettings:{oldValue:{canvas:old},newValue:{canvas:{...config}}}},area);}

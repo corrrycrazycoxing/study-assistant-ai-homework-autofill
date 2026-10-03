@@ -9,7 +9,7 @@ StudyConfig.boot('mindtap', (chrome) => {
   let settings={...StudyConfig.defaults.mindtap,autoFill:false,pauseBeforeSubmit:true,showExplanation:true,gradeBeforeAdvance:false};
   const ready=chrome.storage.sync.get(settings).then(v=>Object.assign(settings,v));
   chrome.storage.onChanged.addListener((changes,area)=>{if(area==='sync')for(const key of Object.keys(settings))if(changes[key])settings[key]=changes[key].newValue;});
-  let panel,ui,pending=null,answer=null,timer=null,running=false,starting=false,generation=0,runId=null,count=0,responseWaiter=null,pauseWaiter=null;
+  let panel,ui,pending=null,answer=null,timer=null,running=false,starting=false,guided=false,generation=0,runId=null,count=0,responseWaiter=null,pauseWaiter=null;
   let done=new Set();
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const say=s=>{if(ui)ui.getElementById('status').textContent=s;};
@@ -109,12 +109,13 @@ StudyConfig.boot('mindtap', (chrome) => {
   function retained(fields){return fields.every(f=>f.kind==='dropdown'?usable(f.hit)&&clean(f.el.querySelector('.q4-select-content')?.textContent)===f.value[0]&&f.controls.find(e=>clean(e.textContent)===f.value[0])?.getAttribute('aria-selected')==='true':f.controls?f.controls.every((e,i)=>usable(e)&&selected(e)===f.value.includes(f.options[i])):usable(f.el)&&(f.kind==='select'?clean(f.el.selectedOptions[0]?.textContent)===f.value[0]:f.kind==='number'?Number(f.el.value)===Number(f.value):f.el.value===f.value));}
   let filling=false;
   async function fill(){
+    if(guided||settings.pacingMode==='review')throw Error('Guided Answers leaves entry to you. Choose an Auto mode to use Fill answers.');
     if(filling)throw Error("An answer is already being filled.");
     filling=true;
     for(const id of ["ask","fill","start"])ui.getElementById(id).disabled=true;
     ui.getElementById("cancel").disabled=false;ui.getElementById("stop").disabled=false;
     try{answerFilled=true;return await fillAnswers();}
-    finally{filling=false;ui.getElementById("ask").disabled=running;ui.getElementById("start").disabled=running;ui.getElementById("fill").disabled=running||!pending||!answer;ui.getElementById("cancel").disabled=!pending;ui.getElementById("stop").disabled=!running;}
+    finally{filling=false;ui.getElementById("ask").disabled=running;ui.getElementById("start").disabled=running;ui.getElementById("fill").disabled=guided||settings.pacingMode==='review'||running||!pending||!answer;ui.getElementById("cancel").disabled=!pending;ui.getElementById("stop").disabled=!running;}
   }
   async function fillAnswers(){
     const fields=validate(),requestId=pending.id;
@@ -141,7 +142,7 @@ StudyConfig.boot('mindtap', (chrome) => {
   }
   async function stop(message='Stopped.'){
     pacer.cancel();
-    generation++;running=false;starting=false;
+    generation++;running=false;starting=false;guided=false;
     const oldId=runId,requestId=pending?.id;runId=null;pending=null;answer=null;clearTimeout(timer);
     responseWaiter?.reject(Error(message));responseWaiter=null;pauseWaiter?.reject(Error(message));pauseWaiter=null;
     if(ui){ui.getElementById('start').disabled=filling;ui.getElementById('stop').disabled=true;ui.getElementById('resume').hidden=true;ui.getElementById('ask').disabled=filling;ui.getElementById('fill').disabled=true;ui.getElementById('cancel').disabled=true;say(message);}
@@ -149,6 +150,7 @@ StudyConfig.boot('mindtap', (chrome) => {
     else if(requestId)await chrome.runtime.sendMessage({type:'mindtapCancel',id:requestId}).catch(()=>{});
   }
   async function request(snap){
+    guided=settings.pacingMode==='review';
     if(!snap)throw Error('No unanswered question selected. Existing answers are preserved.');
     if(!editable())throw Error('This is a graded/review problem. No answers sent.');
     if(!snap.fields.length||snap.incomplete||snap.unsupported||(snap.hasDiagram&&!settings.includePictures))throw Error(snap.incomplete?'The page shows an answer control that was not captured. Auto stopped before sending it.':'This question requires manual entry. Auto stopped before sending it.');
@@ -177,7 +179,7 @@ StudyConfig.boot('mindtap', (chrome) => {
       StudySecurity.validateEnvelope(data,{requestId:pending.id,snapshot:pending.securitySnapshot,fields:pending.fields});
       suggestion=data.studyTiming||data.suggestedReviewSeconds;manualImageReview=data.manualReviewRequired===true;answer=data.answer;answerRevision++;answerFilled=false;const fields=validate();
       StudyConfig.showPreview(ui.getElementById('preview'),{answer,fieldLabels:Object.fromEntries(fields.map((f,i)=>[f.key,StudyConfig.answerLabel(f,i)])),explanation:settings.showExplanation?String(data.explanation||''):'',sourceAnswer:message.grounded||''});
-      ui.getElementById('ask').disabled=running;ui.getElementById('fill').disabled=running;ui.getElementById('cancel').disabled=true;say(message.grounded?'NotebookLM answer formatted and ready.':'Answer ready.');reply({received:true});
+      ui.getElementById('ask').disabled=running;ui.getElementById('fill').disabled=running||guided||settings.pacingMode==='review';ui.getElementById('cancel').disabled=true;say(guided?'Guided answer ready. Enter it yourself, then open the next question and choose Guide me again.':message.grounded?'NotebookLM answer formatted and ready.':'Answer ready.');reply({received:true});
 
       if(responseWaiter){const waiter=responseWaiter;responseWaiter=null;waiter.resolve();}
       // Answers stay in the review preview until the user clicks Fill answers.
@@ -201,6 +203,9 @@ StudyConfig.boot('mindtap', (chrome) => {
   }
   async function start(resumed=null){
     if(running||starting)return;
+    await ready;
+    if(settings.pacingMode==='review'&&!resumed){guided=true;try{await request(choose());}catch(error){await stop(error.message);}return;}
+    guided=false;
     if(pending&&!answer){say('Cancel the pending request before starting Auto.');return;}
     starting=true;const mine=++generation;
     try{
@@ -245,12 +250,12 @@ StudyConfig.boot('mindtap', (chrome) => {
     if(!questionRoots().length&&!(location.hostname==='aplia.apps.ng.cengage.com'&&location.pathname==='/af/servlet/quiz'))return;
     panel=document.createElement('div');panel.id='mindtap-assistant-panel';panel.style.cssText='position:fixed;right:16px;bottom:70px;z-index:2147483647;max-width:calc(100vw - 32px)';
     ui=panel.attachShadow({mode:'open'});
-    ui.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#eee}*{box-sizing:border-box}details{width:330px;max-width:calc(100vw - 32px);background:#141414;border:1px solid #414141;border-radius:14px;box-shadow:0 8px 30px #0004;padding:14px}summary{cursor:pointer;font-size:15px;font-weight:650}.badge{color:#a3aaff;font-size:11px;margin:8px 0}button{font:inherit;margin:8px 5px 0 0;padding:8px 12px;border:0;border-radius:8px;background:#5264ff;color:white;cursor:pointer}button.secondary{background:#303030}button:disabled{opacity:.45}pre{white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;font:13px/1.5 system-ui}#status{color:#ccc}small{color:#aaa}</style><details><summary>✦ MindTap Assistant</summary><div class="badge">STUDY ASSISTANT · MINDTAP APLIA 2.5.6</div><button id="start">Start Auto</button><button id="stop" class="secondary" disabled>Stop</button><button id="resume" hidden>Resume Auto</button><br><button id="ask">Ask AI</button><button id="fill" disabled>Fill answers</button><button id="cancel" class="secondary" disabled>Cancel</button><pre id="status">Ready. Start Auto fills unanswered supported questions. Turn Pause After Fill off in settings to continue automatically. Existing answers are preserved. Final submission is manual.</pre><pre id="preview"></pre><small>Aplia fields. Graphs and other MindTap players require manual work. Final submission is manual.</small></details>';
+    ui.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#eee}*{box-sizing:border-box}details{width:330px;max-width:calc(100vw - 32px);background:#141414;border:1px solid #414141;border-radius:14px;box-shadow:0 8px 30px #0004;padding:14px}summary{cursor:pointer;font-size:15px;font-weight:650}.badge{color:#a3aaff;font-size:11px;margin:8px 0}button{font:inherit;margin:8px 5px 0 0;padding:8px 12px;border:0;border-radius:8px;background:#5264ff;color:white;cursor:pointer}button.secondary{background:#303030}button:disabled{opacity:.45}pre{white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;font:13px/1.5 system-ui}#status{color:#ccc}small{color:#aaa}</style><details><summary>✦ MindTap Assistant</summary><div class="badge">STUDY ASSISTANT · MINDTAP APLIA 2.5.7</div><button id="start">Start Auto</button><button id="stop" class="secondary" disabled>Stop</button><button id="resume" hidden>Resume Auto</button><br><button id="ask">Ask AI</button><button id="fill" disabled>Fill answers</button><button id="cancel" class="secondary" disabled>Cancel</button><pre id="status">Ready. Start Auto fills unanswered supported questions. Turn Pause After Fill off in settings to continue automatically. Existing answers are preserved. Final submission is manual.</pre><pre id="preview"></pre><small>Aplia fields. Graphs and other MindTap players require manual work. Final submission is manual.</small></details>';
     ui.getElementById('start').onclick=()=>start();ui.getElementById('stop').onclick=()=>stop();ui.getElementById('cancel').onclick=()=>stop();
     ui.getElementById('resume').onclick=()=>{ui.getElementById('resume').hidden=true;const waiter=pauseWaiter;pauseWaiter=null;waiter?.resolve();};
     ui.getElementById('ask').onclick=async()=>{try{await ready;await request(choose());}catch(e){await stop(e.message);}};
     ui.getElementById('fill').onclick=()=>fill().catch(e=>stop(e.message));document.body.append(panel);pacer.attach(ui);
-    document.addEventListener('input',event=>{if(event.isTrusted&&!applyingChoice&&pending?.root.contains(event.target))stop('You edited an answer. Auto stopped; your changes remain.');},true);
+    document.addEventListener('input',event=>{if(!guided&&event.isTrusted&&!applyingChoice&&pending?.root.contains(event.target))stop('You edited an answer. Auto stopped; your changes remain.');},true);
     chrome.runtime.sendMessage({type:'mindtapRunState'}).then(async state=>{if(state?.running){await chrome.runtime.sendMessage({type:'mindtapRunStop',runId:state.runId});say('Reloaded. Review any entered answer; use Resume saved run in the extension panel.');globalThis.StudyMonitor?.notice('Reloaded. Review any entered answer; use Resume saved run.');}}).catch(()=>{});
   }
   globalThis.StudyMonitor?.setRecovery(async()=>{if(running||starting||pending||filling)throw Error('Stop the current work before recovering.');if(questionRoots().some(root=>hasAnswer(snapshot(root))))throw Error('Review and save the existing answer manually, then move to an unanswered problem before recovering.');const recoveryToken=generation;const state=await chrome.runtime.sendMessage({type:'mindtapRunStart',resumeCheckpoint:true});if(!state?.running)throw Error(state?.error||'No saved progress.');if(recoveryToken!==generation){await chrome.runtime.sendMessage({type:'mindtapRunStop',runId:state.runId});throw Error('Recovery cancelled.');}start(state);});

@@ -39,11 +39,21 @@
     if(!view())return;
     if(!welcomeHost){
       welcomeHost=document.createElement('div');welcomeHost.id='study-first-use';welcomeHost.style.cssText='position:fixed;right:18px;bottom:20px;z-index:2147483647;max-width:calc(100vw - 36px)';
-      const shadow=welcomeHost.attachShadow({mode:'open'});shadow.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#edf2ff}section{padding:15px;background:#162038;border:1px solid #687baa;border-radius:12px;box-shadow:0 8px 30px #0004;width:275px;max-width:calc(100vw - 68px)}strong{font-size:15px}p{font-size:12px;color:#b7c8e7;margin:7px 0 12px}button{width:100%;border:1px solid #96a5ff;background:#596df2;border-radius:7px;padding:10px;color:white;font:inherit;cursor:pointer}button:disabled{opacity:.5}button:focus-visible{outline:2px solid white;outline-offset:3px}</style><section aria-label="Study Assistant setup"><strong>Welcome to Study Assistant</strong><p id="welcome-status">Review the first-use notice and choose your preferences before answering.</p><button id="welcome-open">Set up Study Assistant</button></section>';
+      const shadow=welcomeHost.attachShadow({mode:'open'});shadow.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#edf2ff}section{padding:15px;background:#162038;border:1px solid #687baa;border-radius:12px;box-shadow:0 8px 30px #0004;width:275px;max-width:calc(100vw - 68px)}strong{font-size:15px}p{font-size:12px;color:#b7c8e7;margin:7px 0 12px}button{width:100%;border:1px solid #96a5ff;background:#596df2;border-radius:7px;padding:10px;color:white;font:inherit;cursor:pointer}button:disabled{opacity:.5}button:focus-visible{outline:2px solid white;outline-offset:3px}</style><section aria-label="Study Assistant setup"><strong>Attention required</strong><p id="welcome-status">Before Study Assistant can help, review how it works and choose your preferences. Nothing starts yet.</p><button id="welcome-open">Review and set up →</button></section>';
       shadow.getElementById('welcome-open').onclick=()=>{const button=shadow.getElementById('welcome-open');button.disabled=true;try{chrome.runtime.sendMessage({type:'studyOpenWelcome'}).then(result=>{if(!result?.received)shadow.getElementById('welcome-status').textContent='Click the extension icon to open setup.';},()=>{shadow.getElementById('welcome-status').textContent='Click the extension icon to open setup.';}).finally(()=>{button.disabled=false;});}catch{button.disabled=false;shadow.getElementById('welcome-status').textContent='Reload this assignment and click the extension icon.';}};
       document.body.append(welcomeHost);
     }
     welcomeHost.style.display=leases.size?'none':'';
+  }
+  function compactOverlay(){
+    const v=view();if(!v?.modern||v.root.getElementById('study-compact-style'))return;
+    const style=document.createElement('style');style.id='study-compact-style';
+    style.textContent=':host{max-width:300px!important}details,section{max-width:300px!important}.study-pace-controls{display:none!important}#preview,#answer-display,[data-preview]{max-height:180px!important;overflow:auto!important}#status,[data-status]{max-height:100px!important;overflow:auto!important}';
+    v.root.append(style);
+    const button=document.createElement('button');button.id='study-open-panel';button.type='button';button.textContent='Open side panel ↗';
+    button.style.cssText='font:12px system-ui;padding:6px 9px;margin:7px 0;border:1px solid #8295d6;border-radius:7px;background:#273453;color:white;cursor:pointer';
+    button.onclick=()=>{try{chrome.runtime.sendMessage({type:'studyOpenPanel'}).catch(()=>{});}catch{}};
+    const card=v.root.querySelector('details,section');card?.after(button);
   }
   function presence(on){
     if(!retired&&!acknowledged)on=true;
@@ -80,7 +90,7 @@
   }
   async function report(){
     if(retired)return;
-    try{if(!contextAlive()){retire();return;}welcome();if(!acknowledged)presence(true);const state=read();if(state)await chrome.runtime.sendMessage({type:'studyPageReport',state});}
+    try{if(!contextAlive()){retire();return;}compactOverlay();welcome();if(!acknowledged)presence(true);const state=read();if(state)await chrome.runtime.sendMessage({type:'studyPageReport',state});}
     catch(error){if(invalidContext(error))retire();}
   }
   function listen(){if(bound)return;messageListener=(m,sender,reply)=>{

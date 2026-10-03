@@ -226,6 +226,11 @@ async function processChatGPTResponse(responseText) {
   const current=()=>isAutomating&&mine===legacyEpoch&&JSON.stringify(parseQuestion())===signature;
   try {
     const response=StudySecurity.parse(responseText),answer=response.answer;
+    if(legacySettings.pacingMode==='review'){
+      stopAutomation('Guided answer ready. Enter it yourself.');
+      alert('Guided answer: '+JSON.stringify(answer)+'\n\n'+String(response.explanation||''));
+      return;
+    }
     legacyPacer.begin(response.studyTiming||response.suggestedReviewSeconds,1,{text:parseQuestion().question});
     await legacyPacer.beforeField(0,1,current);legacyPacer.check(current);
     if(document.querySelector('.answers-wrap.multiple-choice'))handleMultipleChoiceAnswer(answer);

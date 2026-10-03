@@ -2,6 +2,13 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.7 — October 3, 2026
+
+- Guided Answers asks AI for an answer and explanation while leaving entry and navigation to the user.
+- Shorten the on-page assistant and move mode controls to the side panel, with an Open side panel button.
+- Streamline the first-use walkthrough and make its initial prompt clearly request setup.
+- Package releases as a single ready-to-load folder inside the ZIP.
+
 ## 2.5.6 — October 3, 2026
 
 - Added an optional local helper to update a Load unpacked installation from the latest GitHub release in place. Chrome still needs a manual Reload.

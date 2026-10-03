@@ -5,7 +5,7 @@
  const $=id=>document.getElementById(id),views=['assistant-view','settings-view','help-view'];
  let needed=true,step=0,initialized=false,acknowledged=false,saving=false,finished=false,settings=null,draft=null;
  const models={gemini:{name:'Gemini',image:'gemini.png',url:'https://gemini.google.com/app'},chatgpt:{name:'ChatGPT',image:'chatgpt.png',url:'https://chatgpt.com/'},deepseek:{name:'DeepSeek',image:'deepseek.png',url:'https://chat.deepseek.com/'}};
- const modes={normal:{name:'Instant Auto',image:'mode-instant.png',description:'No added countdown. Continues automatically.'},slow:{name:'Timed Auto',image:'mode-timed.png',description:'Countdowns before entries. Continues automatically.'},human:{name:'Human pace',image:'mode-human.svg',description:'AI estimates realistic working time for each question.'},review:{name:'Review each step',image:'mode-review.png',description:'Your Continue now click moves each step forward.'}};
+ const modes={normal:{name:'Instant Auto',image:'mode-instant.png',description:'No added countdown. Continues automatically.'},slow:{name:'Timed Auto',image:'mode-timed.png',description:'Countdowns before entries. Continues automatically.'},human:{name:'Human pace',image:'mode-human.svg',description:'AI estimates realistic working time for each question.'},review:{name:'Guided Answers',image:'mode-review.png',description:'See the answer and explanation; enter it yourself.'}};
  function cover(on){needed=on;const layer=$('onboarding-layer');layer.hidden=!on;for(const id of views)$(id).inert=on;if(!on){$('settings').focus();} }
  function node(tag,text,className){const el=document.createElement(tag);if(text!=null)el.textContent=text;if(className)el.className=className;return el;}
  function choiceGroup(items,key,label){const group=node('div',null,'setup-choices');group.setAttribute('role','radiogroup');group.setAttribute('aria-label',label);
@@ -30,7 +30,7 @@
    const link=node('a','Open '+models[draft.aiModel].name+' ↗','setup-link');link.href=models[draft.aiModel].url;link.target='_blank';link.rel='noopener';content.append(link);
    content.append(node('p','Opening the AI is optional now. Setup does not send it any questions.','hint'));
   }else if(step===2){
-   content.append(node('p','All Auto modes can run the full flow. Human pace estimates working time; Timed Auto adds time to review; Review each step waits for your click.','intro'),choiceGroup(modes,'pacingMode','Setup automation pace'),toggle('pauseBeforeSubmit','Pause after fill','Adds a review stop after entering a question. Turn off for continuous Auto; Review each step still needs your clicks.'));
+   content.append(node('p','Three Auto modes can enter answers. Guided Answers shows the answer and explanation, then you enter it yourself.','intro'),choiceGroup(modes,'pacingMode','Setup automation pace'),toggle('pauseBeforeSubmit','Pause after fill','Adds a review stop after an Auto mode enters a question. Guided Answers never enters answers.'));
   }else{
    content.append(node('p','Choose how tabs and readings work. You can change these later in Settings.','intro'));
    const label=node('label','Platform for these preferences');label.htmlFor='setup-platform';const select=node('select');select.id='setup-platform';for(const platform of StudyConfig.platforms){const option=node('option',StudyConfig.names[platform]);option.value=platform;option.selected=platform===draft.platform;select.append(option);}select.onchange=()=>{draft.platform=select.value;render();};content.append(label,select);
