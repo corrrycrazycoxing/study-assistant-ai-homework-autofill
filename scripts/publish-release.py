@@ -9,7 +9,11 @@ remote=subprocess.check_output(['git','remote','get-url','origin'],cwd=root,text
 assert remote in ['https://github.com/'+repo+'.git','https://github.com/'+repo], 'Unexpected origin'
 assert not subprocess.check_output(['git','status','--porcelain'],cwd=root,text=True).strip(), 'Worktree must be clean'
 head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
-assert subprocess.check_output(['git','rev-parse',tag],cwd=root,text=True).strip()==head, 'Tag must point at HEAD'
+tag_commit=subprocess.check_output(['git','rev-parse',tag],cwd=root,text=True).strip()
+subprocess.run(['git','merge-base','--is-ancestor',tag,'HEAD'],cwd=root,check=True)
+# A post-tag handoff fix may change release tooling, but never packaged files.
+packaged=['manifest.json','LICENSE','PRIVACY.md','TERMS.md','README.md','CHANGELOG.md','assets','background','content-scripts','popup','shared','sidepanel']
+subprocess.run(['git','diff','--exit-code',tag,'HEAD','--',*packaged],cwd=root,check=True,stdout=subprocess.DEVNULL)
 refs=subprocess.check_output(['git','ls-remote','origin','refs/heads/main','refs/tags/'+tag],cwd=root,text=True)
 assert all(head+'\t'+ref in refs for ref in ['refs/heads/main','refs/tags/'+tag]), 'Push source and tag first'
 subprocess.run(['node','scripts/check.cjs'],cwd=root,check=True)
@@ -23,7 +27,7 @@ def request(url,data=None,content_type='application/json'):
  req=urllib.request.Request(url,data=data,headers={'Authorization':'Bearer '+secret,'Accept':'application/vnd.github+json','Content-Type':content_type,'User-Agent':'study-assistant-release'})
  with urllib.request.urlopen(req,context=tls) as response: return json.load(response)
 # Creating an existing tag's release fails rather than replacing it.
-release=request('https://api.github.com/repos/'+repo+'/releases',json.dumps({'tag_name':tag,'target_commitish':head,'name':'Study Assistant '+tag,'body':(root/'RELEASE-NOTES.md').read_text(),'draft':True}).encode())
+release=request('https://api.github.com/repos/'+repo+'/releases',json.dumps({'tag_name':tag,'target_commitish':tag_commit,'name':'Study Assistant '+tag,'body':(root/'RELEASE-NOTES.md').read_text(),'draft':True}).encode())
 archive=root/'dist'/('study-assistant-'+version+'.zip')
 asset=request(release['upload_url'].split('{')[0]+'?name='+urllib.parse.quote(archive.name),archive.read_bytes(),'application/zip')
 assert asset['size']==archive.stat().st_size and asset['state']=='uploaded'
