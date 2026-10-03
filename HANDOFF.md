@@ -1,7 +1,7 @@
 # Start here when continuing in another chat
 
 Repository: https://github.com/corrrycrazycoxing/study-assistant-extension
-Current source version: 2.5.4. The local checkout folder may still be named 2.5.0; manifest.json is authoritative.
+Current source version: 2.5.5. The local checkout folder may still be named 2.5.0; manifest.json is authoritative.
 
 ## Already implemented
 - Pearson printed question/subpart labels, paired Above/Below preview tables, dropdown handling and question-level Final check/Next.
@@ -21,9 +21,9 @@ Current source version: 2.5.4. The local checkout folder may still be named 2.5.
 - 2.5.4 makes AI homework autofill explicit in the name, description and README.
 
 ## Current publication status
-The `v2.5.4` release and `study-assistant-2.5.4.zip` are published and independently verified. The extension name, description, README title and download links are updated. GitHub’s short About description still uses its older wording; the publishing token received HTTP 403 for repository settings, and the open Chrome GitHub page was signed out. A repository admin can edit About after signing in. The repository README links directly to the ZIP and explains installation. Read [DECISIONS.md](DECISIONS.md) for publication history.
+The previous v2.5.4 release is published. Version 2.5.5 fixes Pearson completed-control detection and updates the shared pace UI/panel scrolling; check GitHub for its publication status. GitHub About and topics were successfully updated through the signed-in Safari owner UI. The description now explicitly says AI homework autofill. Read DECISIONS.md for evidence and remaining limitations.
 
 ## Verification and release procedure
-Run `node scripts/check.cjs`, `python3 scripts/package.py v2.5.4`, and `git diff --check`. Tests cover mocked timing/relay/security/update lifecycle; browser fixtures are in docs/.
+Run `node scripts/check.cjs`, `python3 scripts/package.py v2.5.5`, and `git diff --check`. Tests cover mocked timing/relay/security/update lifecycle; browser fixtures are in docs/.
 For future versions update manifest, visible badges, CHANGELOG.md and RELEASE-NOTES.md. Inspect remote changes, run checks, review diff/secrets, commit, show hash, push source and a matching version tag. Run `python3 scripts/publish-release.py` to publish the ZIP after pushing the tag. Confirm the release asset before reporting publication. Never replace an existing tag.
 Update this file with actual results and remaining work each turn. The owner authorized source pushes and matching GitHub releases for requested updates; this does not authorize unrelated features or store submission.

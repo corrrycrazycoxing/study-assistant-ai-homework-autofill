@@ -1,8 +1,10 @@
-Study Assistant 2.5.4
+Study Assistant 2.5.5
 
-- Renamed the extension to Study Assistant — AI Homework Autofill so its main function is clear.
-- Updated the description and repository overview to list the supported sites and connected AI tabs.
+- Fixed graded Pearson controls blocking the active dropdowns in later question parts.
+- The assistant panel now scrolls together, including its top controls.
+- Compact clickable mode icons replace on-page pace dropdowns. Working speed uses three buttons.
+- Human pace has a distinct person-and-book icon; Timed Auto keeps its clock.
 
-Download the attached `study-assistant-2.5.4.zip`, extract it, and load the folder containing `manifest.json` through `chrome://extensions` → Developer mode → Load unpacked. Reload assignment and AI tabs after replacing an older installation.
+Download study-assistant-2.5.5.zip, extract it, and load the folder containing manifest.json through Chrome Extensions → Developer mode → Load unpacked. Reload assignment and AI tabs after updating.
 
-Autofill applies to supported controls; unsupported questions require manual work. Final assignment submission remains manual. No answer or automation logic changed in this release.
+Syntax and regression checks passed. The Pearson cause was confirmed from the live page; a complete live answer-and-check run has not been reverified. Final assignment submission remains manual.

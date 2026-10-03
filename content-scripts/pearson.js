@@ -4,6 +4,18 @@ StudyConfig.boot('pearson', (chrome) => {
   function clickChoice(el){applyingChoice=true;try{el.click();}finally{applyingChoice=false;}}
   const clean = s => String(s||'').replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/\s+/g,' ').trim();
   const usable = e => e && !e.disabled && !e.readOnly && !e.closest('[aria-disabled="true"],.disabled,.hidden,[hidden],[aria-hidden="true"]') && e.getClientRects().length > 0;
+  function activeAnswerControl(el) {
+    if(el.matches('.xlMultipleChoice')){
+      const controls=[...el.querySelectorAll('input[type=radio],input[type=checkbox]')];
+      return controls.length>0&&controls.every(usable);
+    }
+    if(el.matches('.xlFillin')){
+      const hit=el.querySelector('.xlFillinItem[aria-haspopup]')||el.querySelector('.xlFillinItem');
+      return usable(hit)&&!el.classList.contains('disabled')&&!hit.classList.contains('answered');
+    }
+    if(el.matches('.eqEditor'))return usable(el.querySelector('input'));
+    return usable(el)&&!el.closest('.eqEditor,.xlMultipleChoice,.xlFillin');
+  }
   const numeric = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
   let pending=null,answer=null,explanation='',timer=null,panel,shadow,status,preview,apply,ask,cancel;
   let settings={...StudyConfig.defaults.pearson,autoFill:false,pauseBeforeSubmit:true,showExplanation:true};
@@ -19,17 +31,15 @@ StudyConfig.boot('pearson', (chrome) => {
     const fields=[];
     for (const root of roots) {
       for (const el of root.querySelectorAll('.xlMultipleChoice,.eqEditor,input[type=text],input[type=number],textarea,select,.xlFillin')) {
-        if (el.matches('input,textarea,select') && el.closest('.eqEditor,.xlMultipleChoice,.xlFillin')) continue;
+        if (!activeAnswerControl(el)) continue;
         const key='f'+fields.length;
         if (el.matches('.xlMultipleChoice')) {
           const controls=[...el.querySelectorAll('input[type=radio],input[type=checkbox]')];
-          if (!controls.length || !controls.every(usable)) continue;
           const options=controls.map(e=>{const copy=e.parentElement.querySelector('.mcAnswerContent')?.cloneNode(true);copy?.querySelectorAll('.eqEditor,input,textarea,select,.sr-only,.offScreen').forEach(node=>node.remove());return clean(e.getAttribute('aria-label')||copy?.textContent);});
           if (options.some(s=>!s) || new Set(options).size!==options.length) throw Error('Pearson choices cannot be identified uniquely.');
           fields.push({key,kind:controls[0].type,el,controls,options});
         } else if(el.matches('.xlFillin')){
           const hit=el.querySelector('.xlFillinItem[aria-haspopup]')||el.querySelector('.xlFillinItem');
-          if(!usable(hit)||el.classList.contains('disabled')||hit.classList.contains('answered'))continue;
           const id=hit.id||el.getAttribute('widgetid');
           const controls=[...document.querySelectorAll('[id]')].filter(e=>e.tagName==='DIV'&&id&&new RegExp('^'+id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'-\\d+$').test(e.id));
           controls.sort((a,b)=>Number(a.id.slice(id.length+1))-Number(b.id.slice(id.length+1)));
@@ -38,7 +48,6 @@ StudyConfig.boot('pearson', (chrome) => {
           fields.push({key,kind:'dropdown',el,hit,input:hit,controls,options:manualOnly?undefined:choices,manualOnly});
         } else {
           const input=el.matches('.eqEditor')?el.querySelector('input'):el;
-          if (!usable(input)) continue;
           const kind=el.matches('.eqEditor')?'equation':el.matches('select')?'select':'text';
           if(kind==='select') { const choices=[...el.options].filter(o=>!o.disabled&&o.value!=='').map(o=>clean(o.textContent)); if(new Set(choices).size!==choices.length)throw Error('Pearson dropdown choices cannot be identified uniquely.'); }
           fields.push({key,kind,el,input,options:kind==='select'?[...el.options].filter(o=>!o.disabled&&o.value!=='').map(o=>clean(o.textContent)):undefined});
@@ -73,7 +82,7 @@ StudyConfig.boot('pearson', (chrome) => {
     const identity=clean(document.querySelector('.playerViewer h3')?.textContent);
     const signature=JSON.stringify([identity,text,fields.map(f=>[f.kind,f.el.id||f.hit?.id,f.options])]);
     const hasDiagram=roots.some(root=>Boolean(root.querySelector('canvas,svg[role="img"]'))||[...root.querySelectorAll('img')].some(img=>img.width>80&&img.height>80));
-    const rendered=roots.flatMap(root=>[...root.querySelectorAll('.xlMultipleChoice,.xlFillin,.eqEditor,input[type=text],input[type=number],textarea,select')]).filter(el=>usable(el)&&!el.matches('input,textarea,select')||usable(el)&&!el.closest('.eqEditor,.xlMultipleChoice,.xlFillin'));
+    const rendered=roots.flatMap(root=>[...root.querySelectorAll('.xlMultipleChoice,.xlFillin,.eqEditor,input[type=text],input[type=number],textarea,select')].filter(activeAnswerControl));
     const represented=el=>fields.some(f=>f.el===el||f.el?.contains(el)||el.contains(f.el)||f.controls?.includes(el));
     const incomplete=rendered.some(el=>!represented(el));
     return {root:document.querySelector('.contentPanel'),text,fields,signature,hasDiagram,incomplete,problemKey:identity+"|"+textOf(roots[0]),securitySnapshot:StudySecurity.snapshot({text,fields,signature,frame:window.top===window?'top':'frame'})};
@@ -380,7 +389,7 @@ StudyConfig.boot('pearson', (chrome) => {
     panel=document.createElement('div');panel.id='mylab-assistant-panel';
     panel.style.cssText='position:fixed;right:14px;bottom:78px;z-index:2147483647;max-width:calc(100vw - 28px)';
     shadow=panel.attachShadow({mode:'open'});
-    shadow.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#eee}*{box-sizing:border-box}details{width:330px;max-width:calc(100vw - 28px);background:#141414;border:1px solid #414141;border-radius:14px;box-shadow:0 8px 30px #0004;padding:14px}summary{cursor:pointer;font-weight:650;font-size:15px}.badge{color:#8f96ff;font-size:11px;margin:8px 0}button{font:inherit;margin:8px 5px 0 0;padding:8px 12px;border:0;border-radius:8px;background:#5264ff;color:white;cursor:pointer}button.secondary{background:#303030}button:disabled{opacity:.45;cursor:default}pre{white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;font:13px/1.5 system-ui}#status{color:#c3c3c3}#answer-display{overflow:auto;max-height:270px}#answer-display table{width:100%;border-collapse:collapse;font-size:12px}#answer-display caption{text-align:left;font-weight:650;padding:10px 0}#answer-display th,#answer-display td{padding:8px 6px;border-bottom:1px solid #414141;text-align:left;vertical-align:top;overflow-wrap:anywhere}#answer-display th{width:32%;font-weight:500;color:#b8c5e5}#answer-display td{font-weight:650}#answer-display p{white-space:pre-wrap}#answer-display details{width:auto;border:0;padding:8px;box-shadow:none}[hidden]{display:none!important}small{color:#999}</style><details><summary>✦ MyLab Assistant</summary><div class="badge">STUDY ASSISTANT · PEARSON MYLAB 2.5.4</div><button id="start">Start Auto</button><button id="stop" class="secondary" disabled>Stop</button><button id="resume" hidden>Resume Auto</button><br><button id="ask">Ask AI</button><button id="apply" disabled>Fill answers</button><button id="cancel" class="secondary" disabled>Cancel</button><pre id="status">Ready. Ask AI sends the visible question to your selected AI tab. Use Start Auto to fill and advance. Turn Pause Before Submit off in settings for continuous answering.</pre><pre id="preview" hidden></pre><div id="answer-display"></div><small>Settings are available from the extension icon.</small></details>';
+    shadow.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#eee}*{box-sizing:border-box}details{width:330px;max-width:calc(100vw - 28px);background:#141414;border:1px solid #414141;border-radius:14px;box-shadow:0 8px 30px #0004;padding:14px}summary{cursor:pointer;font-weight:650;font-size:15px}.badge{color:#8f96ff;font-size:11px;margin:8px 0}button{font:inherit;margin:8px 5px 0 0;padding:8px 12px;border:0;border-radius:8px;background:#5264ff;color:white;cursor:pointer}button.secondary{background:#303030}button:disabled{opacity:.45;cursor:default}pre{white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;font:13px/1.5 system-ui}#status{color:#c3c3c3}#answer-display{overflow:auto;max-height:270px}#answer-display table{width:100%;border-collapse:collapse;font-size:12px}#answer-display caption{text-align:left;font-weight:650;padding:10px 0}#answer-display th,#answer-display td{padding:8px 6px;border-bottom:1px solid #414141;text-align:left;vertical-align:top;overflow-wrap:anywhere}#answer-display th{width:32%;font-weight:500;color:#b8c5e5}#answer-display td{font-weight:650}#answer-display p{white-space:pre-wrap}#answer-display details{width:auto;border:0;padding:8px;box-shadow:none}[hidden]{display:none!important}small{color:#999}</style><details><summary>✦ MyLab Assistant</summary><div class="badge">STUDY ASSISTANT · PEARSON MYLAB 2.5.5</div><button id="start">Start Auto</button><button id="stop" class="secondary" disabled>Stop</button><button id="resume" hidden>Resume Auto</button><br><button id="ask">Ask AI</button><button id="apply" disabled>Fill answers</button><button id="cancel" class="secondary" disabled>Cancel</button><pre id="status">Ready. Ask AI sends the visible question to your selected AI tab. Use Start Auto to fill and advance. Turn Pause Before Submit off in settings for continuous answering.</pre><pre id="preview" hidden></pre><div id="answer-display"></div><small>Settings are available from the extension icon.</small></details>';
     ask=shadow.getElementById('ask');apply=shadow.getElementById('apply');cancel=shadow.getElementById('cancel');status=shadow.getElementById('status');preview=shadow.getElementById('preview');
     startButton=shadow.getElementById('start');stopButton=shadow.getElementById('stop');resumeButton=shadow.getElementById('resume');
     startButton.onclick=()=>startAuto();stopButton.onclick=()=>stop();resumeButton.onclick=()=>{resumeButton.hidden=true;const waiter=pauseWaiter;pauseWaiter=null;waiter?.resolve();};

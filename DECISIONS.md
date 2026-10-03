@@ -37,3 +37,16 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Checks and publication:** Node regression tests, JavaScript syntax, ZIP integrity, `git diff --check` and a secret-pattern scan passed. Commit `0178f849f6c7358977be74846a07774e89738c3f` was pushed as `v2.5.4`. GitHub independently confirmed the public release and `study-assistant-2.5.4.zip` asset (898,588 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.4 . No answer or automation behavior changed.
 
 **GitHub About remains:** The separate repository description still reads “Privacy-focused Chrome extension for guided study assistance on Pearson, McGraw Hill, Canvas, and MindTap.” The existing publishing token returned HTTP 403 for the repository-settings API, and the open Chrome GitHub page was signed out. Suggested replacement: “AI homework autofill Chrome extension for supported McGraw Connect, Pearson MyLab, Canvas and MindTap questions.” Repository topics can also be added by an admin: `chrome-extension`, `homework-autofill`, `ai-study-assistant`, `mcgraw-connect`, `pearson-mylab`, `canvas-lms`, `mindtap`. Do not claim these settings were changed.
+
+
+## October 3, 2026 — 2.5.5 Pearson controls and compact modes
+
+**Why:** The live Pearson page had graded dropdowns and radio buttons from earlier parts alongside three active dropdowns. Collection skipped the graded controls, but completeness counted their wrappers, falsely stopping with “not captured.”
+
+**Changed:** Both paths now use the same active-control predicate. Added regression cases for graded versus editable dropdowns, numeric editors and choices. Removed the sticky assistant control deck. Shared on-page pace selection uses four icon radio buttons and a separate speed button group; keyboard navigation and saved preference keys are retained. Human pace has a distinct vector icon in settings/setup/help. No timing behavior changed.
+
+**Evidence:** Live read-only Pearson inspection confirmed the graded `answered` dropdowns and disabled radio inputs. Syntax and repository regression tests passed. Live autofill/check remains unverified after the fix.
+
+**Repository metadata:** Saved and visually verified the GitHub About description in Safari: “AI homework autofill Chrome extension for supported McGraw Connect, Pearson MyLab, Canvas and MindTap questions.” Topics: chrome-extension, homework-autofill, ai-study-assistant, mcgraw-connect, pearson-mylabs, canvas-lms, mindtap. This supersedes the prior blocked About note.
+
+**Updates:** User asked about automatic updates outside the Web Store. Explained a permanent unpacked folder plus a separate updater could reduce installation to a Chrome Reload click. No updater or scheduled update task has been implemented.

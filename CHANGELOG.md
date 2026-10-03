@@ -2,6 +2,13 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.5 — October 3, 2026
+
+- Ignore graded Pearson answer widgets when checking whether active controls were captured, allowing later-part dropdowns to be read.
+- Let the full assistant panel scroll together instead of pinning the entire control deck.
+- Replace on-page pace and speed dropdowns with compact selectable cards across the shared platform controls.
+- Give Human pace a distinct person-and-book icon in settings, setup and help.
+
 ## 2.5.4 — October 2, 2026
 
 - Make AI homework autofill explicit in the extension name, description and repository overview.
