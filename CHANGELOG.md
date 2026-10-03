@@ -2,6 +2,12 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.2 — October 2, 2026
+
+- Correct version badges and four-mode walkthrough copy.
+- Bring regression tests into the repository and add reproducible packaging/tagged releases.
+- Record remaining work in HANDOFF.md for cross-chat continuity.
+
 ## 2.5.1 — October 2, 2026
 
 - Add privacy and terms pages, support/deletion instructions and a publication checklist.

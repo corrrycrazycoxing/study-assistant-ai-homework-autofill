@@ -12,3 +12,7 @@ The project owner explicitly authorized uploading this update and future changes
 - This standing instruction covers GitHub source updates. Chrome Web Store submission and unrelated projects require their own authorization.
 
 Do not infer permission to make future product changes from this instruction; it authorizes uploading changes that the owner requests.
+
+## Release and handoff continuity
+
+The owner authorized publishing a matching GitHub release and installable ZIP after each requested update on October 2, 2026. After verified source push, push the matching version tag and confirm the release and ZIP asset succeeded. Never overwrite an existing release/tag. Chrome Web Store publication remains separate. Read HANDOFF.md before work and update it with completed work, verification and remaining tasks at the end of each update. Keep regression tests and build scripts in this repository so another account can continue without local chat files.

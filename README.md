@@ -1,4 +1,4 @@
-# Study Assistant 2.5.1
+# Study Assistant 2.5.2
 
 [Latest GitHub release](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest) · [Changelog](CHANGELOG.md) · [Privacy policy](PRIVACY.md) · [Terms of use](TERMS.md) · [Publication checklist](PUBLISHING.md) · [Security notes](SECURITY.md)
 
@@ -32,11 +32,11 @@ One Chrome extension containing the original Auto-McGraw SmartBook/Connect adapt
 
 ## New in 2.4.2: clearer modes and answer review
 
-Automation pace uses three clickable illustrated cards in Settings and first-use setup, with bundled PNG icons. There is no visible pace dropdown. **Instant Auto** adds no countdown; **Timed Auto** continues automatically after each countdown; **Review each step** waits for Continue now. Existing saved mode keys and behavior are retained.
+Automation pace uses four clickable illustrated cards in Settings and first-use setup, with bundled PNG icons. There is no visible pace dropdown. **Instant Auto** adds no countdown; **Timed Auto** continues automatically after each countdown; **Review each step** waits for Continue now. Existing saved mode keys and behavior are retained.
 
 **Guided walkthrough:** after first-use preferences are saved, a 12-step tour highlights the actual assistant controls. Settings and Back steps let you click the highlighted button; other steps explain the controls without triggering them. Back, Next, Skip walkthrough and Escape are available. Replay it from **Help → Walkthrough** when no run, AI request or answer edit is active. Skipping the tour keeps your preferences and does not skip the first-use acknowledgement. The tour never starts a request, enters answers or changes the selected mode.
 
-Pearson previews now show **Part 1, Part 2, …**, with available label, table row/column or option context. The small Pearson menu uses a readable answer table; the side panel receives the same structured labels. Technical fixture wording such as “Embedded number” is replaced by its visible option context or a numbered part.
+Pearson previews follow detected question and printed subpart labels, with available table row/column or option context; unidentified inputs use Field numbering. The small Pearson menu uses a readable answer table; the side panel receives the same structured labels. Technical fixture wording such as “Embedded number” is replaced by its visible option context or a numbered part.
 
 The assistant shows the current stage: Read, Ask AI, Prepare, Enter or Check. It highlights observed activity, rather than claiming every stage completed. **Recent activity** contains up to eight observed updates for the selected assignment while the panel is open. It is temporary and clears on panel close or assignment change. Original SmartBook/older Connect have a limited stage summary.
 
@@ -99,8 +99,8 @@ The monitor also stops cleanly when Chrome invalidates an old extension after up
 
 ## Install
 
-1. Extract **study-assistant-2.5.0.zip**.
-2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the **Study-Assistant-2.5.0** folder containing **manifest.json**. Do not select its parent folder or the ZIP.
+1. Extract **study-assistant-2.5.2.zip**.
+2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the extracted folder containing **manifest.json**. Do not select its parent folder or the ZIP.
 3. Disable the separate Auto-McGraw, Pearson, Canvas and MindTap extensions so their AI connectors do not compete with this one.
 4. Reload your assignment and any open Gemini, ChatGPT, DeepSeek or NotebookLM tabs. Sign into the AI services and leave their prompt boxes empty.
 5. Click the extension icon on the assignment tab to open the **Study Assistant side panel**. Leave **Run on** set to **Automatic** in Settings. Pick an assignment in the panel and choose Ask AI or Start Auto. Chrome 116 or newer is required.
@@ -137,7 +137,7 @@ Click **McGraw**, **Pearson**, **Canvas** or **MindTap** under **Settings for** 
 
 ## Automation pace and feature guide
 
-Each platform has its own **Automation pace**, shown as three illustrated cards. Help in the side panel opens a plain-language feature guide in place; the Settings feature guide returns to Settings when closed. The default is **Instant Auto** and it preserves full automatic answering without an added review countdown. Pacing does not switch automation off.
+Each platform has its own **Automation pace**, shown as four illustrated cards. Help in the side panel opens a plain-language feature guide in place; the Settings feature guide returns to Settings when closed. The default is **Instant Auto** and it preserves full automatic answering without an added review countdown. Pacing does not switch automation off.
 
 - **Instant Auto:** automatic input and supported navigation.
 - **Timed Auto:** automatic input after a visible countdown for each answer field/group or journal cell; another countdown before checking, saving or advancing.
@@ -190,3 +190,7 @@ Original MIT license and attribution are retained in LICENSE. The supplied Auto-
 It can technically be submitted to the Chrome Web Store, but this local build is not a store-ready release and approval is not guaranteed. Before public distribution, review live compatibility, requested permissions, disclosures/consent for assignment text or pictures sent to third-party AI services, automated-message controls, provider terms and logo use. Remove the experimental duplicate-credit workflow from a public release. No extension has been submitted or published here.
 
 Chrome’s publish guidance: https://developer.chrome.com/docs/webstore/publish . Program policies: https://developer.chrome.com/docs/webstore/program-policies/policies . Provider branding: assets/ATTRIBUTION.md .
+
+## Continuing development in another chat
+
+Start with [HANDOFF.md](HANDOFF.md). Run `node scripts/check.cjs` from the repository. Tag a verified update as `v<manifest version>`, push that tag, then run `python3 scripts/publish-release.py`. See [PUBLISHING.md](PUBLISHING.md).

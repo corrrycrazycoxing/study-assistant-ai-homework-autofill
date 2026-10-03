@@ -43,3 +43,7 @@ See [Chrome publishing guidance](https://developer.chrome.com/docs/webstore/publ
 ## Add only if the product changes
 
 Payments would require clear prices, refund/cancellation terms and applicable business disclosures. Tracking or additional cookies would require a new privacy assessment and any applicable consent controls. Marketing email would require consent and unsubscribe handling. Review third-party SDKs before adding them. The current documentation does not claim those systems exist.
+
+## Automated tagged releases
+
+Run `node scripts/check.cjs` and `python3 scripts/package.py v<version>` locally. After committing and pushing verified source, push a matching `v<version>` tag. Run `python3 scripts/publish-release.py` to publish the built ZIP with RELEASE-NOTES.md using existing Git credentials. The current token cannot upload GitHub workflow files. Confirm the release and attached ZIP succeeded. Existing tags/releases must not be overwritten.
