@@ -19,7 +19,7 @@ Current source version: 2.5.3. The local checkout folder may still be named 2.5.
 5. Accessibility, third-party asset licensing and public-distribution review remain in PUBLISHING.md. No Chrome Web Store publication was requested here.
 
 ## Current publication status
-The `v2.5.2` release is published and verified. Version 2.5.3 adds a prominent download/setup section; its release remains pending until the ZIP asset is verified. Read [DECISIONS.md](DECISIONS.md) for publication history.
+The `v2.5.3` release and `study-assistant-2.5.3.zip` asset are published and independently verified. The repository README links directly to the ZIP and explains installation. Read [DECISIONS.md](DECISIONS.md) for publication history.
 
 ## Verification and release procedure
 Run `node scripts/check.cjs`, `python3 scripts/package.py v2.5.3`, and `git diff --check`. Tests cover mocked timing/relay/security/update lifecycle; browser fixtures are in docs/.

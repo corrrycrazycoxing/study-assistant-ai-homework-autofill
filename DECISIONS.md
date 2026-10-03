@@ -26,4 +26,4 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 
 **Why:** The repository home page showed 2.5.2 and a generic release link, but the actual ZIP and `Load unpacked` setup were hard to find. GitHub's source download is not the intended extension package.
 
-**Checks and publication:** Node regression tests, JavaScript syntax, ZIP manifest/integrity, `git diff --check` and secret-pattern scan passed. Release pending. The extension's answer and navigation logic was not changed.
+**Checks and publication:** Node regression tests, JavaScript syntax, ZIP manifest/integrity, `git diff --check` and secret-pattern scan passed. Commit `cc482ceb5e8c0dc84650cc1e036829790f27e10a` was pushed to `main` and tagged `v2.5.3`. GitHub independently confirmed the public release and uploaded `study-assistant-2.5.3.zip` asset (898,414 bytes) at https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.3 . The extension's answer and navigation logic was not changed.
