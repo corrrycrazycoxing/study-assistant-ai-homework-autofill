@@ -15,3 +15,7 @@ Keep this file for future chats and accounts. Add a dated entry after each meani
 **Release choice:** A workflow-based release was attempted, but the existing Git token lacks permission to add `.github/workflows/release.yml`; GitHub rejected that push. We removed the workflow and pushed a direct release script instead. Do not reintroduce workflow files with the same token. Once permitted, configure the script to use the system trust bundle on macOS, re-run checks, and publish/verify the existing tag's release. Do not replace the tag or claim release success until the asset is visible.
 
 **Outstanding product work:** See HANDOFF.md. Prioritize portable Canvas/MindTap fixture verification, then live provider checks. The Google Docs companion is a separate experimental prototype and is not in this repository.
+
+### Publication completed later on October 2, 2026
+
+The `v2.5.2` release was published and independently confirmed through GitHub's release API. It contains `study-assistant-2.5.2.zip` (898,135 bytes, SHA-256 `a9a10b9b0071f654af531903bd9f1ab32c5b103270dd5be5589eed331ccd89a0`). Release: https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.2 . The tagged extension remains commit `5f765f3da3c3a461e968fa1c853b87fab0ba49b6`; later `main` commits only changed handoff documentation and release tooling.
