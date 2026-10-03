@@ -19,3 +19,11 @@ Keep this file for future chats and accounts. Add a dated entry after each meani
 ### Publication completed later on October 2, 2026
 
 The `v2.5.2` release was published and independently confirmed through GitHub's release API. It contains `study-assistant-2.5.2.zip` (898,135 bytes, SHA-256 `a9a10b9b0071f654af531903bd9f1ab32c5b103270dd5be5589eed331ccd89a0`). Release: https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.2 . The tagged extension remains commit `5f765f3da3c3a461e968fa1c853b87fab0ba49b6`; later `main` commits only changed handoff documentation and release tooling.
+
+## October 2, 2026 — 2.5.3 installation clarity
+
+**What changed:** Put a direct installable ZIP link and four Chrome setup steps at the top of the repository README. Updated the manifest and visible version labels to 2.5.3.
+
+**Why:** The repository home page showed 2.5.2 and a generic release link, but the actual ZIP and `Load unpacked` setup were hard to find. GitHub's source download is not the intended extension package.
+
+**Checks and publication:** Node regression tests, JavaScript syntax, ZIP manifest/integrity, `git diff --check` and secret-pattern scan passed. Release pending. The extension's answer and navigation logic was not changed.

@@ -1,10 +1,22 @@
-# Study Assistant 2.5.2
+# Study Assistant 2.5.3
+
+## Download and install
+
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/download/v2.5.3/study-assistant-2.5.3.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest)
+
+1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
+2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
+3. Click **Load unpacked** and select the extracted folder that contains `manifest.json`. If Chrome says the manifest is missing, open the folder inside the one you selected.
+4. Open a supported assignment, reload that tab and your AI tab, then click the Study Assistant extension icon to open its side panel.
+
+To update a previous unpacked installation, remove or disable the older copy, extract the new ZIP into its own folder, load that folder, and reload your assignment and AI tabs. The Chrome Web Store is not used for this installation.
+
 
 [Latest GitHub release](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest) · [Changelog](CHANGELOG.md) · [Privacy policy](PRIVACY.md) · [Terms of use](TERMS.md) · [Publication checklist](PUBLISHING.md) · [Security notes](SECURITY.md)
 
 ## Getting update notifications
 
-On GitHub, choose **Watch → Custom → Releases** to receive notifications when a new version is published. Each release should have a matching `vX.Y.Z` tag, release notes and an installable extension ZIP. A commit alone is not a release notification. The latest-release link above becomes available after the first release is published. See [GitHub's release guidance](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases).
+On GitHub, choose **Watch → Custom → Releases** to receive notifications when a new version is published. Each release should have a matching `vX.Y.Z` tag, release notes and an installable extension ZIP. A commit alone is not a release notification. See [GitHub's release guidance](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases).
 
 Chrome Web Store installations use Chrome's automatic updates. The side panel shows **Update ready** and the version when Chrome reports a downloaded update. It does not poll GitHub, force a reload or interrupt a run. Chrome may install an update while the extension is idle, so a notice is not guaranteed to remain visible. See [Chrome's runtime update API](https://developer.chrome.com/docs/extensions/reference/api/runtime#event-onUpdateAvailable).
 
@@ -99,7 +111,7 @@ The monitor also stops cleanly when Chrome invalidates an old extension after up
 
 ## Install
 
-1. Extract **study-assistant-2.5.2.zip**.
+1. Extract **study-assistant-2.5.3.zip**.
 2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the extracted folder containing **manifest.json**. Do not select its parent folder or the ZIP.
 3. Disable the separate Auto-McGraw, Pearson, Canvas and MindTap extensions so their AI connectors do not compete with this one.
 4. Reload your assignment and any open Gemini, ChatGPT, DeepSeek or NotebookLM tabs. Sign into the AI services and leave their prompt boxes empty.

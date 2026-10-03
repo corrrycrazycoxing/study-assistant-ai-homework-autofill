@@ -2,6 +2,11 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.3 — October 2, 2026
+
+- Put a direct ZIP download and four-step Chrome installation guide at the top of the repository README.
+- Keep version labels and the installable archive in sync.
+
 ## 2.5.2 — October 2, 2026
 
 - Correct version badges and four-mode walkthrough copy.
