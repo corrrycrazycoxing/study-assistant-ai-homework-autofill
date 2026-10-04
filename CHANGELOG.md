@@ -2,6 +2,11 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.10 — October 3, 2026
+
+- Put recent updates at the top of the GitHub README and link directly to the full changelog and releases.
+- Move older feature notes to an archive and correct stale mode and verification wording in the main README. Extension behavior is unchanged.
+
 ## 2.5.9 — October 3, 2026
 
 - Pearson custom dropdowns now match their visible menu labels, including menus with hidden arrow text. This fixes the reported “dropdown did not open” stop on the confidence-interval question.

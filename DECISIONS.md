@@ -70,3 +70,9 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Evidence:** Node checks and synthetic Pearson/panel browser fixtures passed. The live Pearson menu structure was inspected; no answer was entered in the live assignment during verification.
 
 **Publication:** main and v2.5.9 pushed at bce79a54f99e59335043614c0d3f4612428a4830. GitHub confirmed a public release with the 904,408-byte installable ZIP.
+
+## October 3, 2026 — 2.5.10 release visibility
+
+**Why:** The GitHub README still led with 2.5.0 after installation, making newer published releases look absent even though CHANGELOG.md and the 2.5.9 release were current.
+
+**Changed:** Added recent-version notes near the README top, archived older feature narrative, linked changelog/releases, and corrected stale descriptions. No runtime logic changed.
