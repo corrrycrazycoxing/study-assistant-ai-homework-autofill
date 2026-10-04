@@ -1,12 +1,14 @@
 # Start here when continuing in another chat
 
-Repository: https://github.com/corrrycrazycoxing/study-assistant-extension
-Current source version: 2.5.10. The local checkout folder may still be named 2.5.0; manifest.json is authoritative.
+Repository: https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill
+Current source version: 2.5.11. The local checkout folder may still be named 2.5.0; manifest.json is authoritative.
 
 ## Latest update
-Version 2.5.10 updates the public README to show recent releases first and archives old feature notes under docs/FEATURE-HISTORY.md. This is documentation-only; extension behavior is unchanged. Published main and v2.5.10 at 521e17bde617a7353eeb3c24a749ae4169730e63. GitHub confirmed the public release and uploaded study-assistant-2.5.10.zip (899,989 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.10 .
+Version 2.5.11 changes the GitHub repository slug to study-assistant-ai-homework-autofill and updates the remote, links, updater and release script. No runtime behavior change. Publication pending.
 
-Version 2.5.9 fixes Pearson custom dropdown menu-label matching observed on a live confidence-interval question, adds a compact attention link to the side panel, returns from requested AI-tab reloads, and shortens the mode walkthrough. Node checks and synthetic browser fixtures passed. Live answer entry was not performed. Published main and tag v2.5.9 at bce79a54f99e59335043614c0d3f4612428a4830. GitHub confirmed the public release and uploaded study-assistant-2.5.9.zip (904,408 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.9 .
+Version 2.5.10 updates the public README to show recent releases first and archives old feature notes under docs/FEATURE-HISTORY.md. This is documentation-only; extension behavior is unchanged. Published main and v2.5.10 at 521e17bde617a7353eeb3c24a749ae4169730e63. GitHub confirmed the public release and uploaded study-assistant-2.5.10.zip (899,989 bytes): https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.10 .
+
+Version 2.5.9 fixes Pearson custom dropdown menu-label matching observed on a live confidence-interval question, adds a compact attention link to the side panel, returns from requested AI-tab reloads, and shortens the mode walkthrough. Node checks and synthetic browser fixtures passed. Live answer entry was not performed. Published main and tag v2.5.9 at bce79a54f99e59335043614c0d3f4612428a4830. GitHub confirmed the public release and uploaded study-assistant-2.5.9.zip (904,408 bytes): https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.9 .
 
 ## Already implemented
 - Pearson printed question/subpart labels, paired Above/Below preview tables, dropdown handling and question-level Final check/Next.
@@ -26,9 +28,9 @@ Version 2.5.9 fixes Pearson custom dropdown menu-label matching observed on a li
 - 2.5.4 makes AI homework autofill explicit in the name, description and README.
 
 ## Current publication status
-Version 2.5.7 was published and independently verified at commit 546d959ecdcf22156b14f43f2fc5326c57cb14d2 with uploaded study-assistant-2.5.7.zip (904,171 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.7 . Version 2.5.8 is published and independently verified with uploaded study-assistant-2.5.8.zip (903,659 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.8 . Source/tag commit: 181891d7ffd26b0771005068c6f9dc512185975e. This release removes the publication and cross-chat sections from the public README and built-in guide.
+Version 2.5.7 was published and independently verified at commit 546d959ecdcf22156b14f43f2fc5326c57cb14d2 with uploaded study-assistant-2.5.7.zip (904,171 bytes): https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.7 . Version 2.5.8 is published and independently verified with uploaded study-assistant-2.5.8.zip (903,659 bytes): https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.8 . Source/tag commit: 181891d7ffd26b0771005068c6f9dc512185975e. This release removes the publication and cross-chat sections from the public README and built-in guide.
 
 ## Verification and release procedure
-Run `node scripts/check.cjs`, `python3 scripts/package.py v2.5.10`, and `git diff --check`. Tests cover mocked timing/relay/security/update lifecycle; browser fixtures are in docs/.
+Run `node scripts/check.cjs`, `python3 scripts/package.py v2.5.11`, and `git diff --check`. Tests cover mocked timing/relay/security/update lifecycle; browser fixtures are in docs/.
 For future versions update manifest, visible badges, CHANGELOG.md and RELEASE-NOTES.md. Inspect remote changes, run checks, review diff/secrets, commit, show hash, push source and a matching version tag. Run `python3 scripts/publish-release.py` to publish the ZIP after pushing the tag. Confirm the release asset before reporting publication. Never replace an existing tag.
 Update this file with actual results and remaining work each turn. The owner authorized source pushes and matching GitHub releases for requested updates; this does not authorize unrelated features or store submission.

@@ -2,6 +2,10 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.11 — October 3, 2026
+
+- Renamed the GitHub repository to `study-assistant-ai-homework-autofill` and updated project links, the local Git remote, updater and release tooling. Extension behavior is unchanged.
+
 ## 2.5.10 — October 3, 2026
 
 - Put recent updates at the top of the GitHub README and link directly to the full changelog and releases.

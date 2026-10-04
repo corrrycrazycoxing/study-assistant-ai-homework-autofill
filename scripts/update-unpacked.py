@@ -12,7 +12,7 @@ import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
 
-REPO = 'corrrycrazycoxing/study-assistant-extension'
+REPO = 'corrrycrazycoxing/study-assistant-ai-homework-autofill'
 API = f'https://api.github.com/repos/{REPO}/releases/latest'
 HEADERS = {'Accept': 'application/vnd.github+json', 'User-Agent': 'study-assistant-updater'}
 PACKAGE_ROOTS = {'assets', 'background', 'content-scripts', 'popup', 'shared', 'sidepanel'}

@@ -18,7 +18,7 @@ Keep this file for future chats and accounts. Add a dated entry after each meani
 
 ### Publication completed later on October 2, 2026
 
-The `v2.5.2` release was published and independently confirmed through GitHub's release API. It contains `study-assistant-2.5.2.zip` (898,135 bytes, SHA-256 `a9a10b9b0071f654af531903bd9f1ab32c5b103270dd5be5589eed331ccd89a0`). Release: https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.2 . The tagged extension remains commit `5f765f3da3c3a461e968fa1c853b87fab0ba49b6`; later `main` commits only changed handoff documentation and release tooling.
+The `v2.5.2` release was published and independently confirmed through GitHub's release API. It contains `study-assistant-2.5.2.zip` (898,135 bytes, SHA-256 `a9a10b9b0071f654af531903bd9f1ab32c5b103270dd5be5589eed331ccd89a0`). Release: https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.2 . The tagged extension remains commit `5f765f3da3c3a461e968fa1c853b87fab0ba49b6`; later `main` commits only changed handoff documentation and release tooling.
 
 ## October 2, 2026 — 2.5.3 installation clarity
 
@@ -26,7 +26,7 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 
 **Why:** The repository home page showed 2.5.2 and a generic release link, but the actual ZIP and `Load unpacked` setup were hard to find. GitHub's source download is not the intended extension package.
 
-**Checks and publication:** Node regression tests, JavaScript syntax, ZIP manifest/integrity, `git diff --check` and secret-pattern scan passed. Commit `cc482ceb5e8c0dc84650cc1e036829790f27e10a` was pushed to `main` and tagged `v2.5.3`. GitHub independently confirmed the public release and uploaded `study-assistant-2.5.3.zip` asset (898,414 bytes) at https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.3 . The extension's answer and navigation logic was not changed.
+**Checks and publication:** Node regression tests, JavaScript syntax, ZIP manifest/integrity, `git diff --check` and secret-pattern scan passed. Commit `cc482ceb5e8c0dc84650cc1e036829790f27e10a` was pushed to `main` and tagged `v2.5.3`. GitHub independently confirmed the public release and uploaded `study-assistant-2.5.3.zip` asset (898,414 bytes) at https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.3 . The extension's answer and navigation logic was not changed.
 
 ## October 2, 2026 — 2.5.4 clear product description
 
@@ -34,7 +34,7 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 
 **Why:** The old name listed websites but did not state that the extension autofills supported homework fields, making the main function hard to find or understand.
 
-**Checks and publication:** Node regression tests, JavaScript syntax, ZIP integrity, `git diff --check` and a secret-pattern scan passed. Commit `0178f849f6c7358977be74846a07774e89738c3f` was pushed as `v2.5.4`. GitHub independently confirmed the public release and `study-assistant-2.5.4.zip` asset (898,588 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.4 . No answer or automation behavior changed.
+**Checks and publication:** Node regression tests, JavaScript syntax, ZIP integrity, `git diff --check` and a secret-pattern scan passed. Commit `0178f849f6c7358977be74846a07774e89738c3f` was pushed as `v2.5.4`. GitHub independently confirmed the public release and `study-assistant-2.5.4.zip` asset (898,588 bytes): https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.4 . No answer or automation behavior changed.
 
 **GitHub About remains:** The separate repository description still reads “Privacy-focused Chrome extension for guided study assistance on Pearson, McGraw Hill, Canvas, and MindTap.” The existing publishing token returned HTTP 403 for the repository-settings API, and the open Chrome GitHub page was signed out. Suggested replacement: “AI homework autofill Chrome extension for supported McGraw Connect, Pearson MyLab, Canvas and MindTap questions.” Repository topics can also be added by an admin: `chrome-extension`, `homework-autofill`, `ai-study-assistant`, `mcgraw-connect`, `pearson-mylab`, `canvas-lms`, `mindtap`. Do not claim these settings were changed.
 
@@ -51,7 +51,7 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 
 **Updates:** User asked about automatic updates outside the Web Store. Explained a permanent unpacked folder plus a separate updater could reduce installation to a Chrome Reload click. No updater or scheduled update task has been implemented.
 
-**Publication verified:** main and v2.5.5 were pushed at 0dbe56a55c40f2b94c8b1bc1496ac7c97f20ac2c. GitHub release-by-tag independently returned draft=false and study-assistant-2.5.5.zip (900,134 bytes). Release: https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.5 .
+**Publication verified:** main and v2.5.5 were pushed at 0dbe56a55c40f2b94c8b1bc1496ac7c97f20ac2c. GitHub release-by-tag independently returned draft=false and study-assistant-2.5.5.zip (900,134 bytes). Release: https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.5 .
 
 ## October 3, 2026 — 2.5.8 public documentation cleanup
 
@@ -59,7 +59,7 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 
 **Changed:** Removed both sections from README.md and the copied publication question from the built-in guide. Kept the operational details in PUBLISHING.md, HANDOFF.md, DECISIONS.md, and AGENTS.md. No answer behavior changed.
 
-**Checks and publication:** Node regression and syntax checks, ZIP integrity, and git diff checks passed. Commit 181891d7ffd26b0771005068c6f9dc512185975e was pushed to main and tagged v2.5.8. GitHub confirmed a public release and uploaded study-assistant-2.5.8.zip (903,659 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.8 .
+**Checks and publication:** Node regression and syntax checks, ZIP integrity, and git diff checks passed. Commit 181891d7ffd26b0771005068c6f9dc512185975e was pushed to main and tagged v2.5.8. GitHub confirmed a public release and uploaded study-assistant-2.5.8.zip (903,659 bytes): https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.8 .
 
 ## October 3, 2026 — 2.5.9 Pearson dropdown and attention handling
 
@@ -78,3 +78,9 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Changed:** Added recent-version notes near the README top, archived older feature narrative, linked changelog/releases, and corrected stale descriptions. No runtime logic changed.
 
 **Verification and publication:** Node checks, ZIP integrity, and diff check passed. Commit 521e17bde617a7353eeb3c24a749ae4169730e63 was pushed to main and tagged v2.5.10. GitHub confirmed a public release with the 899,989-byte installable ZIP.
+
+## October 3, 2026 — 2.5.11 repository rename
+
+**Why:** The owner chose “Study Assistant — AI Homework Autofill.” GitHub had already renamed the repository with a trailing hyphen; we normalized the slug to study-assistant-ai-homework-autofill.
+
+**Changed:** Updated origin, hardcoded repository links, update helper and release script. No runtime logic changed.

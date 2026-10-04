@@ -4,7 +4,7 @@ from pathlib import Path
 root=Path(__file__).resolve().parent.parent
 version=json.loads((root/'manifest.json').read_text())['version']
 tag='v'+version
-repo='corrrycrazycoxing/study-assistant-extension'
+repo='corrrycrazycoxing/study-assistant-ai-homework-autofill'
 remote=subprocess.check_output(['git','remote','get-url','origin'],cwd=root,text=True).strip()
 assert remote in ['https://github.com/'+repo+'.git','https://github.com/'+repo], 'Unexpected origin'
 assert not subprocess.check_output(['git','status','--porcelain'],cwd=root,text=True).strip(), 'Worktree must be clean'

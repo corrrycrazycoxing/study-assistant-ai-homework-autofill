@@ -36,6 +36,6 @@ Modern Ask AI requests show a preview by default. Auto Fill can be enabled, and 
 
 ## Deletion requests and contact
 
-To remove extension-held data, clear the extension's saved progress and settings or uninstall it from `chrome://extensions`. To request help with this project, open an issue at [github.com/corrrycrazycoxing/study-assistant-extension/issues](https://github.com/corrrycrazycoxing/study-assistant-extension/issues). Requests concerning data retained by an AI provider must be sent to that provider.
+To remove extension-held data, clear the extension's saved progress and settings or uninstall it from `chrome://extensions`. To request help with this project, open an issue at [github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/issues](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/issues). Requests concerning data retained by an AI provider must be sent to that provider.
 
 This policy may be updated when the extension's data practices change. The date above identifies the version currently described.

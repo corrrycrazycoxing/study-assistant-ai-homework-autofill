@@ -1,29 +1,30 @@
-# Study Assistant — AI Homework Autofill (2.5.10)
+# Study Assistant — AI Homework Autofill (2.5.11)
 
 Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas and MindTap** using a connected ChatGPT, Gemini or DeepSeek tab. Review answers before final submission.
 
 ## Download and install
 
-**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/download/v2.5.10/study-assistant-2.5.10.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest)
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.5.11/study-assistant-2.5.11.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the extracted **Study-Assistant-2.5.10** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
+3. Click **Load unpacked** and select the extracted **Study-Assistant-2.5.11** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
 4. Open a supported assignment, reload that tab and your AI tab, then click the Study Assistant extension icon to open its side panel.
 
 To update a previous unpacked installation, remove or disable the older copy, extract the new ZIP into its own folder, load that folder, and reload your assignment and AI tabs. The Chrome Web Store is not used for this installation.
 
 
-[Latest GitHub release](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest) · [Changelog](CHANGELOG.md) · [Privacy policy](PRIVACY.md) · [Terms of use](TERMS.md) · [Publication checklist](PUBLISHING.md) · [Security notes](SECURITY.md)
+[Latest GitHub release](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest) · [Changelog](CHANGELOG.md) · [Privacy policy](PRIVACY.md) · [Terms of use](TERMS.md) · [Publication checklist](PUBLISHING.md) · [Security notes](SECURITY.md)
 
 ## What changed recently
 
+- **2.5.11:** Renamed the GitHub repository to match Study Assistant — AI Homework Autofill. Project links and update tools now use the new address; extension behavior is unchanged.
 - **2.5.10:** The GitHub front page now shows current changes and links to the full version history. Extension behavior is unchanged.
 - **2.5.9:** Fixed Pearson custom dropdown matching on the reported confidence-interval question. The small assistant flags questions needing attention and links to the side panel. AI-tab reloads return to the assignment tab, and the mode walkthrough fits the panel.
 - **2.5.7–2.5.8:** Added Guided Answers, shortened the on-page assistant, improved first-use guidance, and cleaned up public documentation.
 - **2.5.5–2.5.6:** Improved Pearson graded-control detection, panel scrolling, Canvas save verification, and the optional updater for unpacked installs.
 
-Read the [complete changelog](CHANGELOG.md) for every version, or open [GitHub Releases](https://github.com/corrrycrazycoxing/study-assistant-extension/releases) for downloadable packages and release notes. [Earlier feature notes](docs/FEATURE-HISTORY.md) are archived separately.
+Read the [complete changelog](CHANGELOG.md) for every version, or open [GitHub Releases](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases) for downloadable packages and release notes. [Earlier feature notes](docs/FEATURE-HISTORY.md) are archived separately.
 
 ## Getting update notifications
 

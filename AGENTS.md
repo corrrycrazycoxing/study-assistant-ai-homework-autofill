@@ -2,7 +2,7 @@
 
 The project owner explicitly authorized uploading this update and future changes on October 2, 2026. This is standing authorization for changes to this project to be committed and pushed after appropriate verification.
 
-- Use the existing Git remote for this project: https://github.com/corrrycrazycoxing/study-assistant-extension.git.
+- Use the existing Git remote for this project: https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill.git.
 - Inspect Git status and remote changes before publishing. Preserve unrelated work and never overwrite remote changes or rewrite published history without specific authorization.
 - Run relevant tests, inspect the diff and check for secrets before committing. Show the commit hash before pushing.
 - Retain the configured project author identity and private no-reply email.

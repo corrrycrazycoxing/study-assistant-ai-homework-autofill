@@ -28,4 +28,4 @@ The extension is provided on an “as available” basis. To the extent permitte
 
 ## Contact
 
-Project support and issue reports are available at [github.com/corrrycrazycoxing/study-assistant-extension/issues](https://github.com/corrrycrazycoxing/study-assistant-extension/issues).
+Project support and issue reports are available at [github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/issues](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/issues).
