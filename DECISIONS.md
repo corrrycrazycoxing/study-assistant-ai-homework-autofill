@@ -94,3 +94,5 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Changed:** The existing MAIN-world Pearson bridge now calls `loadDropDown()` when needed, opens the menu, selects one exact visible option, and verifies the displayed field. The isolated content script requests one dropdown choice at a time and stops before checking on a mismatch.
 
 **Evidence and limits:** DevTools on the reported live question showed `loadDropDown()` populated all choices. The sequence selected smaller, smaller and critical value across FL3–FL5; Pearson's Check answer control became available. No grading or submission was triggered. The new bridge regression and repository tests passed. The built 2.5.12 extension was not installed in Chrome during this check.
+
+**Publication:** Commit d8ad4d3a139dca29cdd802c627dd76c251f4ded9 was pushed to main and tagged v2.5.12. GitHub confirmed the public release and 900,883-byte installable ZIP at https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.12 .
