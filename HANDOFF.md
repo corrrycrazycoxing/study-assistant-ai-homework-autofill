@@ -3,8 +3,8 @@
 Repository: https://github.com/corrrycrazycoxing/study-assistant-extension
 Current source version: 2.5.9. The local checkout folder may still be named 2.5.0; manifest.json is authoritative.
 
-## Latest update in progress
-Version 2.5.9 fixes Pearson custom dropdown menu-label matching observed on a live confidence-interval question, adds a compact attention link to the side panel, returns from requested AI-tab reloads, and shortens the mode walkthrough. Node checks and synthetic browser fixtures passed. Live answer entry was not performed. Publish main, tag and ZIP before marking this release complete.
+## Latest update
+Version 2.5.9 fixes Pearson custom dropdown menu-label matching observed on a live confidence-interval question, adds a compact attention link to the side panel, returns from requested AI-tab reloads, and shortens the mode walkthrough. Node checks and synthetic browser fixtures passed. Live answer entry was not performed. Published main and tag v2.5.9 at bce79a54f99e59335043614c0d3f4612428a4830. GitHub confirmed the public release and uploaded study-assistant-2.5.9.zip (904,408 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.9 .
 
 ## Already implemented
 - Pearson printed question/subpart labels, paired Above/Below preview tables, dropdown handling and question-level Final check/Next.

@@ -68,3 +68,5 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Changed:** Match the visible `.dijitMenuItemLabel` within the specific menu owned by the dropdown, then verify Pearson’s selected display. The compact assistant labels attention and opens the side panel. A requested AI-tab reload now visits that tab, reloads it and returns to the original tab unless the user switches away. The walkthrough focuses on one mode card and removes a redundant icon legend.
 
 **Evidence:** Node checks and synthetic Pearson/panel browser fixtures passed. The live Pearson menu structure was inspected; no answer was entered in the live assignment during verification.
+
+**Publication:** main and v2.5.9 pushed at bce79a54f99e59335043614c0d3f4612428a4830. GitHub confirmed a public release with the 904,408-byte installable ZIP.
