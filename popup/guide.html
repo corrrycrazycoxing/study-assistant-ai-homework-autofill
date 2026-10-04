@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><title>Study Assistant 2.5.7 setup</title><style>body{font:15px/1.6 system-ui;background:#121212;color:#eee;max-width:850px;margin:45px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}@media(min-width:1200px){body{max-width:none;margin:28px;padding:0 24px}pre{column-count:2;column-gap:48px}}</style><pre># Study Assistant 2.5.7
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Study Assistant 2.5.8 setup</title><style>body{font:15px/1.6 system-ui;background:#121212;color:#eee;max-width:850px;margin:45px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}@media(min-width:1200px){body{max-width:none;margin:28px;padding:0 24px}pre{column-count:2;column-gap:48px}}</style><pre># Study Assistant 2.5.8
 
 One Chrome extension containing the original Auto-McGraw SmartBook/Connect adapters, Pearson MyLab, Canvas and Cengage MindTap Aplia. It selects the adapter by the website and uses one shared AI/NotebookLM connection. Each platform has its own settings.
 
@@ -71,7 +71,7 @@ The monitor also stops cleanly when Chrome invalidates an old extension after up
 
 ## Install
 
-1. Extract **study-assistant-2.5.7.zip**.
+1. Extract **study-assistant-2.5.8.zip**.
 2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the extracted folder containing **manifest.json**. Do not select its parent folder or the ZIP.
 3. Disable the separate Auto-McGraw, Pearson, Canvas and MindTap extensions so their AI connectors do not compete with this one.
 4. Reload your assignment and any open Gemini, ChatGPT, DeepSeek or NotebookLM tabs. Sign into the AI services and leave their prompt boxes empty.
@@ -157,9 +157,4 @@ Required host access is limited to the named learning platforms and AI services.
 
 Original MIT license and attribution are retained in LICENSE. The supplied Auto-McGraw code is the basis of the McGraw adapters; its old per-provider AI scripts and release updater are replaced with one correlated connection and this unified settings page. No proprietary Pearson/Cengage source library or question bank is bundled. The extension is unofficial and unaffiliated with the platforms or AI providers.
 
-## Could this be published?
-
-It can technically be submitted to the Chrome Web Store, but this local build is not a store-ready release and approval is not guaranteed. Before public distribution, review live compatibility, requested permissions, disclosures/consent for assignment text or pictures sent to third-party AI services, automated-message controls, provider terms and logo use. Remove the experimental duplicate-credit workflow from a public release. No extension has been submitted or published here.
-
-Chrome’s publish guidance: https://developer.chrome.com/docs/webstore/publish . Program policies: https://developer.chrome.com/docs/webstore/program-policies/policies . Provider branding: assets/ATTRIBUTION.md .
 </pre></html>

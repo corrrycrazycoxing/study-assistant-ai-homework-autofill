@@ -2,6 +2,11 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.8 — October 3, 2026
+
+- Removed publication and cross-chat maintenance sections from the public README and built-in guide.
+- Kept development handoff and publication notes in their dedicated files.
+
 ## 2.5.7 — October 3, 2026
 
 - Guided Answers asks AI for an answer and explanation while leaving entry and navigation to the user.

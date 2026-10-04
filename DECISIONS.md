@@ -52,3 +52,11 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Updates:** User asked about automatic updates outside the Web Store. Explained a permanent unpacked folder plus a separate updater could reduce installation to a Chrome Reload click. No updater or scheduled update task has been implemented.
 
 **Publication verified:** main and v2.5.5 were pushed at 0dbe56a55c40f2b94c8b1bc1496ac7c97f20ac2c. GitHub release-by-tag independently returned draft=false and study-assistant-2.5.5.zip (900,134 bytes). Release: https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.5 .
+
+## October 3, 2026 — 2.5.8 public documentation cleanup
+
+**Why:** The README's publication question and cross-chat maintenance directions were distracting in the public view.
+
+**Changed:** Removed both sections from README.md and the copied publication question from the built-in guide. Kept the operational details in PUBLISHING.md, HANDOFF.md, DECISIONS.md, and AGENTS.md. No answer behavior changed.
+
+**Checks and publication:** Pending verification and release.

@@ -1,14 +1,14 @@
-# Study Assistant — AI Homework Autofill (2.5.7)
+# Study Assistant — AI Homework Autofill (2.5.8)
 
 Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas and MindTap** using a connected ChatGPT, Gemini or DeepSeek tab. Review answers before final submission.
 
 ## Download and install
 
-**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/download/v2.5.7/study-assistant-2.5.7.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest)
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/download/v2.5.8/study-assistant-2.5.8.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-extension/releases/latest)
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the extracted **Study-Assistant-2.5.7** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
+3. Click **Load unpacked** and select the extracted **Study-Assistant-2.5.8** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
 4. Open a supported assignment, reload that tab and your AI tab, then click the Study Assistant extension icon to open its side panel.
 
 To update a previous unpacked installation, remove or disable the older copy, extract the new ZIP into its own folder, load that folder, and reload your assignment and AI tabs. The Chrome Web Store is not used for this installation.
@@ -115,7 +115,7 @@ The monitor also stops cleanly when Chrome invalidates an old extension after up
 
 ## Install
 
-1. Extract **study-assistant-2.5.7.zip**.
+1. Extract **study-assistant-2.5.8.zip**.
 2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the extracted folder containing **manifest.json**. Do not select its parent folder or the ZIP.
 3. Disable the separate Auto-McGraw, Pearson, Canvas and MindTap extensions so their AI connectors do not compete with this one.
 4. Reload your assignment and any open Gemini, ChatGPT, DeepSeek or NotebookLM tabs. Sign into the AI services and leave their prompt boxes empty.
@@ -200,13 +200,3 @@ This 2.3 update has not been installed and exercised end to end on a live assign
 Required host access is limited to the named learning platforms and AI services. Optional school Canvas access is granted per site. Settings use Chrome storage; pending requests and run metadata use session storage. Visible question text/options, optional notebook answers and optional cropped question pictures are sent to the selected AI services. The full capture is cropped in memory; only the crop enters session storage for delivery, and it is cleared after completion/cancellation. No API keys, login cookies or authentication tokens are read. Hidden answer APIs are not used by the shared worker.
 
 Original MIT license and attribution are retained in LICENSE. The supplied Auto-McGraw code is the basis of the McGraw adapters; its old per-provider AI scripts and release updater are replaced with one correlated connection and this unified settings page. No proprietary Pearson/Cengage source library or question bank is bundled. The extension is unofficial and unaffiliated with the platforms or AI providers.
-
-## Could this be published?
-
-It can technically be submitted to the Chrome Web Store, but this local build is not a store-ready release and approval is not guaranteed. Before public distribution, review live compatibility, requested permissions, disclosures/consent for assignment text or pictures sent to third-party AI services, automated-message controls, provider terms and logo use. Remove the experimental duplicate-credit workflow from a public release. No extension has been submitted or published here.
-
-Chrome’s publish guidance: https://developer.chrome.com/docs/webstore/publish . Program policies: https://developer.chrome.com/docs/webstore/program-policies/policies . Provider branding: assets/ATTRIBUTION.md .
-
-## Continuing development in another chat
-
-Start with [HANDOFF.md](HANDOFF.md). Run `node scripts/check.cjs` from the repository. Tag a verified update as `v<manifest version>`, push that tag, then run `python3 scripts/publish-release.py`. See [PUBLISHING.md](PUBLISHING.md).
