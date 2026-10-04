@@ -21,7 +21,7 @@ Current source version: 2.5.8. The local checkout folder may still be named 2.5.
 - 2.5.4 makes AI homework autofill explicit in the name, description and README.
 
 ## Current publication status
-Version 2.5.7 was published and independently verified at commit 546d959ecdcf22156b14f43f2fc5326c57cb14d2 with uploaded study-assistant-2.5.7.zip (904,171 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.7 . The 2.5.8 README cleanup is being prepared; verify its publication separately.
+Version 2.5.7 was published and independently verified at commit 546d959ecdcf22156b14f43f2fc5326c57cb14d2 with uploaded study-assistant-2.5.7.zip (904,171 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.7 . Version 2.5.8 is published and independently verified with uploaded study-assistant-2.5.8.zip (903,659 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.8 . Source/tag commit: 181891d7ffd26b0771005068c6f9dc512185975e. This release removes the publication and cross-chat sections from the public README and built-in guide.
 
 ## Verification and release procedure
 Run `node scripts/check.cjs`, `python3 scripts/package.py v2.5.8`, and `git diff --check`. Tests cover mocked timing/relay/security/update lifecycle; browser fixtures are in docs/.
