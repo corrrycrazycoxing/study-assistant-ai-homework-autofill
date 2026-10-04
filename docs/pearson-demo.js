@@ -40,7 +40,7 @@ function hrvQuestion(){
   outer.querySelector('.xlFillinItem').onclick=()=>{
    let menu=document.getElementById(id+'_menu');
    if(!menu){menu=document.createElement('table');menu.className='xlFillinMenu';menu.id=id+'_menu';menu.setAttribute('role','listbox');
-    for(const [i,text]of options.entries()){const row=document.createElement('tr');row.id=id+'-'+i;row.setAttribute('role','option');const td=document.createElement('td');td.id=id+'-'+i+'_text';const node=outer.querySelector('.xlFillinContainer').firstElementChild;td.append(node);row.append(td);menu.append(row);row.onclick=()=>{outer.querySelector('.xlFillinItem').textContent=text;outer.querySelector('.xlFillinItem').setAttribute('aria-activedescendant',row.id);menu.hidden=true;updateHrvCheck();};}document.body.append(menu);
+    for(const [i,text]of options.entries()){const row=document.createElement('tr');row.id=id+'-'+i;row.setAttribute('role','option');const td=document.createElement('td');td.className='dijitMenuItemLabel';td.id=id+'-'+i+'_text';const node=outer.querySelector('.xlFillinContainer').firstElementChild;td.append(node);row.append(td);const hiddenArrow=document.createElement('td');hiddenArrow.style.display='none';hiddenArrow.textContent='+';row.append(hiddenArrow);menu.append(row);row.onclick=()=>{outer.querySelector('.xlFillinItem').textContent=text;outer.querySelector('.xlFillinItem').setAttribute('aria-activedescendant',row.id);menu.hidden=true;updateHrvCheck();};}document.body.append(menu);
    }menu.hidden=false;
   };
   sentence.append(outer,document.createTextNode(id==='FL1'?' mean HRV in the ':' is between '));

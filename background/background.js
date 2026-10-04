@@ -294,6 +294,10 @@ async function handle(message,sender){
   return {received:false};
 }
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
+  if(message?.type==='studyReloadService'){
+    if(!panelSender(sender)){reply({received:false});return;}
+    reloadService(message).then(reply,error=>reply({received:false,error:error.message}));return true;
+  }
   // Short typing waits bypass the serialized question queue and hidden-page timers.
   if(message?.type==='studyDelay'){
     if(!sender.tab||typeof message.ms!=='number'||!Number.isFinite(message.ms)||message.ms<0||message.ms>1000){reply({waited:false});return;}

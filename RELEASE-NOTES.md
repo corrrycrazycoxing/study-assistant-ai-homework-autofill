@@ -1,5 +1,5 @@
-Study Assistant 2.5.8
+Study Assistant 2.5.9
 
-The public README and built-in guide now focus on using and installing the extension. Release-readiness details remain in PUBLISHING.md, and cross-chat development context remains in HANDOFF.md and DECISIONS.md. No answer or automation behavior changed.
+This update fixes Pearson custom dropdown selection on the reported confidence-interval page, adds an attention link in the small on-page assistant, improves AI-tab reload navigation, and cleans up the mode walkthrough.
 
-The ZIP extracts to one Study-Assistant-2.5.8 folder. In Chrome Extensions, enable Developer mode, choose Load unpacked, and select that extracted folder.
+The ZIP extracts to one Study-Assistant-2.5.9 folder. In Chrome Extensions, enable Developer mode, choose Load unpacked, and select that extracted folder.

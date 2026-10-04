@@ -107,5 +107,29 @@ async function openService(m){
   else await chrome.tabs.create({url});
   return {received:true};
 }
+async function reloadService(m){
+  if(!['chatgpt','gemini','deepseek','notebook'].includes(m.service))throw Error('Unknown AI service.');
+  const tabs=await chrome.tabs.query({url:m.service==='notebook'?notebookHosts:hosts[m.service]});
+  let target=tabs.find(t=>t.active)||tabs[0];
+  if(m.service==='notebook'){
+    const {pageStates={}}=await chrome.storage.session.get('pageStates'),page=Object.values(pageStates).find(p=>p.tab===m.tab&&p.pageId===m.pageId),data=await config();
+    const wanted=page?StudyConfig.preferences(data,page.platform).notebookUrl:'';
+    const books=tabs.filter(t=>{try{return /^\/notebook\/[^/]+\/?$/.test(new URL(t.url).pathname);}catch{return false;}});
+    target=wanted?books.find(t=>t.url.split('?')[0]===wanted.split('?')[0]):books.length===1?books[0]:null;
+  }
+  if(!target)throw Error('The AI tab to reload is not available. Open it from the AI tabs section.');
+  const sourceWindow=await chrome.windows.getLastFocused(),source=(await chrome.tabs.query({active:true,windowId:sourceWindow.id}))[0];
+  await chrome.tabs.update(target.id,{active:true});
+  if(target.windowId!==sourceWindow.id)await chrome.windows.update(target.windowId,{focused:true});
+  const loaded=new Promise(resolve=>{const timeout=setTimeout(()=>{chrome.tabs.onUpdated.removeListener(onUpdate);resolve(false);},15000);function onUpdate(id,change){if(id===target.id&&change.status==='complete'){clearTimeout(timeout);chrome.tabs.onUpdated.removeListener(onUpdate);resolve(true);}}chrome.tabs.onUpdated.addListener(onUpdate);});
+  try{await chrome.tabs.reload(target.id);await loaded;}
+  finally{
+    if(source&&source.id!==target.id){
+      const active=(await chrome.tabs.query({active:true,windowId:target.windowId}))[0];
+      if(active?.id===target.id){await chrome.tabs.update(source.id,{active:true}).catch(()=>{});if(target.windowId!==sourceWindow.id)await chrome.windows.update(sourceWindow.id,{focused:true}).catch(()=>{});}
+    }
+  }
+  return {received:true};
+}
 function initializeSidePanel(){chrome.sidePanel?.setPanelBehavior({openPanelOnActionClick:true}).catch(()=>{});}
 initializeSidePanel();chrome.runtime.onInstalled?.addListener(async()=>{initializeSidePanel();try{const scripts=await chrome.scripting.getRegisteredContentScripts();const stale=scripts.filter(s=>s.id.startsWith('study-canvas-')).map(s=>s.id);if(stale.length)await chrome.scripting.unregisterContentScripts({ids:stale});}catch{}});

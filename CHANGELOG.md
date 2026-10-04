@@ -2,6 +2,13 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.9 — October 3, 2026
+
+- Pearson custom dropdowns now match their visible menu labels, including menus with hidden arrow text. This fixes the reported “dropdown did not open” stop on the confidence-interval question.
+- The small on-page assistant highlights attention and opens the side panel for recovery.
+- Clicking an AI tab marked “Reload this tab” briefly shows that tab, reloads it, then returns to the original page unless the user switches tabs.
+- The walkthrough highlights one mode card with a shorter explanation so the guide no longer obscures the mode list.
+
 ## 2.5.8 — October 3, 2026
 
 - Removed publication and cross-chat maintenance sections from the public README and built-in guide.

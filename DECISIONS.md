@@ -60,3 +60,11 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Changed:** Removed both sections from README.md and the copied publication question from the built-in guide. Kept the operational details in PUBLISHING.md, HANDOFF.md, DECISIONS.md, and AGENTS.md. No answer behavior changed.
 
 **Checks and publication:** Node regression and syntax checks, ZIP integrity, and git diff checks passed. Commit 181891d7ffd26b0771005068c6f9dc512185975e was pushed to main and tagged v2.5.8. GitHub confirmed a public release and uploaded study-assistant-2.5.8.zip (903,659 bytes): https://github.com/corrrycrazycoxing/study-assistant-extension/releases/tag/v2.5.8 .
+
+## October 3, 2026 — 2.5.9 Pearson dropdown and attention handling
+
+**Why:** Pearson displayed an open Dojo menu but the extension reported that it did not open. Live read-only inspection showed each option row includes hidden arrow text, which broke exact row-text matching.
+
+**Changed:** Match the visible `.dijitMenuItemLabel` within the specific menu owned by the dropdown, then verify Pearson’s selected display. The compact assistant labels attention and opens the side panel. A requested AI-tab reload now visits that tab, reloads it and returns to the original tab unless the user switches away. The walkthrough focuses on one mode card and removes a redundant icon legend.
+
+**Evidence:** Node checks and synthetic Pearson/panel browser fixtures passed. The live Pearson menu structure was inspected; no answer was entered in the live assignment during verification.

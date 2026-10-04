@@ -53,7 +53,16 @@
     const button=document.createElement('button');button.id='study-open-panel';button.type='button';button.textContent='Open side panel ↗';
     button.style.cssText='font:12px system-ui;padding:6px 9px;margin:7px 0;border:1px solid #8295d6;border-radius:7px;background:#273453;color:white;cursor:pointer';
     button.onclick=()=>{try{chrome.runtime.sendMessage({type:'studyOpenPanel'}).catch(()=>{});}catch{}};
-    const card=v.root.querySelector('details,section');card?.after(button);
+    const card=v.root.querySelector('details,section')||v.root.querySelector('div');card?.after(button);
+  }
+  function updatePanelLink(){
+    const v=view(),button=v?.root.getElementById('study-open-panel');if(!button)return;
+    const status=stoppedNotice||v.root.querySelector(v.status)?.textContent||'';
+    const attention=/\b(?:auto stopped|could not|did not|unsupported|needs attention|failed|unavailable)\b/i.test(status);
+    button.textContent=attention?'Needs attention · Open panel ↗':'Open side panel ↗';
+    button.style.borderColor=attention?'#e1b760':'#8295d6';
+    button.style.background=attention?'#4a3821':'#273453';
+    button.setAttribute('aria-label',attention?'Needs attention. Open the side panel for details.':'Open the Study Assistant side panel.');
   }
   function presence(on){
     if(!retired&&!acknowledged)on=true;
@@ -90,7 +99,7 @@
   }
   async function report(){
     if(retired)return;
-    try{if(!contextAlive()){retire();return;}compactOverlay();welcome();if(!acknowledged)presence(true);const state=read();if(state)await chrome.runtime.sendMessage({type:'studyPageReport',state});}
+    try{if(!contextAlive()){retire();return;}compactOverlay();updatePanelLink();welcome();if(!acknowledged)presence(true);const state=read();if(state)await chrome.runtime.sendMessage({type:'studyPageReport',state});}
     catch(error){if(invalidContext(error))retire();}
   }
   function listen(){if(bound)return;messageListener=(m,sender,reply)=>{
