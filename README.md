@@ -4,7 +4,7 @@ Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas an
 
 ## Download and install
 
-**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.5.12/study-assistant-2.5.12.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.5.13/study-assistant-2.5.13.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.

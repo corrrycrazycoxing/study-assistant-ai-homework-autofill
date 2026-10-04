@@ -2,6 +2,12 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.13 — October 4, 2026
+
+- Pearson Auto recognizes the “Nice work!” result dialog and uses its Next question button to continue. It stops for review if a result dialog lacks that button.
+- New installations default Pause after fill to off; existing saved preferences remain unchanged.
+- Course-wide Go automation remains an unpublished draft.
+
 ## 2.5.12 — October 3, 2026
 
 - Load Pearson MyLab custom dropdown choices through the page's Dojo widget before opening and selecting the exact visible option. The prior click-only approach left the menu empty and stopped Auto.

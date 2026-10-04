@@ -1,7 +1,7 @@
-Study Assistant 2.5.12
+Study Assistant 2.5.13
 
-Pearson MyLab's custom dropdowns now load their choices through the page's own widget before selecting an exact option. This fixes the confidence-interval question where Auto stopped with “The dropdown did not open.” The extension verifies the displayed choice and stops before checking if it cannot select it.
+Pearson Auto now recognizes the “Nice work!” result dialog and clicks its Next question button to continue. If Pearson shows a result without an available Next question button, Auto stops for review instead of treating it as the end of the assignment. New installations leave Pause after fill off by default; existing preferences remain unchanged.
 
-Verified the load-and-select sequence on all three dropdowns of the reported live Pearson question without pressing Check answer. The extension bridge and repository regression tests passed. Other Pearson layouts and full AI-to-grade automation were not live-tested for this release.
+The course-wide Go automation is not included in this release.
 
-The ZIP extracts to one Study-Assistant-2.5.12 folder. In Chrome Extensions, enable Developer mode, choose Load unpacked, and select that extracted folder.
+The ZIP extracts to one Study-Assistant-2.5.13 folder. In Chrome Extensions, enable Developer mode, choose Load unpacked, and select that extracted folder.

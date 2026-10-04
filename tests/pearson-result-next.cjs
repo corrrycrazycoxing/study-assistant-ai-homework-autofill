@@ -1,0 +1,31 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+
+const source=fs.readFileSync('content-scripts/pearson.js','utf8');
+const start=source.indexOf('  function resultDialog()');
+const end=source.indexOf('  function closeFeedback()',start);
+assert(start>=0&&end>start,'Pearson result navigation helpers are present');
+let nextClicks=0,headerClicks=0,submitClicks=0;
+const button=(label,click)=>({disabled:false,readOnly:false,closest:()=>null,getClientRects:()=>[{}],getAttribute:()=>null,textContent:label,value:'',matches:()=>false,click});
+const next=button('Next question',()=>nextClicks++);
+const header=button('Next question',()=>headerClicks++);
+const submit=button('Submit',()=>submitClicks++);
+const dialog={textContent:'Nice work! Next question',disabled:false,readOnly:false,closest:()=>null,getClientRects:()=>[{}],querySelectorAll:()=>[next]};
+const document={querySelectorAll:selector=>selector.startsWith('[role="dialog"]')?[dialog]:selector.includes('.controlPanel .btnNext')?[header,submit]:[]};
+const clean=s=>String(s||'').replace(/\s+/g,' ').trim();
+const usable=e=>e&&!e.disabled&&!e.readOnly&&!e.closest('[aria-disabled="true"],.disabled,.hidden,[hidden],[aria-hidden="true"]')&&e.getClientRects().length>0;
+const selected=vm.runInNewContext(source.slice(start,end)+'\nnextButton()', {document,clean,usable});
+assert.equal(selected,next,'result dialog Next takes precedence over background navigation');
+selected.click();
+assert.equal(nextClicks,1);
+assert.equal(headerClicks,0);
+assert.equal(submitClicks,0);
+const feedbackStart=source.indexOf('  function domFeedback()');
+const feedbackEnd=source.indexOf('  async function waitForCheck(',feedbackStart);
+assert(feedbackStart>=0&&feedbackEnd>feedbackStart);
+assert.equal(vm.runInNewContext(source.slice(feedbackStart,feedbackEnd)+'\ndomFeedback()', {document,clean,usable}),'correct','Nice work is recognized as correct feedback');
+
+const config=fs.readFileSync('shared/config.js','utf8');
+assert.match(config,/pauseBeforeSubmit:false/,'new installs default to no pause after fill');
+console.log('PASS Pearson result-dialog Next and default pause');

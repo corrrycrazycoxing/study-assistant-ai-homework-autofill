@@ -4,7 +4,7 @@
   const platforms=['mcgraw','pearson','canvas','mindtap'];
   const pacingNames={normal:'Instant Auto',slow:'Timed Auto',human:'Human pace',review:'Guided Answers'};
   const names={mcgraw:'McGraw-Hill',pearson:'Pearson MyLab',canvas:'Canvas',mindtap:'MindTap Aplia'};
-  const defaults=Object.fromEntries(platforms.map(p=>[p,{autoFill:false,pauseBeforeSubmit:true,showExplanation:true,preferNotebook:p==='canvas',notebookUrl:'',gradeBeforeAdvance:false,checkMapWork:true,doubleCreditMode:false,randomConfidence:false,replaceExisting:false,pacingMode:'normal',humanSpeed:'typical',humanMinSeconds:15,humanMaxSeconds:3600,useSuggestedTime:true,reviewSeconds:30,reviewMinSeconds:5,reviewMaxSeconds:120,advanceSeconds:3,smoothScroll:true,includePictures:false}]));
+  const defaults=Object.fromEntries(platforms.map(p=>[p,{autoFill:false,pauseBeforeSubmit:false,showExplanation:true,preferNotebook:p==='canvas',notebookUrl:'',gradeBeforeAdvance:false,checkMapWork:true,doubleCreditMode:false,randomConfidence:false,replaceExisting:false,pacingMode:'normal',humanSpeed:'typical',humanMinSeconds:15,humanMaxSeconds:3600,useSuggestedTime:true,reviewSeconds:30,reviewMinSeconds:5,reviewMaxSeconds:120,advanceSeconds:3,smoothScroll:true,includePictures:false}]));
   function detect(url,custom=[]){
     try{
       const u=new URL(url);if(u.protocol!=='https:')return null;

@@ -18,7 +18,7 @@ StudyConfig.boot('pearson', (chrome) => {
   }
   const numeric = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
   let pending=null,answer=null,explanation='',timer=null,panel,shadow,status,preview,apply,ask,cancel;
-  let settings={...StudyConfig.defaults.pearson,autoFill:false,pauseBeforeSubmit:true,showExplanation:true};
+  let settings={...StudyConfig.defaults.pearson,autoFill:false,showExplanation:true};
   let loopGeneration=0;
   let running=false,guided=false,runId=null,runCount=0,responseWaiter=null,pauseWaiter=null,correction=null;
   let startButton,stopButton,resumeButton;
@@ -267,10 +267,10 @@ StudyConfig.boot('pearson', (chrome) => {
     return [...document.querySelectorAll('.checkAnswerBtn,.controlPanel button,button,[role="button"],input[type="button"]')].filter(e=>usable(e)&&!e.matches('.btnSubmit,[data-dojo-attach-point="btnSubmit"],[type="submit"]')&&(e.matches('.checkAnswerBtn')||/^(?:Check answer|Check my answer|Final check)$/i.test(clean(e.getAttribute('aria-label')||e.getAttribute('title')||e.value||e.textContent))));
   }
   function domFeedback(){
-    const candidates=[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],.feedbackDialog,.modalDialog,.modal,.popup')].filter(usable);
+    const candidates=[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],.feedbackDialog,.dijitDialog,.modalDialog,.modal,.popup')].filter(usable);
     for(const el of candidates){
       const text=clean(el.textContent).slice(0,500);
-      if(/\b(?:excellent|correct|congratulations|well done)\b/i.test(text))return 'correct';
+      if(/\b(?:excellent|correct|congratulations|well done|nice work)\b/i.test(text))return 'correct';
       if(/\b(?:incorrect|not correct|try again|needs correction)\b/i.test(text))return 'incorrect';
     }
     return '';
@@ -287,9 +287,16 @@ StudyConfig.boot('pearson', (chrome) => {
     const selected=()=>clean(field.hit.textContent).replace(/^▼\s*/,'');
     if(selected()!==field.value[0])throw Error(StudyConfig.answerLabel(field,0)+': Pearson did not retain “'+field.value[0]+'”. Enter it manually before checking.');
   }
+  function resultDialog(){
+    return [...document.querySelectorAll('[role="dialog"],[aria-modal="true"],.feedbackDialog,.dijitDialog,.modalDialog,.modal,.popup')].find(e=>usable(e)&&/\b(?:nice work|excellent|correct|congratulations|well done)\b/i.test(clean(e.textContent)));
+  }
   function nextButton() {
-    const dialog=[...document.querySelectorAll('.feedbackDialog [data-dojo-attach-point="btnNextQuestion"]')].find(usable);
-    if(dialog)return dialog;
+    const dialog=resultDialog();
+    const resultNext=dialog&&[...dialog.querySelectorAll('button,[role="button"],input[type="button"]')].find(e=>usable(e)&&/^(?:Next question|Next)$/i.test(clean(e.getAttribute('aria-label')||e.getAttribute('title')||e.value||e.textContent)));
+    if(resultNext)return resultNext;
+    if(dialog)return null;
+    const legacy=[...document.querySelectorAll('.feedbackDialog [data-dojo-attach-point="btnNextQuestion"]')].find(usable);
+    if(legacy)return legacy;
     return [...document.querySelectorAll('.controlPanel .btnNext,.playerViewer .btnNext,.controlPanel button,.playerViewer button[aria-label="Next question"],button,[role="button"],input[type="button"]')].filter(usable).find(e=>!e.matches('.btnSubmit,[data-dojo-attach-point="btnSubmit"],[type="submit"]')&&(e.matches('.btnNext')||['Next','Next question','Next Question','Continue'].includes(clean(e.getAttribute('aria-label')||e.getAttribute('title')||e.value||e.textContent))));
   }
   function closeFeedback() {
@@ -303,6 +310,7 @@ StudyConfig.boot('pearson', (chrome) => {
   }
   async function advance(before) {
     const next=nextButton();
+    if(!next&&resultDialog())throw Error('Pearson showed a result but its Next question button is unavailable. Review this question before continuing.');
     if(!next){await stop('Reached the last question. Review the answers and use Pearson’s Submit button yourself.');return false;}
     say('Moving to the next question…');
     await chrome.runtime.sendMessage({type:'pearsonRunUpdate',runId,count:runCount,phase:'advance'});
@@ -374,7 +382,7 @@ StudyConfig.boot('pearson', (chrome) => {
         }
         if(!['correct'].includes(result.correctness))throw Error('Pearson feedback is unclear. Auto stopped for manual review.');
         runCount++;retries=0;correction=null;await chrome.runtime.sendMessage({type:'pearsonRunUpdate',runId,count:runCount,phase:'answer'});
-        if([...document.querySelectorAll('.feedbackDialog [data-dojo-attach-point="btnNextQuestion"]')].some(usable)){if(!await advance(before))break;continue;}
+        if(resultDialog()&&nextButton()){if(!await advance(before))break;continue;}
         closeFeedback();await delay(350);
         const after=snapshot();
         if(after.fields.length&&after.signature!==before.signature)continue;
