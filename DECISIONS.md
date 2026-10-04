@@ -86,3 +86,11 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Changed:** Updated origin, hardcoded repository links, update helper and release script. No runtime logic changed.
 
 **Verification and publication:** Node checks, ZIP integrity, diff check and renamed-remote fetch passed. Commit d88058652d7c6115f05e36d5efa4c33bf9583402 was pushed to main and tagged v2.5.11. GitHub confirmed a public release with the 900,134-byte ZIP.
+
+## October 3, 2026 — 2.5.12 Pearson dropdown loading
+
+**Why:** Version 2.5.9 improved label matching but the live Pearson `xl.player.controls.Fillin` menu did not open through `HTMLElement.click()` or synthetic mouse events. Calling `openDropDown()` before loading showed only an empty placeholder.
+
+**Changed:** The existing MAIN-world Pearson bridge now calls `loadDropDown()` when needed, opens the menu, selects one exact visible option, and verifies the displayed field. The isolated content script requests one dropdown choice at a time and stops before checking on a mismatch.
+
+**Evidence and limits:** DevTools on the reported live question showed `loadDropDown()` populated all choices. The sequence selected smaller, smaller and critical value across FL3–FL5; Pearson's Check answer control became available. No grading or submission was triggered. The new bridge regression and repository tests passed. The built 2.5.12 extension was not installed in Chrome during this check.

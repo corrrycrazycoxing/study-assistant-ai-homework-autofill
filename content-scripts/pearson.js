@@ -103,7 +103,7 @@ StudyConfig.boot('pearson', (chrome) => {
     if(!fields.length)return Promise.resolve();
     return new Promise((resolve,reject)=>{
       const token=crypto.randomUUID();
-      const timeout=setTimeout(()=>{document.removeEventListener('mylab-assistant-editor-result',onResult);reject(Error('Pearson editor bridge did not respond. Reload the assignment after loading the extension.'));},3000);
+      const timeout=setTimeout(()=>{document.removeEventListener('mylab-assistant-editor-result',onResult);reject(Error('Pearson editor bridge did not respond. Reload the assignment after loading the extension.'));},action==='dropdown'?6000:3000);
       function onResult(event) {
         let data;try{data=JSON.parse(event.detail);}catch{return;}
         if(data.token!==token)return;
@@ -281,20 +281,11 @@ StudyConfig.boot('pearson', (chrome) => {
     return [];
   }
   async function fillDropdown(field,guard){
-    pacer.check(guard);field.hit.focus();field.hit.click();
-    const end=Date.now()+3000;let option;
-    do{
-      pacer.check(guard);
-      const menuId=field.hit.getAttribute('aria-owns')||field.hit.id+'_menu';
-      const menu=document.getElementById(menuId);
-      const candidates=[...(menu?.querySelectorAll('[role="option"],li,.menuItem,[data-value]')||[])].filter(usable).filter(e=>clean(e.querySelector('.dijitMenuItemLabel')?.textContent||e.textContent)===field.value[0]);
-      if(candidates.length===1){option=candidates[0];break;}
-      await delay(100);
-    }while(Date.now()<end);
-    if(!option)throw Error(StudyConfig.answerLabel(field,0)+': choose “'+field.value[0]+'” manually. The dropdown did not open; Auto stopped before checking.');
-    option.click();pacer.check(guard);
-    const selected=clean(field.hit.querySelector('.fNormal')?.textContent||field.hit.textContent).replace(/^▼\s*/,'');
-    if(selected!==field.value[0])throw Error(StudyConfig.answerLabel(field,0)+': Pearson did not retain “'+field.value[0]+'”. Enter it manually before checking.');
+    pacer.check(guard);
+    await editorRequest('dropdown',[{el:field.hit,value:field.value[0]}]);
+    pacer.check(guard);
+    const selected=()=>clean(field.hit.textContent).replace(/^▼\s*/,'');
+    if(selected()!==field.value[0])throw Error(StudyConfig.answerLabel(field,0)+': Pearson did not retain “'+field.value[0]+'”. Enter it manually before checking.');
   }
   function nextButton() {
     const dialog=[...document.querySelectorAll('.feedbackDialog [data-dojo-attach-point="btnNextQuestion"]')].find(usable);
@@ -397,7 +388,7 @@ StudyConfig.boot('pearson', (chrome) => {
     panel=document.createElement('div');panel.id='mylab-assistant-panel';
     panel.style.cssText='position:fixed;right:14px;bottom:78px;z-index:2147483647;max-width:calc(100vw - 28px)';
     shadow=panel.attachShadow({mode:'open'});
-    shadow.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#eee}*{box-sizing:border-box}details{width:330px;max-width:calc(100vw - 28px);background:#141414;border:1px solid #414141;border-radius:14px;box-shadow:0 8px 30px #0004;padding:14px}summary{cursor:pointer;font-weight:650;font-size:15px}.badge{color:#8f96ff;font-size:11px;margin:8px 0}button{font:inherit;margin:8px 5px 0 0;padding:8px 12px;border:0;border-radius:8px;background:#5264ff;color:white;cursor:pointer}button.secondary{background:#303030}button:disabled{opacity:.45;cursor:default}pre{white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;font:13px/1.5 system-ui}#status{color:#c3c3c3}#answer-display{overflow:auto;max-height:270px}#answer-display table{width:100%;border-collapse:collapse;font-size:12px}#answer-display caption{text-align:left;font-weight:650;padding:10px 0}#answer-display th,#answer-display td{padding:8px 6px;border-bottom:1px solid #414141;text-align:left;vertical-align:top;overflow-wrap:anywhere}#answer-display th{width:32%;font-weight:500;color:#b8c5e5}#answer-display td{font-weight:650}#answer-display p{white-space:pre-wrap}#answer-display details{width:auto;border:0;padding:8px;box-shadow:none}[hidden]{display:none!important}small{color:#999}</style><details><summary>✦ MyLab Assistant</summary><div class="badge">STUDY ASSISTANT · PEARSON MYLAB 2.5.11</div><button id="start">Start Auto</button><button id="stop" class="secondary" disabled>Stop</button><button id="resume" hidden>Resume Auto</button><br><button id="ask">Ask AI</button><button id="apply" disabled>Fill answers</button><button id="cancel" class="secondary" disabled>Cancel</button><pre id="status">Ready. Ask AI sends the visible question to your selected AI tab. Use Start Auto to fill and advance. Turn Pause Before Submit off in settings for continuous answering.</pre><pre id="preview" hidden></pre><div id="answer-display"></div><small>Settings are available from the extension icon.</small></details>';
+    shadow.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#eee}*{box-sizing:border-box}details{width:330px;max-width:calc(100vw - 28px);background:#141414;border:1px solid #414141;border-radius:14px;box-shadow:0 8px 30px #0004;padding:14px}summary{cursor:pointer;font-weight:650;font-size:15px}.badge{color:#8f96ff;font-size:11px;margin:8px 0}button{font:inherit;margin:8px 5px 0 0;padding:8px 12px;border:0;border-radius:8px;background:#5264ff;color:white;cursor:pointer}button.secondary{background:#303030}button:disabled{opacity:.45;cursor:default}pre{white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;font:13px/1.5 system-ui}#status{color:#c3c3c3}#answer-display{overflow:auto;max-height:270px}#answer-display table{width:100%;border-collapse:collapse;font-size:12px}#answer-display caption{text-align:left;font-weight:650;padding:10px 0}#answer-display th,#answer-display td{padding:8px 6px;border-bottom:1px solid #414141;text-align:left;vertical-align:top;overflow-wrap:anywhere}#answer-display th{width:32%;font-weight:500;color:#b8c5e5}#answer-display td{font-weight:650}#answer-display p{white-space:pre-wrap}#answer-display details{width:auto;border:0;padding:8px;box-shadow:none}[hidden]{display:none!important}small{color:#999}</style><details><summary>✦ MyLab Assistant</summary><div class="badge">STUDY ASSISTANT · PEARSON MYLAB 2.5.12</div><button id="start">Start Auto</button><button id="stop" class="secondary" disabled>Stop</button><button id="resume" hidden>Resume Auto</button><br><button id="ask">Ask AI</button><button id="apply" disabled>Fill answers</button><button id="cancel" class="secondary" disabled>Cancel</button><pre id="status">Ready. Ask AI sends the visible question to your selected AI tab. Use Start Auto to fill and advance. Turn Pause Before Submit off in settings for continuous answering.</pre><pre id="preview" hidden></pre><div id="answer-display"></div><small>Settings are available from the extension icon.</small></details>';
     ask=shadow.getElementById('ask');apply=shadow.getElementById('apply');cancel=shadow.getElementById('cancel');status=shadow.getElementById('status');preview=shadow.getElementById('preview');
     startButton=shadow.getElementById('start');stopButton=shadow.getElementById('stop');resumeButton=shadow.getElementById('resume');
     startButton.onclick=()=>startAuto();stopButton.onclick=()=>stop();resumeButton.onclick=()=>{resumeButton.hidden=true;const waiter=pauseWaiter;pauseWaiter=null;waiter?.resolve();};

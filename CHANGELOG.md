@@ -2,6 +2,12 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.5.12 — October 3, 2026
+
+- Load Pearson MyLab custom dropdown choices through the page's Dojo widget before opening and selecting the exact visible option. The prior click-only approach left the menu empty and stopped Auto.
+- Verify the chosen text in the visible Pearson field and stop before checking if the choice does not match.
+- Verified the load-and-select sequence on all three dropdowns of the reported live confidence-interval question without pressing Check answer; added a bridge regression test. Other live layouts and full AI-to-grade automation remain unverified.
+
 ## 2.5.11 — October 3, 2026
 
 - Renamed the GitHub repository to `study-assistant-ai-homework-autofill` and updated project links, the local Git remote, updater and release tooling. Extension behavior is unchanged.
