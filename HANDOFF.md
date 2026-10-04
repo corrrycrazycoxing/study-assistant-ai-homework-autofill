@@ -4,7 +4,7 @@ Repository: https://github.com/corrrycrazycoxing/study-assistant-ai-homework-aut
 Current source version: 2.5.11. The local checkout folder may still be named 2.5.0; manifest.json is authoritative.
 
 ## Latest update
-Version 2.5.11 changes the GitHub repository slug to study-assistant-ai-homework-autofill and updates the remote, links, updater and release script. No runtime behavior change. Publication pending.
+Version 2.5.11 changes the GitHub repository slug to study-assistant-ai-homework-autofill and updates the remote, links, updater and release script. No runtime behavior change. Published main and v2.5.11 at d88058652d7c6115f05e36d5efa4c33bf9583402. GitHub confirmed the public release and uploaded study-assistant-2.5.11.zip (900,134 bytes): https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.11 .
 
 Version 2.5.10 updates the public README to show recent releases first and archives old feature notes under docs/FEATURE-HISTORY.md. This is documentation-only; extension behavior is unchanged. Published main and v2.5.10 at 521e17bde617a7353eeb3c24a749ae4169730e63. GitHub confirmed the public release and uploaded study-assistant-2.5.10.zip (899,989 bytes): https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.10 .
 
