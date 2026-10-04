@@ -1,4 +1,4 @@
-# Study Assistant — AI Homework Autofill (2.5.12)
+# Study Assistant — AI Homework Autofill (2.5.13)
 
 Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas and MindTap** using a connected ChatGPT, Gemini or DeepSeek tab. Review answers before final submission.
 
@@ -8,7 +8,7 @@ Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas an
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the extracted **Study-Assistant-2.5.12** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
+3. Click **Load unpacked** and select the extracted **Study-Assistant-2.5.13** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
 4. Open a supported assignment, reload that tab and your AI tab, then click the Study Assistant extension icon to open its side panel.
 
 To update a previous unpacked installation, remove or disable the older copy, extract the new ZIP into its own folder, load that folder, and reload your assignment and AI tabs. The Chrome Web Store is not used for this installation.
@@ -18,6 +18,7 @@ To update a previous unpacked installation, remove or disable the older copy, ex
 
 ## What changed recently
 
+- **2.5.13:** Pearson Auto recognizes the “Nice work!” result screen and uses its Next question button. If that button is missing, Auto stops for review. New installs leave Pause after fill off by default; existing preferences are preserved. Course-wide automation is still in development.
 - **2.5.12:** Pearson custom dropdowns load choices through Pearson's widget before selecting. Verified all three dropdowns of the reported live question without pressing Check answer.
 - **2.5.11:** Renamed the GitHub repository to match Study Assistant — AI Homework Autofill. Project links and update tools now use the new address; extension behavior is unchanged.
 - **2.5.10:** The GitHub front page now shows current changes and links to the full version history. Extension behavior is unchanged.
