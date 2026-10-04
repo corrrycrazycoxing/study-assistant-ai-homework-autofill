@@ -76,3 +76,5 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Why:** The GitHub README still led with 2.5.0 after installation, making newer published releases look absent even though CHANGELOG.md and the 2.5.9 release were current.
 
 **Changed:** Added recent-version notes near the README top, archived older feature narrative, linked changelog/releases, and corrected stale descriptions. No runtime logic changed.
+
+**Verification and publication:** Node checks, ZIP integrity, and diff check passed. Commit 521e17bde617a7353eeb3c24a749ae4169730e63 was pushed to main and tagged v2.5.10. GitHub confirmed a public release with the 899,989-byte installable ZIP.
