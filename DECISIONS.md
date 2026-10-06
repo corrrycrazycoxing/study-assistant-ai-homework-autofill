@@ -6,7 +6,7 @@
 
 **Changed:** Added a persistent **How to update** action beside the installed/latest version line. It opens the in-panel guide directly at “Update an unpacked installation.” The panel’s **Refresh** button now also bypasses the cached GitHub release result and checks GitHub immediately.
 
-**Checks/publication:** `node scripts/check.cjs`, `git diff --check`, and the credential/private-key pattern scan passed. `python3 scripts/package.py v2.7.2` passed; the 67-file archive passed ZIP integrity, manifest and updater-feature checks (930,990 bytes, SHA-256 `a34aa3d2d79571f6bb57ba986e75ada7269cc0d739c1f304b061408b4de2ffd1`). Publication pending.
+**Checks/publication:** `node scripts/check.cjs`, `git diff --check`, and the credential/private-key pattern scan passed. `python3 scripts/package.py v2.7.2` passed; the 67-file archive passed ZIP integrity, manifest and updater-feature checks (930,990 bytes, SHA-256 `a34aa3d2d79571f6bb57ba986e75ada7269cc0d739c1f304b061408b4de2ffd1`). Published on GitHub as [v2.7.2](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.7.2); GitHub confirms the versioned ZIP asset. Release commit: `aa1cfc7738d61c06682eb09ddb621a411b263410`.
 
 ## October 6, 2026 — MindTap Course Mode visibility and warning (2.7.1)
 

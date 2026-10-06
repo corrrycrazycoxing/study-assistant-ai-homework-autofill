@@ -2,7 +2,7 @@
 
 ## Updater help and forced release check — 2.7.2 update
 
-The panel now always exposes **How to update** beside the version status; it opens the updater section of the in-panel guide. Panel **Refresh** bypasses the six-hour GitHub release cache and checks current release status immediately. Regression checks cover both behaviors. `node scripts/check.cjs`, `git diff --check`, and the credential/private-key pattern scan passed. `python3 scripts/package.py v2.7.2` produced a valid 67-file ZIP (SHA-256 `a34aa3d2d79571f6bb57ba986e75ada7269cc0d739c1f304b061408b4de2ffd1`). The helper or ZIP install still requires reloading the unpacked extension in Chrome and then reloading assignment and AI tabs. Release publication is pending.
+The panel now always exposes **How to update** beside the version status; it opens the updater section of the in-panel guide. Panel **Refresh** bypasses the six-hour GitHub release cache and checks current release status immediately. Regression checks cover both behaviors. `node scripts/check.cjs`, `git diff --check`, and the credential/private-key pattern scan passed. `python3 scripts/package.py v2.7.2` produced a valid 67-file ZIP (SHA-256 `a34aa3d2d79571f6bb57ba986e75ada7269cc0d739c1f304b061408b4de2ffd1`). Published release: [v2.7.2](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.7.2). Release commit: `aa1cfc7738d61c06682eb09ddb621a411b263410`. The helper or ZIP install still requires reloading the unpacked extension in Chrome and then reloading assignment and AI tabs.
 
 ## MindTap Course Mode visibility and warning — 2.7.1 update
 
