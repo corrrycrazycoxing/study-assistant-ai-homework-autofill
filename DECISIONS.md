@@ -8,7 +8,7 @@
 
 **Evidence/limits:** The attached screenshot shows the MindTap chapter assignment summary, not the course activity list. No untouched eligible activity is available to test the full live queue. Automated tests cover hidden/visible outline detection, collapsed UI, solo-page hiding, the prominent warning and the existing queue flow. A live queue run remains unverified.
 
-**Checks/publication:** `node tests/mindtap-course.cjs` and `node scripts/check.cjs` passed. `git diff --check` and the credential/private-key pattern scan passed. `python3 scripts/package.py v2.7.1` passed; the 67-entry archive passed ZIP integrity and manifest/feature checks (930,615 bytes, SHA-256 `7f144ad1b25fc202ced3f97905bf31ec4af8ff59185c9a382de831990ec5dfb4`). Live queue behavior remains unverified because no untouched eligible activity was available. Fetching GitHub failed because DNS could not resolve `github.com`; publication is pending network access.
+**Checks/publication:** `node tests/mindtap-course.cjs` and `node scripts/check.cjs` passed. `git diff --check` and the credential/private-key pattern scan passed. `python3 scripts/package.py v2.7.1` passed; the 67-entry archive passed ZIP integrity and manifest/feature checks (930,615 bytes, SHA-256 `7f144ad1b25fc202ced3f97905bf31ec4af8ff59185c9a382de831990ec5dfb4`). Published on GitHub as [v2.7.1](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.7.1), asset verified at the versioned download URL. Source release commit: `06d7950595a868b283506bc692b666c5029b5faf`. Live queue behavior remains unverified because no untouched eligible activity was available.
 
 ## October 5, 2026 — Pearson Full Course Mode and local test site (2.6.0)
 
