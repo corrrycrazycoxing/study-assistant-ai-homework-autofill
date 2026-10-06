@@ -10,7 +10,9 @@
 
 **Live evidence/limit:** The score callback was previously read on Pearson without opening an assignment. The live course has no untouched assignment left for a full run. The browser-use tool blocked opening the mock as a local-file tab, so mock verification was run in Node, not a real browser. The package and live Go → Save → next-assignment path have not been verified against Pearson. Release notes and README disclose this limit.
 
-**Checks:** `tests/pearson-course-e2e.cjs`, `tests/pearson-course.cjs`, `tests/pearson-result-next.cjs`, full `node scripts/check.cjs`, package validation and `git diff --check` pass. Publication state will be appended after push/tag/release verification.
+**Publication:** Published 2.6.0 from commit `34f7e1cebb745f23ae6bc7108d27283cb6ee3604`, tag `v2.6.0`, with the ZIP attached: https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.6.0
+
+**Checks:** `tests/pearson-course-e2e.cjs`, `tests/pearson-course.cjs`, `tests/pearson-result-next.cjs`, full `node scripts/check.cjs`, package validation and `git diff --check` pass. GitHub confirms the main commit, `v2.6.0` tag and public release ZIP.
 
 ## October 2, 2026 — 2.5.2 release preparation
 
