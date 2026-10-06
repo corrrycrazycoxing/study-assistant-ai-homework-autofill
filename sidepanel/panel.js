@@ -7,11 +7,11 @@ const releaseStatus=$('version-status');
 $('installed-version').textContent=installedVersion;
 function versionParts(value){return /^\d+\.\d+\.\d+$/.test(value)?value.split('.').map(Number):null;}
 function newerVersion(latest,current){const a=versionParts(latest),b=versionParts(current);return !!a&&!!b&&a.some((part,index)=>part>b[index]&&a.slice(0,index).every((prior,i)=>prior===b[i]));}
-async function checkReleaseVersion(){
+async function checkReleaseVersion(force=false){
  try{
   const {releaseVersionCache:cached}=await chrome.storage.local.get('releaseVersionCache');
   let latest=cached?.version;
-  if(!versionParts(latest)||Date.now()-cached.checkedAt>6*60*60*1000){
+  if(force||!versionParts(latest)||Date.now()-cached.checkedAt>6*60*60*1000){
    const response=await fetch(releaseApi,{headers:{Accept:'application/vnd.github+json'}});
    if(!response.ok)throw Error('release lookup failed');
    const data=await response.json();latest=String(data.tag_name||'').replace(/^v/,'');
@@ -151,8 +151,9 @@ async function refresh(){if(polling||busy)return;polling=true;try{const s=await 
 async function action(type,extra={}){if(busy||(draftState||StudyOnboarding.required()||StudyTour.active())&&!['studyStopAll'].includes(type))return;busy=true;error('');if(snapshot)render(snapshot);try{const r=await send({type,...selected,...extra});if(!r?.received)throw Error(r?.error||'Action was not accepted.');}catch(e){error(e.message);}finally{busy=false;await refresh();}}
 for(const b of document.querySelectorAll('[data-action]'))b.onclick=()=>action('studyPanelCommand',{action:b.dataset.action});
 $('assignment').onchange=()=>{selected=$('assignment').value?JSON.parse($('assignment').value):null;refresh();};
-$('help').onclick=()=>featureGuide();$('back-from-help').onclick=()=>{if(helpReturn==='settings'){ $('help-view').hidden=true;$('settings-view').hidden=false;window.scrollTo(0,0);}else settingsView(false);};$('settings').onclick=()=>settingsView(true);$('back-to-assistant').onclick=()=>{settingsView(false);refresh();};$('refresh').onclick=refresh;$('stop-all').onclick=()=>action('studyStopAll');$('forget').onclick=()=>action('studyForgetCheckpoint');
-$('update-instructions').onclick=()=>{featureGuide();$('help-frame').contentWindow.location.hash='updating';};
+$('help').onclick=()=>featureGuide();$('back-from-help').onclick=()=>{if(helpReturn==='settings'){ $('help-view').hidden=true;$('settings-view').hidden=false;window.scrollTo(0,0);}else settingsView(false);};$('settings').onclick=()=>settingsView(true);$('back-to-assistant').onclick=()=>{settingsView(false);refresh();};$('refresh').onclick=()=>{refresh();checkReleaseVersion(true);};$('stop-all').onclick=()=>action('studyStopAll');$('forget').onclick=()=>action('studyForgetCheckpoint');
+function openUpdaterGuide(){featureGuide();$('help-frame').contentWindow.location.hash='updating';}
+$('updater-help').onclick=openUpdaterGuide;$('update-instructions').onclick=openUpdaterGuide;
 $('open-extensions').onclick=()=>chrome.tabs.create({url:'chrome://extensions/'}).catch(error=>{releaseStatus.textContent=`Could not open Chrome extensions: ${error.message}`;});
 for(const link of document.querySelectorAll('[data-open-service]'))link.onclick=e=>{e.preventDefault();const service=link.dataset.openService,connection=service==='notebook'?snapshot?.connections?.notebook:snapshot?.connections?.services?.find(item=>item.model===service);const reload=/^Reload this (?:tab|notebook)$/.test(connection?.status||'');action(reload?'studyReloadService':'studyOpenService',{service});};
 $('pause-after-fill').onchange=async()=>{const value=$('pause-after-fill').checked,target=selected;await action('studyPanelPreference',{key:'pauseBeforeSubmit',value});if(!value&&target?.pageId===selected?.pageId&&snapshot?.preferences.pauseBeforeSubmit===false&&snapshot?.page.controls?.resume)await action('studyPanelCommand',{action:'resume'});};

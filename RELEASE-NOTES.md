@@ -1,11 +1,9 @@
-Study Assistant 2.7.1
+Study Assistant 2.7.2
 
-MindTap Course Mode now stays out of the way during a solo assignment. On the course activity list, its card starts collapsed and can be opened when needed. During an active queue it stays hidden while an assignment is being worked, then returns at the review/continue checkpoint.
+The panel now has an always-visible **How to update** link beside the version status. It opens the unpacked-install instructions directly, whether or not an update is detected. The **Refresh** button now checks GitHub Releases immediately instead of relying on a six-hour cached result, while also refreshing the assignment connection.
 
-The previous empty-queue message was misleading inside a single assignment. Course Mode now checks for the MindTap activity outline before scanning and starts only from the course-level activity list. A page without that list is not reported as an outline with zero eligible work.
+Unpacked Chrome extensions still require you to install the downloaded/extracted files and click **Reload** in `chrome://extensions`; a GitHub release cannot replace local files automatically. After reloading the extension, reload the assignment and connected AI tabs.
 
-Opening Course Mode now shows a prominent warning: it can miss activities or stop when a question needs attention, so users should verify each assignment’s results and completion status in MindTap. Assignment review and final submission remain manual. The existing first-use setup acknowledgement is unchanged.
+Verification: `node scripts/check.cjs` and `git diff --check` pass. The added tests check direct access to updater instructions and a forced release-status refresh.
 
-Verification: `node tests/mindtap-course.cjs` and the full `node scripts/check.cjs` suite pass. `python3 scripts/package.py v2.7.1` validates the extension package. No untouched live MindTap assessment was available for an end-to-end queue run, so live course automation remains unverified.
-
-Install: extract `study-assistant-2.7.1.zip`, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the extracted **Study-Assistant-2.7.1** folder containing `manifest.json` directly. The ZIP itself cannot be loaded.
+Install: extract `study-assistant-2.7.2.zip`, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the extracted **Study-Assistant-2.7.2** folder containing `manifest.json` directly. The ZIP itself cannot be loaded.

@@ -1,14 +1,14 @@
-# Study Assistant — AI Homework Autofill (2.7.1)
+# Study Assistant — AI Homework Autofill (2.7.2)
 
 Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas and MindTap** using a connected ChatGPT, Gemini or DeepSeek tab. Review answers before final submission.
 
 ## Download and install
 
-**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.7.1/study-assistant-2.7.1.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.7.2/study-assistant-2.7.2.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the extracted **Study-Assistant-2.7.1** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
+3. Click **Load unpacked** and select the extracted **Study-Assistant-2.7.2** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
 4. Open a supported assignment, reload that tab and your AI tab, then click the Study Assistant extension icon to open its side panel.
 
 To update a previous unpacked installation, either use the optional helper described under [Updating an unpacked installation](#updating-an-unpacked-installation), or download and extract the new ZIP and load its folder in `chrome://extensions`. A GitHub release does not update local files automatically. Reload Study Assistant in Chrome after replacing the files, then reload your assignment and AI tabs.
@@ -18,6 +18,7 @@ To update a previous unpacked installation, either use the optional helper descr
 
 ## What changed recently
 
+- **2.7.2:** Adds an always-visible **How to update** link beside the version status. **Refresh** now checks GitHub Releases immediately as well as refreshing the panel connection, so cached status cannot hide a newly published release for hours.
 - **2.7.1:** Hides MindTap Course Mode during a solo assignment and keeps its outline card collapsed until opened. It appears again at course-level review checkpoints and shows a prominent warning to verify results and completion in MindTap. The live queue still needs a safe not-started assignment for end-to-end verification.
 - **2.7.0:** Adds MindTap Course Mode with Apply It grade-counting work selected by default and checkboxes for optional Study It, Learn It and other assessment sections. It opens only visible, supported activities MindTap marks Not started; it excludes media, quizzes, tests and exams, and leaves assignment review/submission to you. Instant, Timed and Human pace preferences are now shared across supported platforms. See the [MindTap course mock](docs/mindtap-course-mock.html) and [release notes](RELEASE-NOTES.md). The live outline selectors were verified read-only; no eligible Apply It test assignment was available for an end-to-end run.
 - **2.6.0:** Adds Pearson Course Mode for eligible, unstarted homework and lessons; supported linked-table/printout capture; safer handling of choice-revealed fields and Pearson math-editor re-renders; and installed/latest version status in the panel. Course Mode saves between assignments, tracks pending media for final review, and reports skipped questions. See the [local course mock](docs/pearson-course-mock.html) and [release notes](RELEASE-NOTES.md). Synthetic tests pass; a full live Pearson run has not been verified.
@@ -41,7 +42,7 @@ If installed using **Load unpacked** from a GitHub download, update manually: do
 
 ### Updating an unpacked installation
 
-The panel checks GitHub Releases and shows when a newer version exists. It cannot install GitHub files itself. Click **Updater instructions** in that notice for these steps:
+The panel checks GitHub Releases and shows when a newer version exists. It cannot install GitHub files itself. Click **How to update** beside the version status at any time, or **Updater instructions** in the update notice, for these steps. Click the panel’s **Refresh** button to force a new release check instead of using its cached status:
 
 1. If you have a local project source checkout, run `python3 scripts/update-unpacked.py "/path/to/the/folder/Chrome-loaded" --check` from that checkout. Replace `--check` with `--apply` to install the latest release into that same loaded folder. The helper verifies the release ZIP/version and preserves unrelated files. The helper is in the source checkout, not in the extension ZIP.
 2. If you do not have a source checkout, use the manual ZIP route above: download the latest release, extract it, and load its folder from `chrome://extensions` (remove or disable the previous copy if Chrome would otherwise keep two installs).

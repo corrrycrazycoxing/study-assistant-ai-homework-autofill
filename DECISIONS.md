@@ -1,5 +1,13 @@
 # Development decisions and handoffs
 
+## October 6, 2026 — Updater help discoverability and release refresh (2.7.2)
+
+**Intent:** Make updater instructions reachable even when the panel believes no newer release exists, and let users clear stale release status themselves.
+
+**Changed:** Added a persistent **How to update** action beside the installed/latest version line. It opens the in-panel guide directly at “Update an unpacked installation.” The panel’s **Refresh** button now also bypasses the cached GitHub release result and checks GitHub immediately.
+
+**Checks/publication:** `node scripts/check.cjs`, `git diff --check`, and the credential/private-key pattern scan passed. `python3 scripts/package.py v2.7.2` passed; the 67-file archive passed ZIP integrity, manifest and updater-feature checks (930,990 bytes, SHA-256 `a34aa3d2d79571f6bb57ba986e75ada7269cc0d739c1f304b061408b4de2ffd1`). Publication pending.
+
 ## October 6, 2026 — MindTap Course Mode visibility and warning (2.7.1)
 
 **Intent:** Keep Course Mode off individual assignments unless a course-level queue is active, minimize obstruction on the course activity list, and make the important verification warning visible inside Course Mode.

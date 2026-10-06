@@ -2,6 +2,12 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.7.2 — October 6, 2026
+
+- Add an always-visible **How to update** action in the panel so the unpacked-install instructions are available even when no newer version is detected.
+- Make the panel’s **Refresh** button bypass the six-hour release-status cache and check GitHub immediately.
+- Add regression coverage for both updater-help access and forced release checks.
+
 ## 2.7.1 — October 6, 2026
 
 - Hide MindTap Course Mode during a solo assignment. Keep its card collapsed by default on the course activity list and show it again at course-level review checkpoints.
