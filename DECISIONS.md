@@ -110,7 +110,7 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Publication:** Commit d8ad4d3a139dca29cdd802c627dd76c251f4ded9 was pushed to main and tagged v2.5.12. GitHub confirmed the public release and 900,883-byte installable ZIP at https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.12 .
 
 
-## October 6, 2026 — MindTap Course Mode and universal pacing (2.7.0 candidate)
+## October 6, 2026 — MindTap Course Mode and universal pacing (2.7.0)
 
 **Intent:** Add a course queue for MindTap while keeping final assignment submission under the student's control. Apply It is the useful default because it is marked as grade-counting. Other section checkboxes let users opt into Study It, Learn It and Other activity types without putting those into every default run.
 
@@ -118,6 +118,6 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 
 **Evidence/limits:** MindTap's live outline markup and category labels were inspected read-only; the open course had no untouched Apply It activity, and no assignment was opened, answered, graded or submitted. Synthetic scanner/queue regression tests and the repository suite pass. A local mock page is included; browser security policy blocked opening the local file, so visual mock verification and live end-to-end queue validation are not done. This candidate must not be described as fully live-verified.
 
-**Checks:** `node tests/mindtap-course.cjs`, `node scripts/check.cjs`, and `python3 scripts/package.py v2.7.0` passed; package includes the matching 2.7.0 manifest and ZIP integrity checks. `git diff --check` and a changed-file secret-pattern scan passed. `git fetch origin` failed because this environment could not resolve `github.com`, so the remote branch could not be checked.
+**Checks:** `node tests/mindtap-course.cjs`, `node scripts/check.cjs`, and `python3 scripts/package.py v2.7.0` passed; package includes the matching 2.7.0 manifest and ZIP integrity checks. `git diff --check` and a changed-file secret-pattern scan passed. After GitHub access became available, `origin/main` was fetched and confirmed at the expected base before committing; the `v2.7.0` tag did not previously exist.
 
-**Publication:** Not published yet. The 2.7.0 source, tag and release ZIP are still local. See HANDOFF.md for the remaining verification and publication checklist.
+**Publication:** Commit `8ad0c6b2293040c90dd446d908aac66439fec27d` and tag `v2.7.0` were pushed to `main` and GitHub. The public release and matching `study-assistant-2.7.0.zip` (929,487 bytes, SHA-256 `731ceb9b6a51931ec74790c64fb1a66e38c653af9d62d788cbd1be8c47991e39`) were verified at https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.7.0 . Browser-level mock verification and live end-to-end MindTap assignment validation remain outstanding as documented above.
