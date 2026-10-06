@@ -7,7 +7,10 @@ Versions listed here describe source changes. A version is downloadable as a Git
 - Add Pearson Course Mode for homework and lessons in assignment-list order. Read each visible score and open only confirmed 0%, unstarted items through Start or the first question link Pearson provides; keep scored, resumed, unclear, test and exam items unopened and report them.
 - In full course mode, continue past unsupported questions only when Pearson exposes a safe Next control, record skipped work for the end-of-run manual review, save through Pearson between assignments, and leave final Submit manual.
 - Allow question automation to continue when required media is separate from the questions. Track media status independently and show a final review item linked to the exact assignment, with a reminder to verify Pearson's status.
-- Pin the launcher to the top-level Pearson viewport, collapsed by default, and update Help and the walkthrough.
+- Capture supported linked Pearson tables and printouts into the AI question context; if a required source is unavailable or cannot be safely read, avoid guessing and leave the question for review.
+- Handle Pearson questions that reveal more answer fields after a selection, and keep Auto attached to the same question when Pearson re-renders its math editor.
+- Add installed-version and latest-release status to the side panel, with a link to GitHub Releases.
+- Pin the course launcher to the top-level Pearson viewport, collapsed by default, and update Help and the walkthrough.
 - Add a local Pearson-style course mock and end-to-end queue/DOM-double tests. Synthetic checks cover eligibility, Start/question entry, unsupported linked material, pending-media reporting, Save, next assignment and the final review dialog. Live Pearson course automation remains unverified.
 
 ## 2.5.13 — October 4, 2026
