@@ -1,10 +1,11 @@
 (() => {
   const $=id=>document.getElementById(id);
+  document.querySelector('.version').textContent=chrome.runtime.getManifest().version;
   const hosts={chatgpt:'https://chatgpt.com/*',gemini:'https://gemini.google.com/*',deepseek:'https://chat.deepseek.com/*'};
   const urls={chatgpt:'https://chatgpt.com/',gemini:'https://gemini.google.com/app',deepseek:'https://chat.deepseek.com/'};
   const names={chatgpt:'ChatGPT',gemini:'Gemini',deepseek:'DeepSeek'};
   const notes={mcgraw:'SmartBook, older Connect and the newer Connect MAP player. Journal worksheets and native choice/text fields are supported. Confidence and duplicate options apply only to SmartBook.',pearson:'Pearson MyLab numeric editor, choices and automatic checking/navigation.',canvas:'Canvas Classic quizzes; New Quizzes support is experimental. NotebookLM is preferred by default.',mindtap:'MindTap Aplia only. Save & Continue; optional grading before advancing.'};
-  const keys=['preferNotebook','autoFill','pauseBeforeSubmit','showExplanation','gradeBeforeAdvance','checkMapWork','randomConfidence','doubleCreditMode','replaceExisting','useSuggestedTime','smoothScroll','includePictures'];
+  const keys=['preferNotebook','autoFill','pauseBeforeSubmit','showExplanation','gradeBeforeAdvance','checkMapWork','randomConfidence','doubleCreditMode','replaceExisting','smoothScroll','includePictures'];
   let state={watchAutomation:false,platformMode:'auto',aiModel:'gemini',platformSettings:{},canvasOrigins:[]},editing='mcgraw',saveQueue=Promise.resolve(),revision=0,bookRevision=0;
   const prefs=()=>StudyConfig.preferences(state,editing);
   async function save(values){
@@ -17,6 +18,7 @@
     const platform=editing;
     await save({platformSettings:{...state.platformSettings,[platform]:{...StudyConfig.defaults[platform],...state.platformSettings[platform],...values}}});
   }
+  async function pacingSave(values){await save({pacingSettings:{...StudyConfig.pacingDefaults,...state.pacingSettings,...values}});}
   function render(){
     $('platform-mode').value=state.platformMode;$('watchAutomation').checked=state.watchAutomation===true;
     for(const button of document.querySelectorAll('[data-model]')){const selected=button.dataset.model===state.aiModel;button.classList.toggle('selected',selected);button.setAttribute('aria-checked',String(selected));}
@@ -62,18 +64,19 @@
   for(const button of document.querySelectorAll('[data-model]'))button.onclick=async()=>{await save({aiModel:button.dataset.model});render();availability();};
   for(const button of document.querySelectorAll('[data-platform]'))button.onclick=()=>{editing=button.dataset.platform;render();notebooks();};
   for(const key of keys)$(key).onchange=async event=>{await platformSave({[key]:event.target.checked});if(key==='preferNotebook')notebooks();};
+  $('useSuggestedTime').onchange=async event=>{await pacingSave({useSuggestedTime:event.target.checked});render();};
   $('watchAutomation').onchange=async event=>{await save({watchAutomation:event.target.checked});render();};
-  for(const button of document.querySelectorAll('[data-pacing-mode]'))button.onclick=async()=>{await platformSave({pacingMode:button.dataset.pacingMode});render();};
-  $('humanSpeed').onchange=async event=>{await platformSave({humanSpeed:event.target.value});render();};
-  for(const key of ['humanMinSeconds','humanMaxSeconds'])$(key).onchange=async event=>{const value=event.target.valueAsNumber,next={...prefs(),[key]:value};if(!Number.isFinite(value)||value<10||value>7200||next.humanMaxSeconds<next.humanMinSeconds){$('saved').textContent='Use 10–7200 seconds, with maximum at least minimum.';return;}await platformSave({[key]:value});render();};
-  $('pacingMode').onchange=async event=>{await platformSave({pacingMode:event.target.value});render();};
+  for(const button of document.querySelectorAll('[data-pacing-mode]'))button.onclick=async()=>{await pacingSave({pacingMode:button.dataset.pacingMode});render();};
+  $('humanSpeed').onchange=async event=>{await pacingSave({humanSpeed:event.target.value});render();};
+  for(const key of ['humanMinSeconds','humanMaxSeconds'])$(key).onchange=async event=>{const value=event.target.valueAsNumber,next={...prefs(),[key]:value};if(!Number.isFinite(value)||value<10||value>7200||next.humanMaxSeconds<next.humanMinSeconds){$('saved').textContent='Use 10–7200 seconds, with maximum at least minimum.';return;}await pacingSave({[key]:value});render();};
+  $('pacingMode').onchange=async event=>{await pacingSave({pacingMode:event.target.value});render();};
   for(const key of ['reviewSeconds','reviewMinSeconds','reviewMaxSeconds','advanceSeconds'])$(key).onchange=async event=>{
     const value=event.target.valueAsNumber,max=key==='advanceSeconds'?30:300,min=key==='advanceSeconds'?0:1;
     if(!Number.isFinite(value)||value<min||value>max){$('saved').textContent='Enter a number between '+min+' and '+max;return;}
     const next={...prefs(),[key]:value};
     if(next.reviewMaxSeconds<next.reviewMinSeconds){$('saved').textContent='Maximum review must be at least the minimum.';return;}
     next.reviewSeconds=Math.max(next.reviewMinSeconds,Math.min(next.reviewMaxSeconds,next.reviewSeconds));
-    await platformSave({[key]:value,reviewSeconds:next.reviewSeconds});render();
+    await pacingSave({[key]:value,reviewSeconds:next.reviewSeconds});render();
   };
   $('platform-mode').onchange=async event=>{
     await chrome.runtime.sendMessage({type:'studyStopAll'});await save({platformMode:event.target.value});render();
@@ -115,7 +118,7 @@
     }catch(error){$('domain-status').textContent=error.message;}
   };
   (async()=>{
-    state={...state,...await chrome.storage.sync.get(['platformMode','aiModel','platformSettings','canvasOrigins','watchAutomation'])};
+    state={...state,...await chrome.storage.sync.get(['platformMode','aiModel','platformSettings','pacingSettings','canvasOrigins','watchAutomation'])};
     if(!Object.hasOwn(names,state.aiModel))state.aiModel='gemini';
     state.platformSettings ||= {};state.canvasOrigins ||= [];
     const tab=(await chrome.tabs.query({active:true,currentWindow:true}))[0];

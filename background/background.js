@@ -1,5 +1,5 @@
 'use strict';
-importScripts('../shared/security.js','../shared/config.js','../shared/pacing.js','capture.js','panel.js','pearson-course.js');
+importScripts('../shared/security.js','../shared/config.js','../shared/pacing.js','../shared/mindtap-course.js','capture.js','panel.js','pearson-course.js','mindtap-course.js');
 const hosts={chatgpt:'https://chatgpt.com/*',gemini:'https://gemini.google.com/*',deepseek:'https://chat.deepseek.com/*'};
 const origins={chatgpt:'https://chatgpt.com',gemini:'https://gemini.google.com',deepseek:'https://chat.deepseek.com'};
 const notebookHosts=['https://notebooklm.google.com/*','https://notebook.google.com/*'];
@@ -15,7 +15,7 @@ chrome.runtime.onUpdateAvailable?.addListener(details=>{recordUpdateAvailable(de
 chrome.runtime.onInstalled?.addListener(details=>{
   if(details.reason==='update')chrome.storage.session.remove('updateAvailable').catch(()=>{});
 });
-const config=()=>chrome.storage.sync.get(['platformMode','platformSettings','aiModel','canvasOrigins','watchAutomation']);
+const config=()=>chrome.storage.sync.get(['platformMode','platformSettings','pacingSettings','aiModel','canvasOrigins','watchAutomation']);
 const same=(sender,state)=>sender.tab?.id===state?.tab&&sender.frameId===state?.frame&&(!state.documentId||!sender.documentId||state.documentId===sender.documentId);
 async function sourcePlatform(sender){
   if(!sender.tab)return null;
@@ -156,6 +156,7 @@ async function request(message,sender,platform){
 async function handle(message,sender){
   if(!message||typeof message.type!=='string')return {received:false};
   if(message.type.startsWith('pearsonCourse')){await requireSetup();return pearsonCourseMessage(message,sender);}
+  if(message.type.startsWith('mindtapCourse')){if(['mindtapCourseStart','mindtapCourseContinue'].includes(message.type))await requireSetup();return mindtapCourseMessage(message,sender);}
   if(message.type==='studyCompleteSetup'){if(!panelSender(sender))return {received:false};return completeSetup(message);}
   if(message.type==='studyPageReport')return receivePageState(message,sender);
   if(message.type==='studyConsumeSettingsIntent'){
@@ -168,7 +169,7 @@ async function handle(message,sender){
   if(message.type==='studyStopAll'){
     if(!panelSender(sender))return {received:false};
     const {pending,autoRun}=await chrome.storage.session.get(['pending','autoRun']);
-    await saveCheckpoint(autoRun);await cancel(pending);await chrome.storage.session.remove(['autoRun','legacyResponse','pearsonCourse']);await cleanDuplicate();
+    await saveCheckpoint(autoRun);await cancel(pending);await chrome.storage.session.remove(['autoRun','legacyResponse','pearsonCourse','mindtapCourse']);await cleanDuplicate();
     for(const state of [pending,autoRun].filter(Boolean))await chrome.tabs.sendMessage(state.tab,{type:'studyStop'},{frameId:state.frame}).catch(()=>{});
     return {received:true};
   }

@@ -1,23 +1,24 @@
-# Study Assistant — AI Homework Autofill (2.6.0)
+# Study Assistant — AI Homework Autofill (2.7.0)
 
 Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas and MindTap** using a connected ChatGPT, Gemini or DeepSeek tab. Review answers before final submission.
 
 ## Download and install
 
-**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.6.0/study-assistant-2.6.0.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.7.0/study-assistant-2.7.0.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the extracted **Study-Assistant-2.6.0** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
+3. Click **Load unpacked** and select the extracted **Study-Assistant-2.7.0** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
 4. Open a supported assignment, reload that tab and your AI tab, then click the Study Assistant extension icon to open its side panel.
 
-To update a previous unpacked installation, remove or disable the older copy, extract the new ZIP into its own folder, load that folder, and reload your assignment and AI tabs. The Chrome Web Store is not used for this installation.
+To update a previous unpacked installation, either use the optional helper described under [Updating an unpacked installation](#updating-an-unpacked-installation), or download and extract the new ZIP and load its folder in `chrome://extensions`. A GitHub release does not update local files automatically. Reload Study Assistant in Chrome after replacing the files, then reload your assignment and AI tabs.
 
 
 [Latest GitHub release](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest) · [Changelog](CHANGELOG.md) · [Privacy policy](PRIVACY.md) · [Terms of use](TERMS.md) · [Publication checklist](PUBLISHING.md) · [Security notes](SECURITY.md)
 
 ## What changed recently
 
+- **2.7.0:** Adds MindTap Course Mode with Apply It grade-counting work selected by default and checkboxes for optional Study It, Learn It and other assessment sections. It opens only visible, supported activities MindTap marks Not started; it excludes media, quizzes, tests and exams, and leaves assignment review/submission to you. Instant, Timed and Human pace preferences are now shared across supported platforms. See the [MindTap course mock](docs/mindtap-course-mock.html) and [release notes](RELEASE-NOTES.md). The live outline selectors were verified read-only; no eligible Apply It test assignment was available for an end-to-end run.
 - **2.6.0:** Adds Pearson Course Mode for eligible, unstarted homework and lessons; supported linked-table/printout capture; safer handling of choice-revealed fields and Pearson math-editor re-renders; and installed/latest version status in the panel. Course Mode saves between assignments, tracks pending media for final review, and reports skipped questions. See the [local course mock](docs/pearson-course-mock.html) and [release notes](RELEASE-NOTES.md). Synthetic tests pass; a full live Pearson run has not been verified.
 - **2.5.13:** Pearson Auto recognizes the “Nice work!” result screen and uses its Next question button. If that button is missing, Auto stops for review. New installs leave Pause after fill off by default; existing preferences are preserved.
 - **2.5.12:** Pearson custom dropdowns load choices through Pearson's widget before selecting. Verified all three dropdowns of the reported live question without pressing Check answer.
@@ -37,7 +38,15 @@ Chrome Web Store installations use Chrome's automatic updates. The side panel sh
 
 If installed using **Load unpacked** from a GitHub download, update manually: download the new release ZIP, extract it, reload the extension in `chrome://extensions`, then reload the assignment and AI tabs. Unpacked installations do not receive Chrome Web Store updates.
 
-For a reusable unpacked folder, the optional [update helper](scripts/update-unpacked.py) checks the latest GitHub release and replaces the extension files in that same folder. Run `python3 scripts/update-unpacked.py "/path/to/your/loaded/folder" --check` to see whether an update exists, or use `--apply` to install it. The helper keeps unrelated files in the folder and checks the release ZIP and version before replacing extension files. Then click **Reload** for Study Assistant in `chrome://extensions` and refresh assignment and AI tabs. This is a local update command, not a background Chrome update; keep a copy of the prior ZIP if you may need to roll back.
+### Updating an unpacked installation
+
+The panel checks GitHub Releases and shows when a newer version exists. It cannot install GitHub files itself. Click **Updater instructions** in that notice for these steps:
+
+1. If you have a local project source checkout, run `python3 scripts/update-unpacked.py "/path/to/the/folder/Chrome-loaded" --check` from that checkout. Replace `--check` with `--apply` to install the latest release into that same loaded folder. The helper verifies the release ZIP/version and preserves unrelated files. The helper is in the source checkout, not in the extension ZIP.
+2. If you do not have a source checkout, use the manual ZIP route above: download the latest release, extract it, and load its folder from `chrome://extensions` (remove or disable the previous copy if Chrome would otherwise keep two installs).
+3. In `chrome://extensions`, click **Reload** for Study Assistant after the files have been updated. Then reload the assignment tab and connected AI tabs.
+
+The panel’s **Open Chrome extensions** button only opens the reload page; it does not download or apply the update. Keep the prior release ZIP if you may need to roll back. This helper is a local command, not a background Chrome update.
 
 ## Panel status and saved progress
 
@@ -56,7 +65,7 @@ Click **McGraw**, **Pearson**, **Canvas** or **MindTap** under **Settings for** 
 - **McGraw-Hill:** original SmartBook, older EZTO Connect and the newer Connect MAP player. The MAP adapter supports native choices/text/selects and embedded numeric worksheets and journal worksheets with exact account menus, balanced entry checks, native model verification, all available journal transaction tabs, Record entry, Check my work and Next. It leaves final submission manual. Original SmartBook parsing, confidence, feedback and navigation remain. SmartBook duplicate mode is experimental, off by default, and requires Instant Auto and Watch automation; extra-credit effects are not verified.
 - **Pearson MyLab:** use the unified panel or expand MyLab Assistant in the tdx.acs.pearson.com player, including separate windows. Start Auto fills supported numeric editors, text, native dropdowns and choices, checks homework answers and navigates test questions. Existing correction/retry behavior is retained. Final test submission stays manual.
 - **Canvas:** use the unified panel or expand Canvas Quiz Assistant on the quiz-taking page. Classic native choice, checkbox, text, numeric and select fields are supported. New Quizzes/Learnosity support remains experimental. Start Auto answers supported unanswered questions and advances when a supported Next control is present. It does not click final Submit Quiz. Canvas itself may auto-submit timed quizzes or save inputs independently of this extension.
-- **MindTap:** use the unified panel or expand MindTap Assistant inside the Aplia assignment frame. Start Auto fills supported q4 dropdowns, categorization rows, choices and native numeric/text/select fields, then uses Save & Continue. Enable Grade Before Advance only if you want a grading attempt when saving alone is unavailable. Final assignment submission stays manual. CNOWv2, SAM and other MindTap players are not implemented.
+- **MindTap:** use the unified panel or expand MindTap Assistant inside the Aplia assignment frame. Start Auto fills supported q4 dropdowns, categorization rows, choices and native numeric/text/select fields, then uses Save & Continue. Enable Grade Before Advance only if you want a grading attempt when saving alone is unavailable. Final assignment submission stays manual. CNOWv2, SAM and other MindTap players are not implemented. MindTap Course Mode is on the top-level course outline: Apply It grade-counting work is selected by default; Study It, Learn It and Other sections can be added with checkboxes. It queues only visible, explicitly Not started assessment items. Reading/media, quizzes, tests and exams stay excluded. Review and submit each assignment yourself between queue items.
 
 **Pause after fill** is also directly available in the side panel and saves the selected platform’s setting. Turning it off while paused resumes that selected run. **Pause After Fill** is on by default for Pearson, Canvas and MindTap. Turn it off in the relevant platform settings for continuous answering. SmartBook's Pause Before Submit is also on by default in this combined build. New Connect uses the same default pause before recording or advancing. Older Connect waits for Continue now after filling when its pause setting is enabled. Original SmartBook and older Connect otherwise retain their original navigation/submission behavior.
 
@@ -66,7 +75,7 @@ Click **McGraw**, **Pearson**, **Canvas** or **MindTap** under **Settings for** 
 
 ## Automation pace and feature guide
 
-Each platform has its own **Automation pace**, shown as four illustrated cards. Help in the side panel opens a plain-language feature guide in place; the Settings feature guide returns to Settings when closed. The default is **Instant Auto** and it preserves full automatic answering without an added review countdown. Guided Answers is a separate mode for reading suggestions and entering answers yourself.
+**Automation pace is shared across supported platforms**, shown as four illustrated cards. Platform-specific settings such as Pause after fill remain separate. Help in the side panel opens a plain-language feature guide in place; the Settings feature guide returns to Settings when closed. The default is **Instant Auto** and it preserves full automatic answering without an added review countdown. Guided Answers is a separate mode for reading suggestions and entering answers yourself.
 
 - **Instant Auto:** automatic input and supported navigation.
 - **Timed Auto:** automatic input after a visible countdown for each answer field/group or journal cell; another countdown before checking, saving or advancing.

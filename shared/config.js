@@ -5,6 +5,8 @@
   const pacingNames={normal:'Instant Auto',slow:'Timed Auto',human:'Human pace',review:'Guided Answers'};
   const names={mcgraw:'McGraw-Hill',pearson:'Pearson MyLab',canvas:'Canvas',mindtap:'MindTap Aplia'};
   const defaults=Object.fromEntries(platforms.map(p=>[p,{autoFill:false,pauseBeforeSubmit:false,showExplanation:true,preferNotebook:p==='canvas',notebookUrl:'',gradeBeforeAdvance:false,checkMapWork:true,doubleCreditMode:false,randomConfidence:false,replaceExisting:false,pacingMode:'normal',humanSpeed:'typical',humanMinSeconds:15,humanMaxSeconds:3600,useSuggestedTime:true,reviewSeconds:30,reviewMinSeconds:5,reviewMaxSeconds:120,advanceSeconds:3,smoothScroll:true,includePictures:false}]));
+  const pacingKeys=['pacingMode','humanSpeed','humanMinSeconds','humanMaxSeconds','useSuggestedTime','reviewSeconds','reviewMinSeconds','reviewMaxSeconds','advanceSeconds'];
+  const pacingDefaults=Object.fromEntries(pacingKeys.map(key=>[key,defaults.mcgraw[key]]));
   function detect(url,custom=[]){
     try{
       const u=new URL(url);if(u.protocol!=='https:')return null;
@@ -16,7 +18,7 @@
     return null;
   }
   function allowed(platform,mode='auto'){return mode==='auto'||mode===platform;}
-  function preferences(data,platform){return {...defaults[platform],...(data.platformSettings?.[platform]||{}),aiModel:data.aiModel||'gemini',watchAutomation:data.watchAutomation===true};}
+  function preferences(data,platform){const legacy=data.platformSettings?.[platform]||{},legacyPacing=Object.fromEntries(pacingKeys.filter(key=>Object.hasOwn(legacy,key)).map(key=>[key,legacy[key]]));return {...defaults[platform],...legacy,...(data.pacingSettings?{...pacingDefaults,...data.pacingSettings}:legacyPacing),aiModel:data.aiModel||'gemini',watchAutomation:data.watchAutomation===true};}
 
   function assignLabels(fields,root,{questionLabel=''}={}){
     const clean=s=>String(s||'').replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/\s+/g,' ').trim();
@@ -92,5 +94,5 @@
     else for(const [i,[key,value]] of Object.entries(data.answer||{}).entries())row([answerLabel({displayLabel:data.fieldLabels?.[key]},i),Array.isArray(value)?value.join('; '):String(value)]);
     display.append(table);if(data.explanation){const p=document.createElement('p');p.textContent=plainExplanation(data.explanation);display.append(p);}if(data.sourceAnswer){const details=document.createElement('details'),summary=document.createElement('summary'),p=document.createElement('p');summary.textContent='Reading sources';p.textContent=data.sourceAnswer;details.append(summary,p);display.append(details);}
   }
-  globalThis.StudyConfig={onboardingVersion,onboardingMessage,platforms,names,pacingNames,defaults,detect,allowed,preferences,assignLabels,answerLabel,answerGrid,plainExplanation,showPreview,clearPreview};
+  globalThis.StudyConfig={onboardingVersion,onboardingMessage,platforms,names,pacingNames,defaults,pacingKeys,pacingDefaults,detect,allowed,preferences,assignLabels,answerLabel,answerGrid,plainExplanation,showPreview,clearPreview};
 })();

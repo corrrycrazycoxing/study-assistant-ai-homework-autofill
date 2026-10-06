@@ -21,7 +21,9 @@ async function checkReleaseVersion(){
   const available=newerVersion(latest,installedVersion);
   releaseStatus.textContent=available?`Installed ${installedVersion} · Update ${latest} available`:`Installed ${installedVersion} · Latest release`;
   releaseStatus.parentElement.classList.toggle('update',available);
- }catch{releaseStatus.textContent=`Installed ${installedVersion} · Could not check releases`;}
+  $('github-update-help').hidden=!available;
+  $('github-update-message').textContent=available?'The release is not installed automatically. Run the updater or install the ZIP, then reload Study Assistant in Chrome. Refresh your assignment and AI tabs afterward.':'';
+ }catch{releaseStatus.textContent=`Installed ${installedVersion} · Could not check releases`;$('github-update-help').hidden=true;}
 }
 let actionError='';function error(text){actionError=text||'';$('error').textContent=actionError?'Action needs attention. See the recovery options below.':'';$('error').hidden=!actionError;if(snapshot)renderAttention(snapshot);}
 let previewText=null,panelWindow=null,lease=null,leaseTarget=null,seenSettingsIntent=null,savedScroll=0,helpReturn='assistant',draftState=null,events=[],eventTarget=null,eventSignature=null;
@@ -150,6 +152,8 @@ async function action(type,extra={}){if(busy||(draftState||StudyOnboarding.requi
 for(const b of document.querySelectorAll('[data-action]'))b.onclick=()=>action('studyPanelCommand',{action:b.dataset.action});
 $('assignment').onchange=()=>{selected=$('assignment').value?JSON.parse($('assignment').value):null;refresh();};
 $('help').onclick=()=>featureGuide();$('back-from-help').onclick=()=>{if(helpReturn==='settings'){ $('help-view').hidden=true;$('settings-view').hidden=false;window.scrollTo(0,0);}else settingsView(false);};$('settings').onclick=()=>settingsView(true);$('back-to-assistant').onclick=()=>{settingsView(false);refresh();};$('refresh').onclick=refresh;$('stop-all').onclick=()=>action('studyStopAll');$('forget').onclick=()=>action('studyForgetCheckpoint');
+$('update-instructions').onclick=()=>{featureGuide();$('help-frame').contentWindow.location.hash='updating';};
+$('open-extensions').onclick=()=>chrome.tabs.create({url:'chrome://extensions/'}).catch(error=>{releaseStatus.textContent=`Could not open Chrome extensions: ${error.message}`;});
 for(const link of document.querySelectorAll('[data-open-service]'))link.onclick=e=>{e.preventDefault();const service=link.dataset.openService,connection=service==='notebook'?snapshot?.connections?.notebook:snapshot?.connections?.services?.find(item=>item.model===service);const reload=/^Reload this (?:tab|notebook)$/.test(connection?.status||'');action(reload?'studyReloadService':'studyOpenService',{service});};
 $('pause-after-fill').onchange=async()=>{const value=$('pause-after-fill').checked,target=selected;await action('studyPanelPreference',{key:'pauseBeforeSubmit',value});if(!value&&target?.pageId===selected?.pageId&&snapshot?.preferences.pauseBeforeSubmit===false&&snapshot?.page.controls?.resume)await action('studyPanelCommand',{action:'resume'});};
 $('watch-automation').onchange=()=>action('studyPanelPreference',{key:'watchAutomation',value:$('watch-automation').checked});

@@ -384,6 +384,37 @@ function clearMatchingPauseWatcher() {
   }
 }
 
+function stablePromptText(promptEl, questionType) {
+  if (!promptEl) return "";
+  if (questionType !== "fill_in_the_blank") {
+    return promptEl.textContent?.trim() || "";
+  }
+
+  const promptClone = promptEl.cloneNode(true);
+
+  // McGraw replaces a blank's input with a scored response after checking.
+  // Treat either rendering as the same blank so Auto can still click Next.
+  promptClone
+    .querySelectorAll(
+      ".response-container, .fitb-answer-container, span.fitb-span"
+    )
+    .forEach((response) => {
+      if (response.parentNode) {
+        response.replaceWith(document.createTextNode("[BLANK]"));
+      }
+    });
+  promptClone.querySelectorAll("input.fitb-input").forEach((input) => {
+    if (input.parentNode) {
+      input.replaceWith(document.createTextNode("[BLANK]"));
+    }
+  });
+  promptClone
+    .querySelectorAll("span.blank-label, span.correctness, span._visuallyHidden")
+    .forEach((span) => span.remove());
+
+  return promptClone.textContent?.trim() || "";
+}
+
 function getQuestionSignature(container) {
   if (!container) return "";
 
@@ -401,9 +432,84 @@ function getQuestionSignature(container) {
     return `${questionType}::${normalizeChoiceText(promptText)}::${prompts}`;
   }
 
-  const promptText = container.querySelector(".prompt")?.textContent?.trim() || "";
+  const promptText = stablePromptText(
+    container.querySelector(".prompt"),
+    questionType
+  );
 
   return `${questionType}::${normalizeChoiceText(promptText)}`;
+}
+
+function waitForMcGrawNextQuestion(questionSignature, epoch) {
+  const retryLimit = 30;
+  const pollInterval = 500;
+  const retryEvery = 6;
+
+  return new Promise((resolve, reject) => {
+    let attempt = 0;
+    let leftAnsweredQuestion = false;
+
+    const poll = () => {
+      if (!isAutomating || epoch !== legacyEpoch) {
+        resolve(false);
+        return;
+      }
+
+      // Let the existing page-flow handlers take over these states after we
+      // leave this waiter, rather than starting a second async handler here.
+      const overviewContinue = document.querySelector(
+        "awd-topic-overview-button-bar .next-button, .button-bar-wrapper .next-button"
+      );
+      const forcedLearning = document.querySelector(
+        ".forced-learning .alert-error"
+      );
+      if (
+        overviewContinue?.textContent?.trim().toLowerCase().includes("continue") ||
+        forcedLearning
+      ) {
+        resolve(true);
+        return;
+      }
+
+      const activeContainer = document.querySelector(".probe-container");
+      const nextButton = document.querySelector(".next-button");
+      const hasGradingFeedback = Boolean(
+        activeContainer?.querySelector(".awd-probe-correctness")
+      );
+      const answerable = Boolean(
+        activeContainer &&
+          !activeContainer.querySelector(".forced-learning") &&
+          !hasGradingFeedback &&
+          !nextButton
+      );
+
+      if (
+        answerable &&
+        (leftAnsweredQuestion ||
+          getQuestionSignature(activeContainer) !== questionSignature)
+      ) {
+        resolve(true);
+        return;
+      }
+
+      if (!answerable) leftAnsweredQuestion = true;
+      if (nextButton && attempt % retryEvery === retryEvery - 1) {
+        nextButton.click();
+      }
+
+      attempt += 1;
+      if (attempt >= retryLimit) {
+        reject(
+          new Error("McGraw did not open the next question after several Next attempts.")
+        );
+        return;
+      }
+
+      setTimeout(poll, pollInterval);
+    };
+
+    poll();
+  });
 }
 
 function pauseForManualMatchingAndResume(questionSignature) {
@@ -1510,7 +1616,10 @@ async function processChatGPTResponse(responseText) {
     return;
   }
   const mine=legacyEpoch,signature=getQuestionSignature(container);
-  const current=()=>isAutomating&&mine===legacyEpoch&&container.isConnected&&getQuestionSignature(container)===signature;
+  const current=()=>{
+    const activeContainer=document.querySelector(".probe-container");
+    return isAutomating&&mine===legacyEpoch&&!!activeContainer&&getQuestionSignature(activeContainer)===signature;
+  };
   legacyPacer.begin(response.studyTiming||response.suggestedReviewSeconds,container.querySelectorAll('input.fitb-input').length||1,{text:container.textContent,fields:[...container.querySelectorAll('input.fitb-input')].map((el,i)=>({key:'legacy.'+i,el}))});
   legacyPacer.check(current);
   const answers = normalizeResponseAnswers(
@@ -1592,9 +1701,13 @@ async function processChatGPTResponse(responseText) {
             waitForElement(".next-button", 10000)
               .then((nextButton) => {
                 if(!current())return;nextButton.click();
-                setTimeout(() => {
-                  checkForNextStep();
-                }, 1000);
+                waitForMcGrawNextQuestion(signature, mine)
+                  .then((advanced) => {
+                    if (advanced && isAutomating && mine === legacyEpoch) {
+                      checkForNextStep();
+                    }
+                  })
+                  .catch(handleProcessResponseError);
               })
               .catch((error) => {
                 console.error("Automation error:", error);
@@ -1723,26 +1836,7 @@ function parseQuestion() {
   let questionText = "";
   const promptEl = container.querySelector(".prompt");
 
-  if (questionType === "fill_in_the_blank" && promptEl) {
-    const promptClone = promptEl.cloneNode(true);
-
-    const uiSpans = promptClone.querySelectorAll(
-      "span.fitb-span, span.blank-label, span.correctness, span._visuallyHidden"
-    );
-    uiSpans.forEach((span) => span.remove());
-
-    const inputs = promptClone.querySelectorAll("input.fitb-input");
-    inputs.forEach((input) => {
-      const blankMarker = document.createTextNode("[BLANK]");
-      if (input.parentNode) {
-        input.parentNode.replaceChild(blankMarker, input);
-      }
-    });
-
-    questionText = promptClone.textContent.trim();
-  } else {
-    questionText = promptEl ? promptEl.textContent.trim() : "";
-  }
+  questionText = stablePromptText(promptEl, questionType);
 
   let options = [];
   if (questionType === "matching") {

@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><title>Study Assistant 2.5.12 setup</title><style>body{font:15px/1.6 system-ui;background:#121212;color:#eee;max-width:850px;margin:45px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}@media(min-width:1200px){body{max-width:none;margin:28px;padding:0 24px}pre{column-count:2;column-gap:48px}}</style><pre># Study Assistant 2.5.12
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Study Assistant 2.7.0 setup</title><style>body{font:15px/1.6 system-ui;background:#121212;color:#eee;max-width:850px;margin:45px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}@media(min-width:1200px){body{max-width:none;margin:28px;padding:0 24px}pre{column-count:2;column-gap:48px}}</style><pre># Study Assistant 2.7.0
 
 One Chrome extension containing the original Auto-McGraw SmartBook/Connect adapters, Pearson MyLab, Canvas and Cengage MindTap Aplia. It selects the adapter by the website and uses one shared AI/NotebookLM connection. Each platform has its own settings.
 
@@ -71,7 +71,7 @@ The monitor also stops cleanly when Chrome invalidates an old extension after up
 
 ## Install
 
-1. Extract **study-assistant-2.5.12.zip**.
+1. Extract **study-assistant-2.7.0.zip**.
 2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the extracted folder containing **manifest.json**. Do not select its parent folder or the ZIP.
 3. Disable the separate Auto-McGraw, Pearson, Canvas and MindTap extensions so their AI connectors do not compete with this one.
 4. Reload your assignment and any open Gemini, ChatGPT, DeepSeek or NotebookLM tabs. Sign into the AI services and leave their prompt boxes empty.
@@ -99,7 +99,7 @@ Click **McGraw**, **Pearson**, **Canvas** or **MindTap** under **Settings for** 
 - **McGraw-Hill:** original SmartBook, older EZTO Connect and the newer Connect MAP player. The MAP adapter supports native choices/text/selects and embedded numeric worksheets and journal worksheets with exact account menus, balanced entry checks, native model verification, all available journal transaction tabs, Record entry, Check my work and Next. It leaves final submission manual. Original SmartBook parsing, confidence, feedback and navigation remain. SmartBook duplicate mode is experimental, off by default, and requires Instant Auto and Watch automation; extra-credit effects are not verified.
 - **Pearson MyLab:** use the unified panel or expand MyLab Assistant in the tdx.acs.pearson.com player, including separate windows. Start Auto fills supported numeric editors, text, native dropdowns and choices, checks homework answers and navigates test questions. Existing correction/retry behavior is retained. Final test submission stays manual.
 - **Canvas:** use the unified panel or expand Canvas Quiz Assistant on the quiz-taking page. Classic native choice, checkbox, text, numeric and select fields are supported. New Quizzes/Learnosity support remains experimental. Start Auto answers supported unanswered questions and advances when a supported Next control is present. It does not click final Submit Quiz. Canvas itself may auto-submit timed quizzes or save inputs independently of this extension.
-- **MindTap:** use the unified panel or expand MindTap Assistant inside the Aplia assignment frame. Start Auto fills supported q4 dropdowns, categorization rows, choices and native numeric/text/select fields, then uses Save &amp; Continue. Enable Grade Before Advance only if you want a grading attempt when saving alone is unavailable. Final assignment submission stays manual. CNOWv2, SAM and other MindTap players are not implemented.
+- **MindTap:** use the unified panel or expand MindTap Assistant inside the Aplia assignment frame. Start Auto fills supported q4 dropdowns, categorization rows, choices and native numeric/text/select fields, then uses Save &amp; Continue. Enable Grade Before Advance only if you want a grading attempt when saving alone is unavailable. Final assignment submission stays manual. CNOWv2, SAM and other MindTap players are not implemented. MindTap Course Mode is on the course outline. Apply It grade-counting work is selected by default; optional checkboxes add Study It, Learn It and Other assessment sections. It only opens visible assessment activities marked Not started and excludes reading/media, quizzes, tests, exams, in-progress and submitted activities. Review and submit each assignment yourself before advancing.
 
 **Pause after fill** is also directly available in the side panel and saves the selected platform’s setting. Turning it off while paused resumes that selected run. **Pause After Fill** is on by default for Pearson, Canvas and MindTap. Turn it off in the relevant platform settings for continuous answering. SmartBook&#x27;s Pause Before Submit is also on by default in this combined build. New Connect uses the same default pause before recording or advancing. Older Connect waits for Continue now after filling when its pause setting is enabled. Original SmartBook and older Connect otherwise retain their original navigation/submission behavior.
 
@@ -109,7 +109,7 @@ Click **McGraw**, **Pearson**, **Canvas** or **MindTap** under **Settings for** 
 
 ## Automation pace and feature guide
 
-Each platform has its own **Automation pace**, shown as four illustrated cards. Help in the side panel opens a plain-language feature guide in place; the Settings feature guide returns to Settings when closed. The default is **Instant Auto** and it preserves full automatic answering without an added review countdown. Pacing does not switch automation off.
+**Automation pace is shared across supported platforms**, shown as four illustrated cards. Help in the side panel opens a plain-language feature guide in place; the Settings feature guide returns to Settings when closed. The default is **Instant Auto** and it preserves full automatic answering without an added review countdown. Pacing does not switch automation off.
 
 - **Instant Auto:** automatic input and supported navigation.
 - **Timed Auto:** automatic input after a visible countdown for each answer field/group or journal cell; another countdown before checking, saving or advancing.

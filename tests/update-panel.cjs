@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('sidepanel/panel.html','utf8');
+const js=fs.readFileSync('sidepanel/panel.js','utf8');
+const help=fs.readFileSync('popup/help.html','utf8');
+const readme=fs.readFileSync('README.md','utf8');
+assert.match(html,/id="github-update-help"[^>]*hidden/,'GitHub update instructions stay hidden until an update is found');
+assert.match(html,/id="update-instructions"/,'the update notice can open updater instructions');
+assert.match(html,/id="open-extensions"/,'the update notice has a direct reload-page action');
+assert(js.includes("$('github-update-help').hidden=!available"),'the update notice follows GitHub version availability');
+assert(js.includes('release is not installed automatically'),'the panel distinguishes detecting an update from installing one');
+assert(js.includes("$('update-instructions').onclick=()=>{featureGuide();$('help-frame').contentWindow.location.hash='updating';}"),'the instructions action opens the updater section in the in-panel guide');
+assert(js.includes("$('open-extensions').onclick=()=>chrome.tabs.create({url:'chrome://extensions/'})"),'the reload action opens Chrome extensions');
+assert.match(help,/<section id="updating">[\s\S]*?does not download or install the GitHub update/,'the in-panel guide explains the updater and the reload button');
+assert.match(readme,/### Updating an unpacked installation[\s\S]*?`--apply`[\s\S]*?click \*\*Reload\*\*/,'README documents the helper, manual route and required Chrome reload');
+console.log('PASS GitHub update panel notice, local updater steps and reload-page action');

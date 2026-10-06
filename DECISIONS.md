@@ -108,3 +108,16 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Evidence and limits:** DevTools on the reported live question showed `loadDropDown()` populated all choices. The sequence selected smaller, smaller and critical value across FL3–FL5; Pearson's Check answer control became available. No grading or submission was triggered. The new bridge regression and repository tests passed. The built 2.5.12 extension was not installed in Chrome during this check.
 
 **Publication:** Commit d8ad4d3a139dca29cdd802c627dd76c251f4ded9 was pushed to main and tagged v2.5.12. GitHub confirmed the public release and 900,883-byte installable ZIP at https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.12 .
+
+
+## October 6, 2026 — MindTap Course Mode and universal pacing (2.7.0 candidate)
+
+**Intent:** Add a course queue for MindTap while keeping final assignment submission under the student's control. Apply It is the useful default because it is marked as grade-counting. Other section checkboxes let users opt into Study It, Learn It and Other activity types without putting those into every default run.
+
+**Changed:** Added an outline scanner, eligibility filter, native activity launch and sequential queue. Only visible assessment activities explicitly marked Not started can enter. Apply It needs the grade-counting marker; selected optional sections can include grade-counting or explicit practice items. Media/reading, quizzes, tests, exams, submitted and in-progress activities are excluded. The course queue waits at each assignment overview for review/submission and continuation; unsupported assignments are listed as skipped with reopen buttons. Instant, Timed and Human pace preferences are shared across platforms. Synced the 2.7.0 install/version labels and public release descriptions.
+
+**Evidence/limits:** MindTap's live outline markup and category labels were inspected read-only; the open course had no untouched Apply It activity, and no assignment was opened, answered, graded or submitted. Synthetic scanner/queue regression tests and the repository suite pass. A local mock page is included; browser security policy blocked opening the local file, so visual mock verification and live end-to-end queue validation are not done. This candidate must not be described as fully live-verified.
+
+**Checks:** `node tests/mindtap-course.cjs`, `node scripts/check.cjs`, and `python3 scripts/package.py v2.7.0` passed; package includes the matching 2.7.0 manifest and ZIP integrity checks. `git diff --check` and a changed-file secret-pattern scan passed. `git fetch origin` failed because this environment could not resolve `github.com`, so the remote branch could not be checked.
+
+**Publication:** Not published yet. The 2.7.0 source, tag and release ZIP are still local. See HANDOFF.md for the remaining verification and publication checklist.

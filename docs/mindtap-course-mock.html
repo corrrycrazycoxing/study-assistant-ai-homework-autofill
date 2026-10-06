@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MindTap Course Mode test mock</title>
+<style>
+:root{font:16px/1.5 system-ui;color:#233142;background:#f4f7fa}body{margin:0}.course{max-width:1100px;margin:auto;background:white;min-height:100vh;padding:24px 30px 80px}header{border-bottom:3px solid #087da0;padding-bottom:12px}h1{font-size:24px}h2{font-size:20px}.notice{border-left:4px solid #5264ff;background:#eef1ff;padding:12px;margin:18px 0}.sections{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:28px}.topic-level-3{border:1px solid #d5dee7;border-radius:8px;padding:12px;margin:12px 0}.activity{border-top:1px solid #e3e8ec;padding:10px}.activity-name{font-weight:650;color:#126b8c;background:none;border:0;text-align:left;font:inherit;cursor:pointer}.status{font-size:13px;color:#667788}.badge{font-size:12px;color:#16693a;font-weight:700}.practice{color:#86621b}.course-mode{position:sticky;top:18px;align-self:start;background:#10151f;color:#e8edff;border:1px solid #6b7bac;border-radius:12px;padding:16px;box-shadow:0 8px 30px #0003}.course-mode h2{margin:0 0 8px}.course-mode label{display:block;margin:6px 0}.course-mode small{display:block;color:#afbdd4;margin-top:10px}.course-mode button{background:#5264ff;border:0;color:#fff;padding:10px 13px;border-radius:8px;font:inherit;cursor:pointer;margin-top:8px}.queue{white-space:pre-wrap;background:#192238;border-radius:8px;padding:10px;margin-top:12px;color:#dce6ff;min-height:50px}.muted{color:#667788}
+</style>
+</head>
+<body>
+<main class="course">
+<header><small>CENGAGE · MINDTAP COURSE OUTLINE</small><h1>Principles of Economics — Course Mode mock</h1></header>
+<p class="notice"><strong>Local test page only.</strong> This fixture copies the observed outline labels and activity markers. It does not connect to Cengage, open real assignments, change grades or send data.</p>
+<div class="sections">
+<section id="outline">
+<h2>Assignments and activities</h2>
+<div class="topic-level-3"><h3>Apply It</h3>
+<article class="activity activity-activityType-2"><button class="activity-name" id="activity-heading-9001">Chapter 12 Homework</button><div id="activity-status-9001">Not started</div><div id="activity-gradable-9001" class="badge">COUNTS TOWARDS GRADE</div></article>
+<article class="activity activity-activityType-2"><button class="activity-name" id="activity-heading-9002">Chapter 11 Homework</button><div id="activity-status-9002">In progress</div><div id="activity-gradable-9002" class="badge">COUNTS TOWARDS GRADE</div></article>
+<article class="activity activity-activityType-2"><button class="activity-name" id="activity-heading-9003">Chapter 10 Homework</button><div id="activity-status-9003">Submitted</div><div id="activity-gradable-9003" class="badge">COUNTS TOWARDS GRADE</div></article>
+<article class="activity activity-activityType-2"><button class="activity-name" id="activity-heading-9004">Chapter 12 Video Quiz</button><div id="activity-status-9004">Not started</div><div id="activity-gradable-9004" class="practice">PRACTICE</div></article>
+</div>
+<div class="topic-level-3"><h3>Study It</h3>
+<article class="activity activity-activityType-2"><button class="activity-name" id="activity-heading-9101">Chapter 12 Problems &amp; Applications</button><div id="activity-status-9101">Not started</div><div id="activity-gradable-9101" class="practice">PRACTICE</div></article>
+</div>
+<div class="topic-level-3"><h3>Learn It</h3>
+<article class="activity activity-activityType-2"><button class="activity-name" id="activity-heading-9201">ConceptClip: Inflation and the CPI</button><div id="activity-status-9201">Not started</div><div id="activity-gradable-9201" class="practice">PRACTICE</div></article>
+<article class="activity"><button class="activity-name" id="activity-heading-9202">Video: CPI Walkthrough</button><div class="muted">Media activity · not an assessment</div></article>
+</div>
+<div class="topic-level-3"><h3>Other</h3>
+<article class="activity activity-activityType-2"><button class="activity-name" id="activity-heading-9301">Course Orientation Practice</button><div id="activity-status-9301">Not started</div><div id="activity-gradable-9301" class="practice">PRACTICE</div></article>
+</div>
+</section>
+<aside class="course-mode"><h2>MindTap Course Mode</h2><p id="status">Choose which course sections to scan.</p>
+<fieldset><legend>Activity sections</legend><label><input type="checkbox" data-category="apply" checked> Apply It · grade-counting work</label><label><input type="checkbox" data-category="study"> Study It · practice assessments</label><label><input type="checkbox" data-category="learn"> Learn It · practice assessments</label><label><input type="checkbox" data-category="other"> Other sections · grade-counting or practice assessments</label></fieldset>
+<button id="scan">Preview selected assignments</button><div class="queue" id="queue">No assignments opened.</div><small>Preview uses the same shared MindTap activity scanner as the extension. Selecting an item only highlights its mock row.</small></aside>
+</div></main>
+<script src="../shared/mindtap-course.js"></script>
+<script>
+const clean=element=>element.innerText||element.textContent||'';
+function preview(){const selected=[...document.querySelectorAll('[data-category]:checked')].map(input=>input.dataset.category);const items=StudyMindTapCourse.scan(document).filter(item=>StudyMindTapCourse.eligible(item,selected));document.getElementById('queue').textContent=items.length?items.map((item,index)=>`${index+1}. ${item.title} · ${item.category}`).join('\n'):'No eligible assessment matches the selected sections.';document.getElementById('status').textContent=`${items.length} eligible assignment${items.length===1?'':'s'}; only mock rows are shown.`;}
+document.getElementById('scan').addEventListener('click',preview);document.querySelectorAll('[data-category]').forEach(input=>input.addEventListener('change',preview));document.querySelectorAll('.activity-name').forEach(button=>button.addEventListener('click',()=>{if(!button.id) return;document.querySelectorAll('.activity').forEach(row=>row.style.outline='');button.closest('.activity').style.outline='3px solid #5264ff';document.getElementById('queue').textContent=`Mock selection only: ${clean(button)}. No course activity was launched.`;}));preview();
+</script>
+</body></html>

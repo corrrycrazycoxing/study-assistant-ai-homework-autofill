@@ -2,6 +2,14 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.7.0 — October 6, 2026
+
+- Add MindTap Course Mode to the Cengage course outline. Apply It grade-counting assessments are selected by default; optional checkboxes add Study It, Learn It and Other section assessments.
+- Open only visible assessment activities explicitly marked Not started. Exclude reading/media, quizzes, tests, exams and unclear or in-progress work.
+- After an assignment’s question flow, stop for review and require the user to submit in MindTap before continuing. End-of-run review lists skipped work and offers a direct reopen action.
+- Share Instant Auto, Timed Auto, Human pace and working-speed preferences across supported platforms while keeping platform-specific pause and notebook settings separate.
+- Add a MindTap course-outline mock and scanner/queue regression tests. Live outline markup was read-only checked; the open course had no eligible Apply It assignment, so a live end-to-end run was not performed.
+
 ## 2.6.0 — October 5, 2026
 
 - Add Pearson Course Mode for homework and lessons in assignment-list order. Read each visible score and open only confirmed 0%, unstarted items through Start or the first question link Pearson provides; keep scored, resumed, unclear, test and exam items unopened and report them.

@@ -58,13 +58,13 @@
       let saving=Promise.resolve();
       function save(values){
         Object.assign(getSettings(),values);renderControls();if(plan)ui.getElementById('note').textContent='Applies to the next question. Stop and restart to change the current wait.';
-        saving=saving.catch(()=>{}).then(async()=>{const {platformSettings={}}=await chrome.storage.sync.get('platformSettings');await chrome.storage.sync.set({platformSettings:{...platformSettings,[platform]:{...platformSettings[platform],...values}}});}).catch(()=>{ui.getElementById('note').textContent='Could not save pace. Reload the extension.';});
+        saving=saving.catch(()=>{}).then(async()=>{const {pacingSettings={}}=await chrome.storage.sync.get('pacingSettings');await chrome.storage.sync.set({pacingSettings:{...StudyConfig.pacingDefaults,...pacingSettings,...values}});}).catch(()=>{ui.getElementById('note').textContent='Could not save pace. Reload the extension.';});
       }
       for(const button of ui.querySelectorAll('[data-mode],[data-speed]'))button.onclick=()=>save(button.dataset.mode?{pacingMode:button.dataset.mode}:{humanSpeed:button.dataset.speed});
       for(const group of ui.querySelectorAll('[role="radiogroup"]'))group.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;event.preventDefault();const buttons=[...group.querySelectorAll('button')],index=buttons.indexOf(event.target),next=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(['ArrowLeft','ArrowUp'].includes(event.key)?-1:1)+buttons.length)%buttons.length;buttons[next].focus();buttons[next].click();};
-      chrome.storage?.onChanged?.addListener((changes,area)=>{if(area==='sync'&&changes.platformSettings){const values=changes.platformSettings.newValue?.[platform];if(values)Object.assign(getSettings(),values);renderControls();}});
+      chrome.storage?.onChanged?.addListener((changes,area)=>{if(area==='sync'&&(changes.platformSettings||changes.pacingSettings)){const values=StudyConfig.preferences({platformSettings:changes.platformSettings?.newValue,pacingSettings:changes.pacingSettings?.newValue},platform);Object.assign(getSettings(),values);renderControls();}});
       root.append(paceControls);renderControls();
-      chrome.storage?.sync?.get('platformSettings').then(data=>{Object.assign(getSettings(),data.platformSettings?.[platform]||{});renderControls();}).catch(()=>{});
+      chrome.storage?.sync?.get(['platformSettings','pacingSettings']).then(data=>{Object.assign(getSettings(),StudyConfig.preferences(data,platform));renderControls();}).catch(()=>{});
     }
     function attach(root){
       if(box?.isConnected)return;

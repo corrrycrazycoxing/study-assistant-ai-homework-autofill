@@ -40,8 +40,8 @@ async function requireSetup(){if(!await setupComplete())throw Error(StudyConfig.
 async function completeSetup(m){
  if(m.version!==StudyConfig.onboardingVersion||m.acknowledged!==true||!StudyConfig.platforms.includes(m.platform)||!['chatgpt','gemini','deepseek'].includes(m.aiModel)||!['normal','slow','human','review'].includes(m.pacingMode)||['pauseBeforeSubmit','watchAutomation','preferNotebook'].some(k=>typeof m[k]!=='boolean'))throw Error('Choose the setup options and acknowledge the notice before continuing.');
  const data=await config(),platformSettings={...data.platformSettings};
- platformSettings[m.platform]={...StudyConfig.defaults[m.platform],...platformSettings[m.platform],pacingMode:m.pacingMode,pauseBeforeSubmit:m.pauseBeforeSubmit,preferNotebook:m.preferNotebook};
- await chrome.storage.sync.set({aiModel:m.aiModel,watchAutomation:m.watchAutomation,platformSettings});
+ platformSettings[m.platform]={...StudyConfig.defaults[m.platform],...platformSettings[m.platform],pauseBeforeSubmit:m.pauseBeforeSubmit,preferNotebook:m.preferNotebook};
+ await chrome.storage.sync.set({aiModel:m.aiModel,watchAutomation:m.watchAutomation,platformSettings,pacingSettings:{...StudyConfig.pacingDefaults,...data.pacingSettings,pacingMode:m.pacingMode}});
  await chrome.storage.local.set({studyOnboarding:{version:StudyConfig.onboardingVersion,acknowledged:true,completed:true,completedAt:Date.now()}});
  return {received:true};
 }
