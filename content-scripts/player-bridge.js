@@ -3,6 +3,32 @@
   'use strict';
   const visible=e=>e&&e.getClientRects().length&&!e.closest('.hidden,[aria-hidden="true"]');
   const revisions=new WeakMap();
+  document.addEventListener('mylab-assistant-course-open-request',event=>{
+    let request;try{request=JSON.parse(event.detail);}catch{return;}
+    if(typeof request?.token!=='string'||request.token.length>80||typeof request.id!=='string'||!/^\d{1,12}$/.test(request.id))return;
+    let result;
+    try{
+      if(location.origin!=='https://mylab.pearson.com'||!(/^\/student\/doassignments\.aspx$/i.test(location.pathname)||/^\/courses\/\d+\/assignments\/?$/i.test(location.pathname)))throw Error('Pearson assignment links can only be opened from the assignments list.');
+      const link=[...document.querySelectorAll('a[href^="javascript:doHomework("]')].find(anchor=>visible(anchor)&&new RegExp('^javascript:doHomework\\('+request.id+'\\s*,','i').test(anchor.getAttribute('href')||''));
+      if(!link)throw Error('Pearson no longer shows this assignment link. Refresh the assignment list and try again.');
+      if(typeof window.doHomework!=='function')throw Error('Pearson did not expose its assignment opener. Open the assignment manually.');
+      result={ok:true};
+    }catch(error){result={ok:false,error:error.message};}
+    document.dispatchEvent(new CustomEvent('mylab-assistant-course-open-result',{detail:JSON.stringify({token:request.token,...result})}));
+    if(result.ok)window.doHomework(Number(request.id),false,true);
+  });
+  document.addEventListener('mylab-assistant-course-save-request',event=>{
+    let request;try{request=JSON.parse(event.detail);}catch{return;}
+    if(typeof request?.token!=='string'||request.token.length>80)return;
+    let result;
+    try{
+      if(location.origin!=='https://mylab.pearson.com'||location.pathname.toLowerCase()!=='/student/playerhomework.aspx')throw Error('Pearson Save is available only on the homework player.');
+      if(typeof window.homeworkSaveForLater!=='function')throw Error('Pearson did not expose its Save action. Save this assignment manually.');
+      window.homeworkSaveForLater();
+      result={ok:true};
+    }catch(error){result={ok:false,error:error.message};}
+    document.dispatchEvent(new CustomEvent('mylab-assistant-course-save-result',{detail:JSON.stringify({token:request.token,...result})}));
+  });
   document.addEventListener('mylab-assistant-player-request',event=>{
     let request;try{request=JSON.parse(event.detail);}catch{return;}
     if(typeof request?.token!=='string'||request.token.length>80)return;

@@ -2,11 +2,19 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.6.0 — October 5, 2026
+
+- Add Pearson Course Mode for homework and lessons in assignment-list order. Read each visible score and open only confirmed 0%, unstarted items through Start or the first question link Pearson provides; keep scored, resumed, unclear, test and exam items unopened and report them.
+- In full course mode, continue past unsupported questions only when Pearson exposes a safe Next control, record skipped work for the end-of-run manual review, save through Pearson between assignments, and leave final Submit manual.
+- Allow question automation to continue when required media is separate from the questions. Track media status independently and show a final review item linked to the exact assignment, with a reminder to verify Pearson's status.
+- Pin the launcher to the top-level Pearson viewport, collapsed by default, and update Help and the walkthrough.
+- Add a local Pearson-style course mock and end-to-end queue/DOM-double tests. Synthetic checks cover eligibility, Start/question entry, unsupported linked material, pending-media reporting, Save, next assignment and the final review dialog. Live Pearson course automation remains unverified.
+
 ## 2.5.13 — October 4, 2026
 
-- Pearson Auto recognizes the “Nice work!” result dialog and uses its Next question button to continue. It stops for review if a result dialog lacks that button.
-- New installations default Pause after fill to off; existing saved preferences remain unchanged.
-- Course-wide Go automation remains an unpublished draft.
+- Pearson Auto recognizes the “Nice work!” result dialog and uses its Next question button to continue. If that button is missing, Auto stops for review.
+- New installations leave Pause after fill off by default; existing saved preferences remain unchanged.
+- Course-wide Go automation remains a separate release-level feature and appears here in 2.6.0.
 
 ## 2.5.12 — October 3, 2026
 

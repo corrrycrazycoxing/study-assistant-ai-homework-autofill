@@ -5,7 +5,7 @@
   const normalize = s => String(s).replace(/[\s\u200B-\u200D\uFEFF]/g, '').replace(/\u2212/g, '-');
   const label = s => String(s||'').replace(/\s+/g,' ').trim();
   async function chooseDropdown(field){
-    if(typeof field.id!=='string'||!/^FL\d+$/.test(field.id)||typeof field.value!=='string'||!field.value.trim()||field.value.length>200)throw Error('Invalid Pearson dropdown choice.');
+    if(typeof field.id!=='string'||!/^FL[A-Za-z0-9]+$/.test(field.id)||typeof field.value!=='string'||!field.value.trim()||field.value.length>200)throw Error('Invalid Pearson dropdown choice.');
     const hit=document.getElementById(field.id);
     if(!hit?.matches('.xlFillinItem[aria-haspopup]')||!hit.closest('.contentPanel .contentHolder')||!hit.getClientRects().length||hit.closest('[aria-disabled="true"],.disabled')||hit.classList.contains('answered'))throw Error('Pearson dropdown is unavailable or read-only.');
     const widget=window.dijit?.byNode(hit.parentElement);

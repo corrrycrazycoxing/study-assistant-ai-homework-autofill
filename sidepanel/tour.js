@@ -12,7 +12,8 @@
   {frame:'#settings-frame',target:'.pace-card:first-child',title:'7. Choose a mode',text:'These cards explain the four modes. Choose one after the walkthrough: the Auto modes enter answers; Guided Answers lets you enter them yourself.'},
   {frame:'#settings-frame',target:'.settings-nav',title:'8. Find other preferences',text:'Use AI & readings for chatbots and NotebookLM, Pictures for visible graphics, and Platform options for site controls. Changes save automatically.'},
   {target:'#back-to-assistant',title:'9. Return to the assistant',text:'Choose Back to return to the assignment controls. Expanded view is available if you want more room.',action:'back',button:'Back to assistant →'},
-  {target:'#stop-all',title:'10. Stop when needed',text:'Stop all cancels pending work; entered values remain. Reopen this walkthrough from Help whenever you want.',button:'Finish walkthrough ✓'}
+  {target:'#stop-all',title:'10. Stop when needed',text:'Stop all cancels pending work; entered values remain. Reopen this walkthrough from Help whenever you want.'},
+  {frame:'#help-frame',target:'#full-course-mode',view:'help',title:'11. Pearson course mode',text:'On Pearson’s assignments page, Full Course Mode offers to run not-started homework and lessons in order, entering through Start or the first question link. It leaves tests, exams and quizzes untouched. Questions can continue while related media stays unverified; a final review panel links back to each assignment with media to check. Pearson Save is used between assignments; final submission remains yours.'}
  ];
  let index=-1,hooks=null,clock=null,returnFocus=null,currentTarget=null;
  const layer=document.createElement('div');layer.id='tour-layer';layer.hidden=true;
@@ -38,11 +39,12 @@
  }
  function scrollTarget(){const found=locate();if(found){found.el.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});}position();}
  function show(){const step=steps[index];$('tour-progress').textContent='WALKTHROUGH · '+(index+1)+' / '+steps.length;$('tour-title').textContent=step.title;$('tour-description').textContent=step.text;$('tour-back').disabled=index===0;$('tour-next').textContent=step.button||'Next →';
-  if(step.frame){hooks.openSettings();const frame=$('settings-frame');const doc=frame.contentDocument;doc?.querySelector('[data-category="automation"]')?.click();frame.addEventListener('load',scrollTarget,{once:true});}
-  else if(step.target!=='#back-to-assistant')hooks.closeSettings();
+  if(step.view==='help'){hooks.openHelp();const frame=$('help-frame');frame.addEventListener('load',scrollTarget,{once:true});}
+  else if(step.frame){hooks.closeHelp();hooks.openSettings();const frame=$('settings-frame');const doc=frame.contentDocument;doc?.querySelector('[data-category="automation"]')?.click();frame.addEventListener('load',scrollTarget,{once:true});}
+  else if(step.target!=='#back-to-assistant'){hooks.closeSettings();hooks.closeHelp();}
   scrollTarget();$('tour-next').focus();
  }
- function finish(){if(index<0)return;index=-1;clearInterval(clock);clock=null;layer.hidden=true;document.body.classList.remove('touring');hooks?.closeSettings();returnFocus?.isConnected&&returnFocus.getClientRects().length?returnFocus.focus():$('help').focus();}
+ function finish(){if(index<0)return;index=-1;clearInterval(clock);clock=null;layer.hidden=true;document.body.classList.remove('touring');hooks?.closeSettings();hooks?.closeHelp();returnFocus?.isConnected&&returnFocus.getClientRects().length?returnFocus.focus():$('help').focus();}
  function advance(){if(index<0)return;const step=steps[index];if(step.action==='settings')hooks.openSettings();if(step.action==='back')hooks.closeSettings();if(index===steps.length-1){finish();return;}index++;show();}
  $('tour-skip').onclick=finish;$('tour-next').onclick=advance;$('tour-back').onclick=()=>{if(index>0){index--;if(steps[index].target==='#back-to-assistant')hooks.openSettings();show();}};
  document.addEventListener('click',event=>{if(index<0)return;const step=steps[index];if(step.action&&event.target.closest(step.target)){event.preventDefault();event.stopImmediatePropagation();advance();}},true);

@@ -6,7 +6,7 @@ StudyConfig.boot('canvas', (chrome) => {
   const clean=s=>String(s??'').replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/\s+/g,' ').trim();
   const visible=e=>e?.isConnected&&e.getClientRects().length>0&&!e.closest('[hidden],[aria-hidden="true"]');
   const usable=e=>visible(e)&&!e.disabled&&!e.readOnly&&!e.closest('[aria-disabled="true"],fieldset:disabled');
-  let settings={...StudyConfig.defaults.canvas,autoFill:false,pauseBeforeSubmit:true,showExplanation:true};
+  let settings={...StudyConfig.defaults.canvas,autoFill:false,pauseBeforeSubmit:false,showExplanation:true};
   const ready=chrome.storage.sync.get(settings).then(v=>Object.assign(settings,v));
   chrome.storage.onChanged.addListener((changes,area)=>{if(area==='sync')for(const key of Object.keys(settings))if(changes[key])settings[key]=changes[key].newValue;});
   let panel,ui,pending=null,answer=null,timer=null,running=false,starting=false,guided=false,generation=0,runId=null,count=0,responseWaiter=null,pauseWaiter=null;

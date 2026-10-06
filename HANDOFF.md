@@ -1,7 +1,14 @@
 # Start here when continuing in another chat
 
+## Pearson Full Course Mode — 2.6.0
+`content-scripts/pearson-course.js` owns the assignment-list, overview and start-gate UI. `content-scripts/pearson-course-shell.js` displays the collapsed launcher in the top-level Pearson course page, fixed at the viewport corner. `background/pearson-course.js` tracks the queue and review list; `content-scripts/pearson.js` runs the per-question flow. It reads each visible score callback, includes only confirmed 0% homework/lesson items, and starts them through Pearson's Start action or first question link. Scored, resumed or unclear items and exams/quizzes stay unopened. Question work continues when required media is pending; the final review links to the assignment so the user can verify it. Course Mode uses Pearson Save between assignments and never final Submit. Skipped questions are reported in the end-of-run review.
+
+The local simulator is [docs/pearson-course-mock.html](docs/pearson-course-mock.html). `node scripts/check.cjs` passes, including `tests/pearson-course-e2e.cjs`, which drives the production background queue through eligibility, Start/question-link entry, question skip, Save, next assignment, pending-media review and completion. The same test exercises the mock controls in a DOM double and checks the final review overlay. Other regression tests cover question navigation, dropdowns, score parsing and chatbot refresh/return. No live Pearson course run was verified.
+
+**Verification limit:** This is synthetic verification, not a live Pearson course run. The browser-use tool blocked opening the mock through its local-file URL policy, so no browser-rendered mock screenshot or browser-level click test is claimed. The owner asked to publish after the mock tests pass; the public release notes disclose that the live course path remains unverified.
+
 Repository: https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill
-Current source version: 2.5.12. The local checkout folder name may lag; manifest.json is authoritative.
+Latest published version: 2.5.13 until v2.6.0 source, tag and release asset are confirmed. The owner instructed us to publish after the mock tests pass. `manifest.json` is authoritative for the working version.
 
 ## Latest update
 Version 2.5.12 fixes Pearson MyLab custom dropdowns by loading the Dojo choices before opening and clicking an exact option. On the reported live question, FL3/FL4/FL5 accepted smaller/smaller/critical value and Pearson enabled Check answer. We did not press Check answer, submit or advance. The exact bridge path has a regression test and full repository checks pass. The installed unpacked extension in Chrome was loaded from ~/Downloads/Study-Assistant-2.5.11, so the 2.5.12 package itself has not been installed or tested end to end in Chrome. Do not claim live AI-to-grade verification. Published main and v2.5.12 at d8ad4d3a139dca29cdd802c627dd76c251f4ded9. GitHub confirmed a public release with study-assistant-2.5.12.zip (900,883 bytes): https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.5.12 .

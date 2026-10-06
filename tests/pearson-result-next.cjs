@@ -21,10 +21,14 @@ selected.click();
 assert.equal(nextClicks,1);
 assert.equal(headerClicks,0);
 assert.equal(submitClicks,0);
+const dialogStart=source.indexOf('  function resultDialog()');
+const dialogEnd=source.indexOf('  function nextButton()',dialogStart);
+assert(dialogStart>=0&&dialogEnd>dialogStart,'Pearson result-dialog detection helper is present');
+const dialogSource=source.slice(dialogStart,dialogEnd);
 const feedbackStart=source.indexOf('  function domFeedback()');
 const feedbackEnd=source.indexOf('  async function waitForCheck(',feedbackStart);
 assert(feedbackStart>=0&&feedbackEnd>feedbackStart);
-assert.equal(vm.runInNewContext(source.slice(feedbackStart,feedbackEnd)+'\ndomFeedback()', {document,clean,usable}),'correct','Nice work is recognized as correct feedback');
+assert.equal(vm.runInNewContext(dialogSource+source.slice(feedbackStart,feedbackEnd)+'\ndomFeedback()', {document,clean,usable}),'correct','Nice work is recognized as correct feedback');
 
 const config=fs.readFileSync('shared/config.js','utf8');
 assert.match(config,/pauseBeforeSubmit:false/,'new installs default to no pause after fill');

@@ -1,14 +1,14 @@
-# Study Assistant — AI Homework Autofill (2.5.13)
+# Study Assistant — AI Homework Autofill (2.6.0)
 
 Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas and MindTap** using a connected ChatGPT, Gemini or DeepSeek tab. Review answers before final submission.
 
 ## Download and install
 
-**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.5.13/study-assistant-2.5.13.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.6.0/study-assistant-2.6.0.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the extracted **Study-Assistant-2.5.13** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
+3. Click **Load unpacked** and select the extracted **Study-Assistant-2.6.0** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
 4. Open a supported assignment, reload that tab and your AI tab, then click the Study Assistant extension icon to open its side panel.
 
 To update a previous unpacked installation, remove or disable the older copy, extract the new ZIP into its own folder, load that folder, and reload your assignment and AI tabs. The Chrome Web Store is not used for this installation.
@@ -18,7 +18,8 @@ To update a previous unpacked installation, remove or disable the older copy, ex
 
 ## What changed recently
 
-- **2.5.13:** Pearson Auto recognizes the “Nice work!” result screen and uses its Next question button. If that button is missing, Auto stops for review. New installs leave Pause after fill off by default; existing preferences are preserved. Course-wide automation is still in development.
+- **2.6.0:** Pearson Course Mode works through eligible, unstarted homework and lessons in order, entering through Start or the first question link Pearson provides and saving between assignments. It leaves scored, resumed, unclear and exam items alone. Questions continue when media is still pending; the final review links back to those assignments so you can verify Pearson’s media status. Unsupported questions are reported for review. See the [local course mock](docs/pearson-course-mock.html) and [release notes](RELEASE-NOTES.md). The queue and mock workflow pass synthetic tests; a full live Pearson run has not been verified.
+- **2.5.13:** Pearson Auto recognizes the “Nice work!” result screen and uses its Next question button. If that button is missing, Auto stops for review. New installs leave Pause after fill off by default; existing preferences are preserved.
 - **2.5.12:** Pearson custom dropdowns load choices through Pearson's widget before selecting. Verified all three dropdowns of the reported live question without pressing Check answer.
 - **2.5.11:** Renamed the GitHub repository to match Study Assistant — AI Homework Autofill. Project links and update tools now use the new address; extension behavior is unchanged.
 - **2.5.10:** The GitHub front page now shows current changes and links to the full version history. Extension behavior is unchanged.
@@ -57,7 +58,7 @@ Click **McGraw**, **Pearson**, **Canvas** or **MindTap** under **Settings for** 
 - **Canvas:** use the unified panel or expand Canvas Quiz Assistant on the quiz-taking page. Classic native choice, checkbox, text, numeric and select fields are supported. New Quizzes/Learnosity support remains experimental. Start Auto answers supported unanswered questions and advances when a supported Next control is present. It does not click final Submit Quiz. Canvas itself may auto-submit timed quizzes or save inputs independently of this extension.
 - **MindTap:** use the unified panel or expand MindTap Assistant inside the Aplia assignment frame. Start Auto fills supported q4 dropdowns, categorization rows, choices and native numeric/text/select fields, then uses Save & Continue. Enable Grade Before Advance only if you want a grading attempt when saving alone is unavailable. Final assignment submission stays manual. CNOWv2, SAM and other MindTap players are not implemented.
 
-**Pause after fill** is also directly available in the side panel and saves the selected platform’s setting. Turning it off while paused resumes that selected run. New installations leave Pause After Fill off by default; existing saved preferences are preserved. Turn it on in the relevant platform settings when you want to review before continuing. SmartBook's Pause Before Submit and new Connect's pause before recording or advancing have separate settings. Older Connect waits for Continue now after filling when its pause setting is enabled. Original SmartBook and older Connect otherwise retain their original navigation/submission behavior.
+**Pause after fill** is also directly available in the side panel and saves the selected platform’s setting. Turning it off while paused resumes that selected run. **Pause After Fill** is on by default for Pearson, Canvas and MindTap. Turn it off in the relevant platform settings for continuous answering. SmartBook's Pause Before Submit is also on by default in this combined build. New Connect uses the same default pause before recording or advancing. Older Connect waits for Continue now after filling when its pause setting is enabled. Original SmartBook and older Connect otherwise retain their original navigation/submission behavior.
 
 **Auto Fill after Ask AI** controls single-question filling on Pearson, Canvas and MindTap; Start Auto always fills supported fields. **Show Explanations** controls their preview. New Connect also supports these settings. Original SmartBook and older Connect keep their original Ask AI automation and do not use these single-question options.
 

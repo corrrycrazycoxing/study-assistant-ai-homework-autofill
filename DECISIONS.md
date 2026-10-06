@@ -1,6 +1,16 @@
 # Development decisions and handoffs
 
-Keep this file for future chats and accounts. Add a dated entry after each meaningful update: what changed, why, checks run, what was actually published, and what remains. Do not treat a local commit or tag as a published GitHub release.
+## October 5, 2026 — Pearson Full Course Mode and local test site (2.6.0)
+
+**Intent:** Add a Pearson assignments-page queue for unstarted homework and lessons, ordered as shown, with an option to continue past skipped questions. Exams and practice exams are excluded. The queue may enter an eligible assignment through Start or its first question link, while Resume, scored, and unclear items remain untouched. Final assignment submission stays manual.
+
+**Test site:** Added `docs/pearson-course-mock.html` and `.js`, a Pearson-style course/assignment/player fixture with completed, untouched, started and exam rows, a linked-data unsupported question, pending media, Save and next-assignment transitions, and a large final review dialog. `tests/pearson-course-e2e.cjs` drives the production background queue and uses a DOM double to click through the mock UI. The mock never contacts Pearson or submits an assignment.
+
+**Media handling:** Question work can proceed regardless of media order. Pending media is tracked separately, and the final review links to the exact assignment for verification. Pearson may update media credit after its route returns, including when the tab appears blank, so the UI advises checking the status; the extension never assumes the return alone proves completion.
+
+**Live evidence/limit:** The score callback was previously read on Pearson without opening an assignment. The live course has no untouched assignment left for a full run. The browser-use tool blocked opening the mock as a local-file tab, so mock verification was run in Node, not a real browser. The package and live Go → Save → next-assignment path have not been verified against Pearson. Release notes and README disclose this limit.
+
+**Checks:** `tests/pearson-course-e2e.cjs`, `tests/pearson-course.cjs`, `tests/pearson-result-next.cjs`, full `node scripts/check.cjs`, package validation and `git diff --check` pass. Publication state will be appended after push/tag/release verification.
 
 ## October 2, 2026 — 2.5.2 release preparation
 

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const configs = {
-    'chatgpt.com': {input:['#prompt-textarea'],send:['button[data-testid="send-button"]','button[aria-label="Send prompt"]'],messages:['[data-message-author-role="assistant"]'],stop:['button[data-testid="stop-button"]']},
+    'chatgpt.com': {input:['#prompt-textarea','[contenteditable="true"][data-composer-markdown][aria-label="Ask ChatGPT"]'],send:['button[data-testid="send-button"]','button[aria-label="Send prompt"]','button[aria-label="Send message"]','button[type="submit"][aria-label="Send"]'],messages:['[data-message-author-role="assistant"]','[data-markdown-text-style="assistant-message"]'],stop:['button[data-testid="stop-button"]']},
     'gemini.google.com': {input:['.ql-editor[contenteditable="true"]'],send:['button[aria-label="Send message"]','.send-button.submit'],messages:['model-response'],stop:['.send-button.stop','button[aria-label="Stop response"]']},
     'chat.deepseek.com': {input:['#chat-input','textarea[data-testid="chat_input_input"]','textarea'],send:['[data-testid="chat_input_send_button"]','[data-testid="send-button"]','[aria-label="Send message"]','[aria-label="Send"]','[role="button"].f6d670'],messages:['[data-testid="chat-message-assistant"]','.ds-markdown'],stop:['[data-testid="stop-button"]','[aria-label="Stop generating"]']}
   };

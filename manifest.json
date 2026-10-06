@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Study Assistant — AI Homework Autofill",
-  "version": "2.5.13",
+  "version": "2.6.0",
   "description": "Autofill supported homework fields on McGraw Connect, Pearson MyLab, Canvas and MindTap using ChatGPT, Gemini or DeepSeek.",
   "permissions": [
     "tabs",
@@ -24,7 +24,8 @@
     "https://gemini.google.com/*",
     "https://chat.deepseek.com/*",
     "https://notebooklm.google.com/*",
-    "https://notebook.google.com/*"
+    "https://notebook.google.com/*",
+    "https://api.github.com/*"
   ],
   "background": {
     "service_worker": "background/background.js"
@@ -49,6 +50,17 @@
   },
   "minimum_chrome_version": "116",
   "content_scripts": [
+    {
+      "matches": ["https://mylab.pearson.com/Student/DoAssignments.aspx*", "https://mylab.pearson.com/courses/*/assignments*", "https://mylab.pearson.com/Student/DoHomework.aspx*", "https://mylab.pearson.com/Student/OverviewHomework.aspx*"],
+      "js": ["content-scripts/pearson-course.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://mylabmastering.pearson.com/courses/*/menu/*"],
+      "js": ["content-scripts/pearson-course-shell.js"],
+      "run_at": "document_idle"
+    },
     {
       "matches": [
         "https://learning.mheducation.com/*",

@@ -1,6 +1,28 @@
 'use strict';
 const $=id=>document.getElementById(id);let selected=null,snapshot=null,polling=false,busy=false,lastTarget=null;
 const send=m=>chrome.runtime.sendMessage(m);
+const installedVersion=chrome.runtime.getManifest().version;
+const releaseApi='https://api.github.com/repos/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest';
+const releaseStatus=$('version-status');
+$('installed-version').textContent=installedVersion;
+function versionParts(value){return /^\d+\.\d+\.\d+$/.test(value)?value.split('.').map(Number):null;}
+function newerVersion(latest,current){const a=versionParts(latest),b=versionParts(current);return !!a&&!!b&&a.some((part,index)=>part>b[index]&&a.slice(0,index).every((prior,i)=>prior===b[i]));}
+async function checkReleaseVersion(){
+ try{
+  const {releaseVersionCache:cached}=await chrome.storage.local.get('releaseVersionCache');
+  let latest=cached?.version;
+  if(!versionParts(latest)||Date.now()-cached.checkedAt>6*60*60*1000){
+   const response=await fetch(releaseApi,{headers:{Accept:'application/vnd.github+json'}});
+   if(!response.ok)throw Error('release lookup failed');
+   const data=await response.json();latest=String(data.tag_name||'').replace(/^v/,'');
+   if(!versionParts(latest))throw Error('invalid release version');
+   await chrome.storage.local.set({releaseVersionCache:{version:latest,checkedAt:Date.now()}});
+  }
+  const available=newerVersion(latest,installedVersion);
+  releaseStatus.textContent=available?`Installed ${installedVersion} · Update ${latest} available`:`Installed ${installedVersion} · Latest release`;
+  releaseStatus.parentElement.classList.toggle('update',available);
+ }catch{releaseStatus.textContent=`Installed ${installedVersion} · Could not check releases`;}
+}
 let actionError='';function error(text){actionError=text||'';$('error').textContent=actionError?'Action needs attention. See the recovery options below.':'';$('error').hidden=!actionError;if(snapshot)renderAttention(snapshot);}
 let previewText=null,panelWindow=null,lease=null,leaseTarget=null,seenSettingsIntent=null,savedScroll=0,helpReturn='assistant',draftState=null,events=[],eventTarget=null,eventSignature=null;
 function connectLease(page){
@@ -102,6 +124,7 @@ function render(s){
  const update=s.updateAvailable;
  $('update-banner').hidden=!update;
  $('update-message').textContent=update?`Version ${update.version} is ready.`:'';
+ if(update){releaseStatus.textContent=`Installed ${installedVersion} · Chrome update ${update.version} ready`;releaseStatus.parentElement.classList.add('update');}
  for(const b of document.querySelectorAll('[data-action]')){const a=b.dataset.action;b.disabled=busy||!!draftState||!page||(!a.startsWith('timer')&&a!=='recover'&&!page.controls?.[a]);if(a==='resume'||a==='stop')b.hidden=!page?.controls?.[a];}
  $('conflict').hidden=!page?.controls?.replaceStart;
  $('timer').hidden=!page?.timer;if(page?.timer){$('timer-label').textContent=page.timer.label;$('timer-note').textContent=page.timer.note;$('timer-progress').value=page.timer.progress;document.querySelector('[data-action="timerPause"]').textContent=page.timer.pauseLabel;}
@@ -132,7 +155,7 @@ $('pause-after-fill').onchange=async()=>{const value=$('pause-after-fill').check
 $('watch-automation').onchange=()=>action('studyPanelPreference',{key:'watchAutomation',value:$('watch-automation').checked});
 $('nerd-mode').onchange=()=>{nerdMode();chrome.storage.local.set({panelNerdMode:$('nerd-mode').checked}).catch(()=>{});};
 chrome.storage.local.get('panelNerdMode').then(data=>{$('nerd-mode').checked=data.panelNerdMode===true;nerdMode();}).catch(()=>{});
-(async()=>{try{panelWindow=(await chrome.windows?.getCurrent())?.id??null;}catch{}await refresh();})();setInterval(refresh,2000);
+(async()=>{try{panelWindow=(await chrome.windows?.getCurrent())?.id??null;}catch{}await refresh();await checkReleaseVersion();})();setInterval(refresh,2000);
 
-StudyTour.bind({openSettings:()=>settingsView(true),closeSettings:()=>settingsView(false),canStart:()=>!StudyOnboarding.required()&&!busy&&!draftState&&!snapshot?.run&&!snapshot?.phase});
+StudyTour.bind({openSettings:()=>settingsView(true),closeSettings:()=>settingsView(false),openHelp:()=>featureGuide(),closeHelp:()=>{if(!$('help-view').hidden){$('help-view').hidden=true;if(helpReturn==='settings')$('settings-view').hidden=false;else{$('assistant-view').hidden=false;window.scrollTo(0,savedScroll);}}},canStart:()=>!StudyOnboarding.required()&&!busy&&!draftState&&!snapshot?.run&&!snapshot?.phase});
 $('start-walkthrough').onclick=()=>{if(!StudyTour.start())error('Stop the current run and finish any answer edit before opening the walkthrough.');};
