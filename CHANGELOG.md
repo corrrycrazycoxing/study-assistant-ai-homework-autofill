@@ -2,6 +2,14 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.7.1 — October 6, 2026
+
+- Hide MindTap Course Mode during a solo assignment. Keep its card collapsed by default on the course activity list and show it again at course-level review checkpoints.
+- Report clearly when a MindTap page is an individual assignment instead of reporting a false “no eligible assignments” result.
+- Update version labels, install instructions, Help and walkthrough. Show a prominent warning in the opened Course Mode panel to verify results and completion in MindTap.
+- Add tests for course-outline detection and hidden assignment-page UI.
+- Live course-queue behavior still needs an untouched eligible assignment for end-to-end verification.
+
 ## 2.7.0 — October 6, 2026
 
 - Add MindTap Course Mode to the Cengage course outline. Apply It grade-counting assessments are selected by default; optional checkboxes add Study It, Learn It and Other section assessments.
