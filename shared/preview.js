@@ -10,6 +10,8 @@
     return plain(value);
   }
   function amount(value){const s=text(value);if(!/^\d+(?:\.\d+)?$/.test(s))return s;const parts=s.split('.');parts[0]=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return parts.join('.');}
+  const isGraphSeries=value=>Array.isArray(value)&&value.length>0&&value.every(item=>item&&typeof item.label==='string'&&Array.isArray(item.points));
+  function graphPoints(value){return value.slice(0,20).map(series=>({label:plain(series.label),color:/^#[0-9a-f]{6}$/i.test(series.color||'')?series.color:'#8a96b2',yAxisLabel:plain(series.yAxisLabel),unitSuffix:series.unitSuffix==='%'?'%':'',points:series.points.slice(0,100).filter(point=>point&&Number.isFinite(Number(point.x))&&Number.isFinite(Number(point.y))).map(point=>({x:Number(point.x),y:Number(point.y)}))}));}
   function decode(raw){try{return JSON.parse(raw.replace(/^\s*```(?:json)?\s*/i,'').replace(/\s*```\s*$/,''));}catch{return null;}}
   function sourceText(value){
     if(typeof value!=='string')return describe(value);
@@ -31,8 +33,9 @@
       return {kind:'journal',rows,explanation,sources};
     }
     if(answer&&typeof answer==='object'&&!Array.isArray(answer)){
-      const items=Object.entries(answer).filter(([k])=>!['requestId','explanation','sourceAnswer','suggestedReviewSeconds','manualReviewRequired'].includes(k)).slice(0,100).map(([k,v],i)=>({label:globalThis.StudyConfig?.answerLabel?StudyConfig.answerLabel({displayLabel:typeof data.fieldLabels?.[k]==='string'?plain(data.fieldLabels[k]):'',label:/^f\d+$/.test(k)?'':plain(k)},i):label(k,i),values:(Array.isArray(v)?v:[v]).map(value=>describe(value)).filter(Boolean)}));
-      return {kind:'answers',items,explanation,sources};
+      const items=Object.entries(answer).filter(([k])=>!['requestId','explanation','sourceAnswer','suggestedReviewSeconds','manualReviewRequired','graphFallback'].includes(k)).slice(0,100).map(([k,v],i)=>({label:globalThis.StudyConfig?.answerLabel?StudyConfig.answerLabel({displayLabel:typeof data.fieldLabels?.[k]==='string'?plain(data.fieldLabels[k]):'',label:/^f\d+$/.test(k)?'':plain(k)},i):label(k,i),...(isGraphSeries(v)?{graphSeries:graphPoints(v),values:[]}:{values:(Array.isArray(v)?v:[v]).map(value=>describe(value)).filter(Boolean)})}));
+      const graphFallback=data.graphFallback&&typeof data.graphFallback==='object'?{message:plain(data.graphFallback.message)}:null;
+      return {kind:'answers',items,explanation,sources,graphFallback};
     }
     return {kind:'answers',items:[{label:'Answer',values:(Array.isArray(answer)?answer:[answer]).map(value=>describe(value)).filter(Boolean)}],explanation,sources};
   }

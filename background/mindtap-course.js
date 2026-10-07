@@ -8,8 +8,9 @@ async function mindtapCourseMessage(message,sender){
   const save=run=>chrome.storage.session.set({mindtapCourse:run});
   if(message.type==='mindtapCourseStart'){
     const categories=Array.isArray(message.selectedCategories)?message.selectedCategories:['apply'];
-    if(!host||sender.frameId!==0||categories.length>4||categories.some(key=>!StudyMindTapCourse.categoryKeys.includes(key))||!Array.isArray(message.assignments)||!message.assignments.length||message.assignments.length>200||message.assignments.some(a=>!StudyMindTapCourse.eligible(a,categories)))throw Error('Choose supported activity sections and assessments explicitly marked Not started.');
-    const run={tab:sender.tab.id,courseUrl:url.href,assignments:message.assignments,selectedCategories:categories,index:0,phase:'opening',done:[],skipped:[],skipReviewPause:message.skipReviewPause===true,time:Date.now()};
+    const includeInProgress=message.includeInProgress===true;
+    if(!host||sender.frameId!==0||categories.length>4||categories.some(key=>!StudyMindTapCourse.categoryKeys.includes(key))||!Array.isArray(message.assignments)||!message.assignments.length||message.assignments.length>200||message.assignments.some(a=>!StudyMindTapCourse.eligible(a,categories,{includeInProgress})))throw Error('Choose supported activity sections and assessments explicitly marked Not started, or explicitly allow in-progress work.');
+    const run={tab:sender.tab.id,courseUrl:url.href,assignments:message.assignments,selectedCategories:categories,includeInProgress,index:0,phase:'opening',done:[],skipped:[],skipReviewPause:message.skipReviewPause===true,time:Date.now()};
     await save(run);await chrome.tabs.sendMessage(run.tab,{type:'mindtapCourseOpen',item:run.assignments[0],index:0,total:run.assignments.length},{frameId:0}).catch(()=>{});
     return {received:true,phase:run.phase,title:run.assignments[0].title,total:run.assignments.length};
   }

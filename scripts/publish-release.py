@@ -27,7 +27,7 @@ def request(url,data=None,content_type='application/json'):
  req=urllib.request.Request(url,data=data,headers={'Authorization':'Bearer '+secret,'Accept':'application/vnd.github+json','Content-Type':content_type,'User-Agent':'study-assistant-release'})
  with urllib.request.urlopen(req,context=tls) as response: return json.load(response)
 # Creating an existing tag's release fails rather than replacing it.
-release=request('https://api.github.com/repos/'+repo+'/releases',json.dumps({'tag_name':tag,'target_commitish':tag_commit,'name':'Study Assistant '+tag,'body':(root/'RELEASE-NOTES.md').read_text(),'draft':True}).encode())
+release=request('https://api.github.com/repos/'+repo+'/releases',json.dumps({'tag_name':tag,'target_commitish':tag_commit,'name':'Study Assistant '+version,'body':(root/'RELEASE-NOTES.md').read_text(),'draft':True}).encode())
 archive=root/'dist'/('study-assistant-'+version+'.zip')
 asset=request(release['upload_url'].split('{')[0]+'?name='+urllib.parse.quote(archive.name),archive.read_bytes(),'application/zip')
 assert asset['size']==archive.stat().st_size and asset['state']=='uploaded'

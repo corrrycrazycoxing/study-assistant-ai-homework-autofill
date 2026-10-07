@@ -1,0 +1,45 @@
+{
+  "source": "Live MindTap Chapter 11 Homework inspection, 2026-10-06",
+  "answerDataCaptured": false,
+  "cases": [
+    {
+      "id": "numeric-table-and-multi-select",
+      "observed": [
+        { "type": "numeric", "group": "table-cells-and-percent-blanks", "count": "multiple", "blankCells": 14, "percentSuffixPlaceholders": 2, "headerShape": "three-row-thead-with-colspan-years" },
+        { "type": "checkbox-group", "options": 4 }
+      ],
+      "support": "form-fields"
+    },
+    {
+      "id": "custom-dropdowns-and-binary-radio",
+      "observed": [
+        { "type": "custom-dropdown", "count": 3 },
+        { "type": "radio-group", "options": 2 }
+      ],
+      "support": "form-fields"
+    },
+    {
+      "id": "interactive-graph-and-radio",
+      "rendererEvidence": {
+        "platform": "MindTap Aplia",
+        "libraryLoaded": "Raphael SVG (raphael-min.js)",
+        "accessibility": "Graph is exposed as a generic image; point controls are not exposed as form fields",
+        "interaction": "Two draggable point series on a year/value grid; five points per series"
+      },
+      "observed": [
+        { "type": "drag-plot-series", "series": 2, "pointsPerSeries": 5 },
+        { "type": "radio-group", "options": 5 }
+      ],
+      "support": "raphael-cartesian-year-plot",
+      "imageCapture": "when-enabled"
+    },
+    {
+      "id": "numeric-table-and-custom-dropdown",
+      "observed": [
+        { "type": "numeric", "group": "standalone-and-2-by-3-table", "count": 7 },
+        { "type": "custom-dropdown", "count": 1 }
+      ],
+      "support": "form-fields"
+    }
+  ]
+}

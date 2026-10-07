@@ -48,7 +48,7 @@
   function compactOverlay(){
     const v=view();if(!v?.modern||v.root.getElementById('study-compact-style'))return;
     const style=document.createElement('style');style.id='study-compact-style';
-    style.textContent=':host{max-width:300px!important}details,section{max-width:300px!important}.study-pace-controls{display:none!important}#preview,#answer-display,[data-preview]{max-height:180px!important;overflow:auto!important}#status,[data-status]{max-height:100px!important;overflow:auto!important}';
+    style.textContent=':host{max-width:300px!important}details,section{max-width:300px!important}#preview,#answer-display,[data-preview]{max-height:180px!important;overflow:auto!important}#status,[data-status]{max-height:100px!important;overflow:auto!important}';
     v.root.append(style);
     const button=document.createElement('button');button.id='study-open-panel';button.type='button';button.textContent='Open side panel ↗';
     button.style.cssText='font:12px system-ui;padding:6px 9px;margin:7px 0;border:1px solid #8295d6;border-radius:7px;background:#273453;color:white;cursor:pointer';

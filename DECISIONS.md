@@ -1,5 +1,15 @@
 # Development decisions and handoffs
 
+## October 6, 2026 — Restore top-hung pace controls and support Aplia table inputs
+
+**Intent:** Keep the familiar pace choices visible without covering the middle of assignments, and make the inspected numeric table question eligible for field-by-field answer assistance.
+
+**Changed:** The shared pace controls now mount at the top-level MindTap page (above its embedded Aplia frame) and render as separate cards on a transparent strip; other adapters keep the shared top-mounted bar. A fresh reload during a saved Grade It Now/next-question transition reconnects and resumes Auto; a refresh at another point stops for review. Numeric completion checks reject non-numeric placeholders such as a bare `%`, while preserving valid numbers, including zero and formatted values. Aplia question selection clears stale done keys when fields remain blank. Table answer labels expand multi-row/colspan headers so repeated row labels resolve to distinct years and columns, for example `Streaming services · 2023 · Cost · (Dollars)`.
+
+**Live evidence and limits:** Computer inspection of the open MindTap Aplia question found 16 numeric text inputs (14 blank and two `%` suffix defaults), a four-option checkbox group, an editable Save & Continue action and a three-row `thead` with merged year headers. No field was changed and no assignment was submitted. The page is still running installed 2.7.3; final source behavior has not been reloaded or live-verified.
+
+**Checks:** `node tests/mindtap-fields.cjs`, `node tests/universal-pacing.cjs`, `node tests/mindtap-course.cjs`, `node scripts/check.cjs`, and `git diff --check` pass. The top-frame bar and automatic refresh recovery need a live Chrome check before release; the version stays unchanged pending that verification.
+
 ## October 6, 2026 — Updater help discoverability and release refresh (2.7.2)
 
 **Intent:** Make updater instructions reachable even when the panel believes no newer release exists, and let users clear stale release status themselves.

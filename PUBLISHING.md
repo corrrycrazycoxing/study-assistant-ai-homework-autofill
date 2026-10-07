@@ -21,11 +21,12 @@ This page tracks work to review before a public release. Documents alone do not 
 
 ## GitHub release steps
 
-1. Increment manifest.json and the displayed version together for each new package.
-2. Run the relevant regression checks and inspect the package for secrets and development files.
-3. When publishing is explicitly requested, commit and push to the existing repository.
-4. Publish a GitHub release with the matching tag (such as `v2.5.11`), changelog notes and the installable ZIP as an attached asset.
-5. Confirm the README's latest-release link opens that release. Users can select **Watch → Custom → Releases** for notifications.
+Follow [VERSIONING.md](VERSIONING.md) to choose the next MAJOR.MINOR.PATCH number and keep the manifest, displayed version, README title/download link, changelog, ZIP, extracted folder, Git tag and GitHub release title in sync.
+
+1. Run the relevant regression checks and inspect the package for secrets and development files.
+2. When publishing is explicitly requested, commit and push to the existing repository.
+3. Publish a GitHub release with the matching `vMAJOR.MINOR.PATCH` tag and `Study Assistant MAJOR.MINOR.PATCH` title, concise changelog notes and the installable ZIP as an attached asset.
+4. Confirm the README's latest-release link opens that release. Users can select **Watch → Custom → Releases** for notifications.
 
 Pushing source changes does not publish a release or update an installed extension. GitHub's generated source archive contains a repository folder; the attached extension ZIP extracts to a single `Study-Assistant-<version>` folder with `manifest.json` directly inside it. Select that extracted folder with Chrome’s **Load unpacked**; Chrome cannot load the ZIP itself.
 

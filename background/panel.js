@@ -38,7 +38,9 @@ async function connections(settings){
 async function setupComplete(){const {studyOnboarding}=await chrome.storage.local.get('studyOnboarding');return studyOnboarding?.version===StudyConfig.onboardingVersion&&studyOnboarding.acknowledged===true&&studyOnboarding.completed===true;}
 async function requireSetup(){if(!await setupComplete())throw Error(StudyConfig.onboardingMessage);}
 async function completeSetup(m){
- if(m.version!==StudyConfig.onboardingVersion||m.acknowledged!==true||!StudyConfig.platforms.includes(m.platform)||!['chatgpt','gemini','deepseek'].includes(m.aiModel)||!['normal','slow','human','review'].includes(m.pacingMode)||['pauseBeforeSubmit','watchAutomation','preferNotebook'].some(k=>typeof m[k]!=='boolean'))throw Error('Choose the setup options and acknowledge the notice before continuing.');
+ if(m.version!==StudyConfig.onboardingVersion)throw Error('The setup screen and extension are out of sync. Open chrome://extensions, click Reload for Study Assistant, then reopen the side panel and finish setup again.');
+ if(m.acknowledged!==true)throw Error('Go back to the first setup step and check “I have read this notice” before continuing.');
+ if(!StudyConfig.platforms.includes(m.platform)||!['chatgpt','gemini','deepseek'].includes(m.aiModel)||!['normal','slow','human','review'].includes(m.pacingMode)||['pauseBeforeSubmit','watchAutomation','preferNotebook'].some(k=>typeof m[k]!=='boolean'))throw Error('One or more setup choices could not be read. Reload Study Assistant from chrome://extensions, reopen the side panel and finish setup again.');
  const data=await config(),platformSettings={...data.platformSettings};
  platformSettings[m.platform]={...StudyConfig.defaults[m.platform],...platformSettings[m.platform],pauseBeforeSubmit:m.pauseBeforeSubmit,preferNotebook:m.preferNotebook};
  await chrome.storage.sync.set({aiModel:m.aiModel,watchAutomation:m.watchAutomation,platformSettings,pacingSettings:{...StudyConfig.pacingDefaults,...data.pacingSettings,pacingMode:m.pacingMode}});

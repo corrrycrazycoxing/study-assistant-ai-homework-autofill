@@ -1,23 +1,24 @@
-# Study Assistant — AI Homework Autofill (2.7.2)
+# Study Assistant — AI Homework Autofill (2.7.3)
 
 Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas and MindTap** using a connected ChatGPT, Gemini or DeepSeek tab. Review answers before final submission.
 
 ## Download and install
 
-**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.7.2/study-assistant-2.7.2.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.7.3/study-assistant-2.7.3.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the extracted **Study-Assistant-2.7.2** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
+3. Click **Load unpacked** and select the extracted **Study-Assistant-2.7.3** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
 4. Open a supported assignment, reload that tab and your AI tab, then click the Study Assistant extension icon to open its side panel.
 
 To update a previous unpacked installation, either use the optional helper described under [Updating an unpacked installation](#updating-an-unpacked-installation), or download and extract the new ZIP and load its folder in `chrome://extensions`. A GitHub release does not update local files automatically. Reload Study Assistant in Chrome after replacing the files, then reload your assignment and AI tabs.
 
 
-[Latest GitHub release](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest) · [Changelog](CHANGELOG.md) · [Privacy policy](PRIVACY.md) · [Terms of use](TERMS.md) · [Publication checklist](PUBLISHING.md) · [Security notes](SECURITY.md)
+[Latest GitHub release](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest) · [Changelog](CHANGELOG.md) · [Versioning and release process](VERSIONING.md) · [Privacy policy](PRIVACY.md) · [Terms of use](TERMS.md) · [Publication checklist](PUBLISHING.md) · [Security notes](SECURITY.md)
 
 ## What changed recently
 
+- **2.7.3:** MindTap Course Mode detects course outlines inside its web components and follows course/assignment navigation. In-progress assignments stay excluded by default; an opt-in checkbox and confirmation prompt let you include them. First-use setup appears again after updating so existing users see the latest walkthrough. Case variations in MindTap status labels are supported, and empty scans report filter counts to aid diagnosis. The Course Mode warning and manual review/submission gates remain. Live Chrome verification is pending.
 - **2.7.2:** Adds an always-visible **How to update** link beside the version status. **Refresh** now checks GitHub Releases immediately as well as refreshing the panel connection, so cached status cannot hide a newly published release for hours.
 - **2.7.1:** Hides MindTap Course Mode during a solo assignment and keeps its outline card collapsed until opened. It appears again at course-level review checkpoints and shows a prominent warning to verify results and completion in MindTap. The live queue still needs a safe not-started assignment for end-to-end verification.
 - **2.7.0:** Adds MindTap Course Mode with Apply It grade-counting work selected by default and checkboxes for optional Study It, Learn It and other assessment sections. It opens only visible, supported activities MindTap marks Not started; it excludes media, quizzes, tests and exams, and leaves assignment review/submission to you. Instant, Timed and Human pace preferences are now shared across supported platforms. See the [MindTap course mock](docs/mindtap-course-mock.html) and [release notes](RELEASE-NOTES.md). The live outline selectors were verified read-only; no eligible Apply It test assignment was available for an end-to-end run.
@@ -30,7 +31,7 @@ To update a previous unpacked installation, either use the optional helper descr
 - **2.5.7–2.5.8:** Added Guided Answers, shortened the on-page assistant, improved first-use guidance, and cleaned up public documentation.
 - **2.5.5–2.5.6:** Improved Pearson graded-control detection, panel scrolling, Canvas save verification, and the optional updater for unpacked installs.
 
-Read the [complete changelog](CHANGELOG.md) for every version, or open [GitHub Releases](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases) for downloadable packages and release notes. [Earlier feature notes](docs/FEATURE-HISTORY.md) are archived separately.
+Read the [complete changelog](CHANGELOG.md) for every version, or open [GitHub Releases](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases) for downloadable packages and release notes. The [versioning policy](VERSIONING.md) keeps the manifest, changelog, ZIP, tag and GitHub release title aligned. [Earlier feature notes](docs/FEATURE-HISTORY.md) are archived separately.
 
 ## Getting update notifications
 
@@ -67,7 +68,7 @@ Click **McGraw**, **Pearson**, **Canvas** or **MindTap** under **Settings for** 
 - **McGraw-Hill:** original SmartBook, older EZTO Connect and the newer Connect MAP player. The MAP adapter supports native choices/text/selects and embedded numeric worksheets and journal worksheets with exact account menus, balanced entry checks, native model verification, all available journal transaction tabs, Record entry, Check my work and Next. It leaves final submission manual. Original SmartBook parsing, confidence, feedback and navigation remain. SmartBook duplicate mode is experimental, off by default, and requires Instant Auto and Watch automation; extra-credit effects are not verified.
 - **Pearson MyLab:** use the unified panel or expand MyLab Assistant in the tdx.acs.pearson.com player, including separate windows. Start Auto fills supported numeric editors, text, native dropdowns and choices, checks homework answers and navigates test questions. Existing correction/retry behavior is retained. Final test submission stays manual.
 - **Canvas:** use the unified panel or expand Canvas Quiz Assistant on the quiz-taking page. Classic native choice, checkbox, text, numeric and select fields are supported. New Quizzes/Learnosity support remains experimental. Start Auto answers supported unanswered questions and advances when a supported Next control is present. It does not click final Submit Quiz. Canvas itself may auto-submit timed quizzes or save inputs independently of this extension.
-- **MindTap:** use the unified panel or expand MindTap Assistant inside the Aplia assignment frame. Start Auto fills supported q4 dropdowns, categorization rows, choices and native numeric/text/select fields, then uses Save & Continue. Enable Grade Before Advance only if you want a grading attempt when saving alone is unavailable. Final assignment submission stays manual. CNOWv2, SAM and other MindTap players are not implemented. MindTap Course Mode is on the top-level course outline: Apply It grade-counting work is selected by default; Study It, Learn It and Other sections can be added with checkboxes. It queues only visible, explicitly Not started assessment items. Reading/media, quizzes, tests and exams stay excluded. Review and submit each assignment yourself between queue items.
+- **MindTap:** use the unified panel or expand MindTap Assistant inside the Aplia assignment frame. Start Auto fills supported q4 dropdowns, categorization rows, choices and native numeric/text/select fields, then uses Save & Continue. Enable Grade Before Advance only if you want a grading attempt when saving alone is unavailable. Final assignment submission stays manual. CNOWv2, SAM and other MindTap players are not implemented. MindTap Course Mode is on the top-level course outline: Apply It grade-counting work is selected by default; Study It, Learn It and Other sections can be added with checkboxes. Only visible assessment items marked Not started are queued by default. An unchecked option lets you include In progress items after an explicit confirmation. Reading/media, quizzes, tests and exams stay excluded. Review and submit each assignment yourself between queue items.
 
 **Pause after fill** is also directly available in the side panel and saves the selected platform’s setting. Turning it off while paused resumes that selected run. **Pause After Fill** is on by default for Pearson, Canvas and MindTap. Turn it off in the relevant platform settings for continuous answering. SmartBook's Pause Before Submit is also on by default in this combined build. New Connect uses the same default pause before recording or advancing. Older Connect waits for Continue now after filling when its pause setting is enabled. Original SmartBook and older Connect otherwise retain their original navigation/submission behavior.
 

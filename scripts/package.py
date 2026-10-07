@@ -12,7 +12,7 @@ output.parent.mkdir(exist_ok=True)
 files=[root/'manifest.json']
 for name in ['assets','background','content-scripts','popup','shared','sidepanel']:
     files.extend(p for p in (root/name).rglob('*') if p.is_file() and not any(x.startswith('.') for x in p.relative_to(root).parts))
-files.extend(root/name for name in ['LICENSE','PRIVACY.md','TERMS.md','README.md','CHANGELOG.md'])
+files.extend(root/name for name in ['LICENSE','PRIVACY.md','TERMS.md','README.md','CHANGELOG.md','VERSIONING.md'])
 with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as z:
     for p in sorted(files): z.write(p,folder+'/'+p.relative_to(root).as_posix())
 with zipfile.ZipFile(output) as z:

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Study Assistant — AI Homework Autofill",
-  "version": "2.7.2",
+  "version": "2.7.3",
   "description": "Autofill supported homework fields on McGraw Connect, Pearson MyLab, Canvas and MindTap using ChatGPT, Gemini or DeepSeek.",
   "permissions": [
     "tabs",
@@ -63,7 +63,7 @@
     },
     {
       "matches": ["https://ng.cengage.com/static/nb/ui/evo/index.html*"],
-      "js": ["shared/mindtap-course.js", "content-scripts/mindtap-course.js"],
+      "js": ["shared/config.js", "shared/pacing.js", "shared/mindtap-course.js", "content-scripts/mindtap-course.js"],
       "run_at": "document_idle"
     },
     {
@@ -187,6 +187,8 @@
         "shared/monitor.js",
         "shared/pacing.js",
         "shared/media.js",
+        "shared/mindtap-fields.js",
+        "shared/mindtap-graph.js",
         "content-scripts/mindtap.js"
       ],
       "all_frames": true,

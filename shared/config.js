@@ -1,5 +1,5 @@
 (() => {
-  const onboardingVersion=1;
+  const onboardingVersion=4;
   const onboardingMessage='Complete first-use setup in the Study Assistant side panel before answering.';
   const platforms=['mcgraw','pearson','canvas','mindtap'];
   const pacingNames={normal:'Instant Auto',slow:'Timed Auto',human:'Human pace',review:'Guided Answers'};
@@ -19,6 +19,26 @@
   }
   function allowed(platform,mode='auto'){return mode==='auto'||mode===platform;}
   function preferences(data,platform){const legacy=data.platformSettings?.[platform]||{},legacyPacing=Object.fromEntries(pacingKeys.filter(key=>Object.hasOwn(legacy,key)).map(key=>[key,legacy[key]]));return {...defaults[platform],...legacy,...(data.pacingSettings?{...pacingDefaults,...data.pacingSettings}:legacyPacing),aiModel:data.aiModel||'gemini',watchAutomation:data.watchAutomation===true};}
+  function tableColumn(table,row,cell,clean=value=>String(value||'').replace(/\s+/g,' ').trim()){
+    if(!table||!row||!cell)return '';
+    const headers=[...(table.tHead?.rows||[])];if(!headers.length)return '';
+    const rows=[],occupied=[];
+    headers.forEach((header,rowIndex)=>{
+      const columns=[];let column=0;
+      for(const item of [...header.cells]){
+        while(occupied[column]>rowIndex)column++;
+        const span=Math.max(1,item.colSpan||1),rowspan=Math.max(1,item.rowSpan||1),label=clean(item.textContent);
+        for(let offset=0;offset<span;offset++){
+          columns[column+offset]=label;
+          if(rowspan>1)occupied[column+offset]=rowIndex+rowspan;
+        }
+        column+=span;
+      }
+      rows.push(columns);
+    });
+    const index=[...row.children].indexOf(cell);
+    return rows.map(columns=>columns[index]).filter(Boolean).join(' · ');
+  }
 
   function assignLabels(fields,root,{questionLabel=''}={}){
     const clean=s=>String(s||'').replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/\s+/g,' ').trim();
@@ -51,7 +71,7 @@
       if(part)f.groupLabel=prefix;
       // Table headings and choice-linked numbers identify the destination more precisely.
       const cell=el?.closest('td,th'),row=cell?.closest('tr'),table=cell?.closest('table');
-      if(row){const rowName=words([...row.children].find(c=>c!==cell&&!c.querySelector('input,select,textarea,.eqEditor,.responseCell'))),column=words(table?.querySelector('thead tr')?.children[[...row.children].indexOf(cell)]);const context=[rowName,column].filter(Boolean).join(' · ');if(context){f.displayLabel=[prefix,context].filter(Boolean).join(' · ');f.label=f.displayLabel;}}
+      if(row){const rowName=words([...row.children].find(c=>c!==cell&&!c.querySelector('input,select,textarea,.eqEditor,.responseCell'))),column=tableColumn(table,row,cell,words);const context=[rowName,column].filter(Boolean).join(' · ');if(context){f.displayLabel=[prefix,context].filter(Boolean).join(' · ');f.label=f.displayLabel;}}
     }
     return fields;
   }
@@ -63,7 +83,7 @@
     let context='';
     if(el?.closest){
       const cell=el.closest('td,th'),row=cell?.closest('tr'),table=row?.closest('table');
-      if(row){const rowName=words([...row.children].find(c=>c!==cell&&!c.querySelector('input,select,textarea,.eqEditor,.responseCell'))),column=field.controls?'':words(table?.querySelector('thead tr')?.children[[...row.children].indexOf(cell)]);context=[rowName,column].filter(Boolean).join(' · ');}
+      if(row){const rowName=words([...row.children].find(c=>c!==cell&&!c.querySelector('input,select,textarea,.eqEditor,.responseCell'))),column=tableColumn(table,row,cell,clean);context=[rowName,column].filter(Boolean).join(' · ');}
       const option=el.closest('.mcAnswerContent');if(!context&&option&&field.kind==='equation')context='Option '+words(option)+' · number';
       if(!context)context=words(el.closest('label'));
     }
@@ -88,11 +108,22 @@
   function showPreview(preview,data){
     preview.textContent=JSON.stringify(data);preview.hidden=true;
     let display=preview.nextElementSibling;if(!display?.dataset.readablePreview){display=document.createElement('div');display.dataset.readablePreview='true';display.style.cssText='max-height:300px;overflow:auto;font:12px/1.5 system-ui';preview.after(display);}display.replaceChildren();
-    const table=document.createElement('table');table.style.cssText='width:100%;border-collapse:collapse;table-layout:fixed';const caption=document.createElement('caption');caption.textContent=data.answer?.journal?'Journal entry':'Answers to enter';caption.style.cssText='text-align:left;font-weight:650;padding:9px 0';table.append(caption);
+    const appendExplanation=()=>{if(data.explanation){const h=document.createElement('h3'),p=document.createElement('p');h.textContent=data.guided?'Guided walkthrough':'Explanation';p.textContent=plainExplanation(data.explanation);display.append(h,p);}};
+    if(data.guided)appendExplanation();
+    if(data.graphFallback){const callout=document.createElement('div');callout.style.cssText='border:1px solid #b78937;background:#30291d;color:#f2dfb8;border-radius:8px;padding:10px;margin:8px 0';const title=document.createElement('strong'),message=document.createElement('p');title.textContent='Graph not fully plotted';message.textContent=String(data.graphFallback.message||'Review the points below and manually plot any that are missing. The assignment was not graded or submitted.');message.style.cssText='margin:5px 0 0';callout.append(title,message);display.append(callout);}
+    const table=document.createElement('table');table.style.cssText='width:100%;border-collapse:collapse;table-layout:fixed';const caption=document.createElement('caption');caption.textContent=data.guided?'Values to enter yourself':data.answer?.journal?'Journal entry':'Answers to enter';caption.style.cssText='text-align:left;font-weight:650;padding:9px 0';table.append(caption);
     function row(values,heading=false){const tr=document.createElement('tr');for(const [i,value]of values.entries()){const cell=document.createElement(heading||i===0?'th':'td');cell.textContent=value;cell.style.cssText='padding:7px 5px;border-bottom:1px solid #414959;text-align:left;vertical-align:top;overflow-wrap:anywhere;font-weight:'+(heading?'650':'400');if(!heading&&i===0)cell.scope='row';tr.append(cell);}table.append(tr);}
     if(Array.isArray(data.answer?.journal)){row(['Account','Debit','Credit'],true);for(const item of data.answer.journal)row([item.account,item.debit||'—',item.credit||'—']);}
-    else for(const [i,[key,value]] of Object.entries(data.answer||{}).entries())row([answerLabel({displayLabel:data.fieldLabels?.[key]},i),Array.isArray(value)?value.join('; '):String(value)]);
-    display.append(table);if(data.explanation){const p=document.createElement('p');p.textContent=plainExplanation(data.explanation);display.append(p);}if(data.sourceAnswer){const details=document.createElement('details'),summary=document.createElement('summary'),p=document.createElement('p');summary.textContent='Reading sources';p.textContent=data.sourceAnswer;details.append(summary,p);display.append(details);}
+    else for(const [i,[key,value]] of Object.entries(data.answer||{}).entries()){
+      const graph=Array.isArray(value)&&value.length>0&&value.every(item=>item&&typeof item.label==='string'&&Array.isArray(item.points));
+      if(graph){
+        const tr=document.createElement('tr'),heading=document.createElement('th'),cell=document.createElement('td');heading.textContent=answerLabel({displayLabel:data.fieldLabels?.[key]},i);heading.scope='row';heading.style.cssText='padding:7px 5px;border-bottom:1px solid #414959;text-align:left;vertical-align:top;font-weight:650';cell.style.cssText='padding:7px 5px;border-bottom:1px solid #414959;vertical-align:top;overflow-wrap:anywhere';
+        for(const series of value){const color=/^#[0-9a-f]{6}$/i.test(series.color||'')?series.color:'#aeb9d4',block=document.createElement('div'),name=document.createElement('strong'),axis=document.createElement('div'),points=document.createElement('div');block.style.cssText=`border-left:3px solid ${color};padding-left:8px;margin:4px 0 10px`;name.textContent=series.label;name.style.cssText=`display:block;color:${color};font-weight:700`;axis.textContent=series.yAxisLabel?`x = year · y = ${series.yAxisLabel}`:'Coordinates are (x, y)';axis.style.cssText='font-size:11px;color:#bdc7dc;margin:2px 0 5px';points.style.cssText='display:flex;flex-wrap:wrap;gap:4px';
+          for(const point of series.points||[]){const chip=document.createElement('span'),y=Number(point.y);chip.textContent=`(${point.x}, ${Number.isFinite(y)?`${y}${series.unitSuffix||''}`:point.y})`;chip.style.cssText=`display:inline-block;border-radius:5px;padding:2px 6px;background:#222a3b;border:1px solid ${color};color:#f0f3fb;font-weight:650;font-variant-numeric:tabular-nums`;points.append(chip);}block.append(name,axis,points);cell.append(block);
+        }tr.append(heading,cell);table.append(tr);
+      }else{const formatted=Array.isArray(value)?value.join('; '):String(value);row([answerLabel({displayLabel:data.fieldLabels?.[key]},i),formatted]);}
+    }
+    display.append(table);if(!data.guided)appendExplanation();if(data.sourceAnswer){const details=document.createElement('details'),summary=document.createElement('summary'),p=document.createElement('p');summary.textContent='Reading sources';p.textContent=data.sourceAnswer;details.append(summary,p);display.append(details);}
   }
-  globalThis.StudyConfig={onboardingVersion,onboardingMessage,platforms,names,pacingNames,defaults,pacingKeys,pacingDefaults,detect,allowed,preferences,assignLabels,answerLabel,answerGrid,plainExplanation,showPreview,clearPreview};
+  globalThis.StudyConfig={onboardingVersion,onboardingMessage,platforms,names,pacingNames,defaults,pacingKeys,pacingDefaults,detect,allowed,preferences,tableColumn,assignLabels,answerLabel,answerGrid,plainExplanation,showPreview,clearPreview};
 })();

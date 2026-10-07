@@ -2,6 +2,23 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.7.3 — October 6, 2026
+
+### Fixed
+- Detect MindTap outlines and activity controls in open component roots, and update Course Mode visibility as its single-page app moves between the outline and solo assignments.
+- Accept case variations in MindTap's "Not started" status and show filter counts when an outline scan finds activities but no eligible assignments.
+- Mount MindTap pace choices at the top-level page instead of inside its offset Aplia frame; display separate pace cards on a transparent strip.
+- Resume a recent saved Auto run after MindTap refreshes during the Grade It Now or next-question transition; stop other refreshes for manual review.
+- Recognize blank percent-suffix numeric fields and resolve merged multi-row table headings for Aplia field labels.
+
+### Changed
+- Keep in-progress MindTap assignments excluded by default; an explicit checkbox and confirmation are required to include them.
+- Show the updated first-use setup again to existing users by advancing its acknowledgement version.
+- Add the repository's MAJOR.MINOR.PATCH release policy and make the GitHub release title omit the tag's `v` prefix.
+
+### Verification
+- `node tests/universal-pacing.cjs`, `node tests/mindtap-course.cjs`, `node tests/mindtap-fields.cjs`, `node scripts/check.cjs`, and `git diff --check` pass. The updated top-frame bar and refresh resume still need a live Chrome reload/check; do not publish before that verification.
+
 ## 2.7.2 — October 6, 2026
 
 - Add an always-visible **How to update** action in the panel so the unpacked-install instructions are available even when no newer version is detected.

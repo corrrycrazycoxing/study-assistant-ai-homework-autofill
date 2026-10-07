@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MindTap Graph Interaction · Local Test</title>
+  <style>
+    :root{font:16px/1.45 Arial,sans-serif;color:#25282c;background:#f1f3f5}*{box-sizing:border-box}body{margin:0}.top{height:58px;background:#075f86;color:white;padding:15px 26px;font-weight:bold}.page{max-width:1450px;margin:24px auto;padding:0 20px}.notice{background:#fff8e7;border:1px solid #e2bc64;border-radius:8px;padding:12px 16px;margin-bottom:18px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}.assignment,.tester{background:white;border:1px solid #d1d6da;border-radius:8px;padding:20px;box-shadow:0 2px 8px #0000000c}.assignment h1{font-size:23px;margin:0 0 16px}.prompt{font-size:18px;font-style:italic;margin:20px 0}.chart-wrap{border:1px solid #cbd0d4;border-radius:8px;padding:14px;overflow:auto}.chart{width:100%;min-width:900px;height:auto;display:block}.gridline{stroke:#e2e5e8;stroke-width:1}.axis{stroke:#666;stroke-width:1.5}.tick{stroke:#666;stroke-width:1.3}.axis-label{font:14px Arial;fill:#111}.axis-title{font:18px Arial;fill:#111}.legend-label{font:16px Arial;fill:#111}.legend-marker{cursor:grab;touch-action:none}.placed{stroke:#222;stroke-width:2}.tester{position:sticky;top:16px;background:#10151f;color:#eaf0ff;border-color:#6477ab}.tester h2{margin:0 0 10px}.tester p,.tester small{color:#b6c5df}.tester button{border:0;border-radius:7px;background:#5264ff;color:white;padding:10px 13px;font:inherit;cursor:pointer;margin:5px 5px 5px 0}.tester button.secondary{background:#30394d;border:1px solid #53617c}.tester button:disabled{opacity:.55;cursor:wait}.status{margin:14px 0;padding:12px;border-radius:7px;background:#1c263b;white-space:pre-wrap;min-height:74px}.results{margin:0;padding-left:24px;color:#dce6ff}.results li{padding:3px 0}.counts{font-variant-numeric:tabular-nums;color:#aebde0}.legend-item{fill:transparent;stroke:transparent}.foot{color:#68727b;font-size:13px;margin-top:14px}
+    @media(max-width:900px){.layout{grid-template-columns:1fr}.tester{position:static}}
+  </style>
+</head>
+<body>
+  <header class="top">CENGAGE · MINDTAP · LOCAL GRAPH TEST</header>
+  <main class="page">
+    <div class="notice"><strong>Mock assignment only.</strong> This local page contains no Cengage account, saved answers, grades, or submission controls. It runs the extension’s shared graph adapter against a synthetic Raphael-style draggable plot.</div>
+    <div class="layout">
+      <section class="assignment">
+        <h1>Chapter 11 Homework · Question 3 (synthetic)</h1>
+        <p class="prompt">Use the orange points (square symbol) to plot the nominal interest rates for the years 2019 to 2023. Next, use the green points (triangle symbol) to plot the real interest rates for those years.</p>
+        <div class="chart-wrap">
+          <svg id="chart" class="chart" viewBox="0 0 1080 700" role="img" aria-label="Synthetic graph of interest rates by year">
+            <g id="grid"></g><g id="axes"></g><g id="ticks"></g><g id="placed"></g>
+            <g id="legend">
+              <rect class="legend-item" x="800" y="72" width="260" height="76"/>
+              <rect data-series="Nominal Interest Rate" data-color="#ff9900" x="866" y="101" width="18" height="18" fill="#ff9900" class="legend-marker"/>
+              <text x="818" y="164" class="legend-label">Nominal Interest Rate</text>
+              <rect class="legend-item" x="800" y="142" width="260" height="76"/>
+              <path data-series="Real Interest Rate" data-color="#8bd865" d="M875 174 L886 190 L864 190 Z" fill="#8bd865" class="legend-marker"/>
+              <text x="836" y="234" class="legend-label">Real Interest Rate</text>
+            </g>
+          </svg>
+        </div>
+        <p class="foot">The test values are synthetic. Each graph series has five points; the mock validates every requested year and value after the simulated drag.</p>
+      </section>
+      <aside class="tester">
+        <h2>Graph adapter test</h2>
+        <p>Run the same shared inspect → validate → drag → retention-check sequence used by the MindTap content script.</p>
+        <button id="run">Run all 10 point placements</button>
+        <button id="reset" class="secondary">Reset graph</button>
+        <div id="status" class="status" role="status" aria-live="polite">Ready. Nothing has been plotted.</div>
+        <div class="counts" id="counts">0 / 10 points retained</div>
+        <ol id="results" class="results"></ol>
+        <p class="foot">This fixture tests adapter mechanics and coordinate mapping. Cengage’s proprietary player may still handle pointer events differently; a passing mock is necessary but not sufficient for a live compatibility claim.</p>
+      </aside>
+    </div>
+  </main>
+  <script src="../shared/mindtap-graph.js"></script>
+  <script src="mindtap-graph-mock.js"></script>
+</body>
+</html>
