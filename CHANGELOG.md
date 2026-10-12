@@ -2,6 +2,19 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.7.4 — October 12, 2026
+
+### Fixed
+- Explain when Pearson answer fields cannot be determined from missing source data instead of showing the generic invalid-value error. Affected fields are marked **Needs source data**, and no answers are entered.
+- Identify the exact Pearson field when the AI returns an unsupported value.
+- Require acknowledgement of the Pearson Course Mode review warning before starting.
+- Reload the Pearson course or assignment-list tab after updating so Course Mode is injected into an already-open course page.
+- Re-show the current first-use setup notice after updating.
+
+### Verification
+- Focused Pearson response, Course Mode, walkthrough and end-to-end tests pass, along with the full repository check suite.
+- Live Pearson showed the 2.7.3 generic error for an AI response with blank fields because the question referenced sample data not present in the visible prompt. The 2.7.4 build has not yet been loaded in Chrome. The live MindTap pace and refresh checks documented for 2.7.3 remain outstanding; this candidate is not ready to publish.
+
 ## 2.7.3 — October 6, 2026
 
 ### Fixed

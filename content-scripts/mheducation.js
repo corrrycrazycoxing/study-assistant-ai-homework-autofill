@@ -1597,6 +1597,15 @@ async function fillInAnswersPaced(answers,container,current){
     }
   }else{await legacyPacer.beforeField(0,1,current);legacyPacer.check(current);await fillInAnswers(answers,container);}
 }
+function showGuidedWalkthrough(response){
+  document.querySelector('.study-guided-walkthrough')?.remove();
+  const host=document.createElement('div');host.className='study-guided-walkthrough';host.style.cssText='position:fixed;top:12px;right:12px;z-index:2147483647;width:min(440px,calc(100vw - 24px));pointer-events:none';
+  const ui=host.attachShadow({mode:'open'}),answer=Array.isArray(response.answer)?response.answer.join('\n'):String(response.answer??'No confident answer was returned.'),explanation=String(response.explanation||'No step-by-step explanation was returned. Review the question and solve it yourself.');
+  ui.innerHTML='<style>:host{font:14px/1.55 system-ui,-apple-system,sans-serif;color:#edf1ff}*{box-sizing:border-box}section{pointer-events:auto;max-height:calc(100vh - 24px);overflow:auto;background:#171c29;border:1px solid #7182bd;border-radius:12px;box-shadow:0 8px 28px #0005;padding:16px}header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}h2{font-size:17px;line-height:1.25;margin:0;color:#e9edff}button{font:inherit;color:#e8edff;background:#2c3448;border:1px solid #536385;border-radius:7px;padding:5px 9px;cursor:pointer;flex:none}h3{font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:#aebcff;margin:16px 0 5px}.answer{font-size:15px;font-weight:650;color:#fff}.steps{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;color:#d3dcef}.answer-details{margin-top:14px;border-top:1px solid #333d53;padding-top:10px}.answer-details summary{cursor:pointer;color:#c7d2f2;font-size:12px}.answer-details p{margin:7px 0 0}.note{font-size:11px;color:#aab6ce;border-top:1px solid #333d53;padding-top:10px;margin:14px 0 0}button:focus-visible{outline:2px solid #b9c7ff;outline-offset:2px}</style><section role="dialog" aria-label="Guided answer walkthrough"><header><h2>Guided walkthrough</h2><button id="close" type="button" aria-label="Close walkthrough">Close</button></header><h3>Step-by-step</h3><p class="steps"></p><details class="answer-details"><summary>Reveal answer</summary><p class="answer"></p></details><p class="note">Nothing was entered or submitted. Review the steps, then answer the question yourself.</p></section>';
+  ui.querySelector('.answer').textContent=answer;ui.querySelector('.steps').textContent=explanation;
+  const close=()=>{host.remove();};ui.getElementById('close').onclick=close;ui.addEventListener('keydown',event=>{if(event.key==='Escape')close();});
+  document.body.append(host);ui.getElementById('close').focus();
+}
 async function processChatGPTResponse(responseText) {
   if (handleTopicOverview()) {
     return;
@@ -1612,7 +1621,7 @@ async function processChatGPTResponse(responseText) {
   const response = StudySecurity.parse(responseText);
   if(legacySettings.pacingMode==='review'){
     isAutomating=false;updateUnifiedStopped();
-    alert('Guided answer: '+JSON.stringify(response.answer)+'\n\n'+String(response.explanation||''));
+    showGuidedWalkthrough(response);
     return;
   }
   const mine=legacyEpoch,signature=getQuestionSignature(container);

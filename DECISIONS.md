@@ -18,6 +18,16 @@
 
 **Checks/publication:** `node scripts/check.cjs`, `git diff --check`, and the credential/private-key pattern scan passed. `python3 scripts/package.py v2.7.2` passed; the 67-file archive passed ZIP integrity, manifest and updater-feature checks (930,990 bytes, SHA-256 `a34aa3d2d79571f6bb57ba986e75ada7269cc0d739c1f304b061408b4de2ffd1`). Published on GitHub as [v2.7.2](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.7.2); GitHub confirms the versioned ZIP asset. Release commit: `aa1cfc7738d61c06682eb09ddb621a411b263410`.
 
+## October 12, 2026 — Pearson missing-context diagnostics and Course Mode acknowledgement (2.7.4 candidate)
+
+**Intent:** Replace Pearson's generic invalid-field message when the AI correctly declines to guess because a problem refers to unavailable source data. Make the Pearson Course Mode review warning visible and acknowledged before starting.
+
+**Changed:** Blank/null fields now produce a field-labeled “Needs source data” preview and a clear explanation; the fill action remains disabled and no answer is entered. Other invalid values now name the affected Pearson field. Pearson Full Course Mode requires warning acknowledgement in both the course shell and embedded list. The setup acknowledgement advances to v5. Update docs explicitly require reloading Pearson's course/assignment-list tab.
+
+**Evidence:** Live Pearson 2.7.3 prompt and ChatGPT response showed two empty strings for confidence-interval endpoints because the question referenced a previous example whose sample size and proportion were not in the prompt. The installed UI showed “An AI field value is invalid.” after that valid no-guess response. The Pearson course-list card appeared after the already-open tab was refreshed and listed five homework/lesson entries. No live answer entry or grading occurred.
+
+**Verification and limits:** Focused response/course/onboarding/E2E tests and `node scripts/check.cjs` pass; `git diff --check` passes. The new 2.7.4 build has not been loaded in Chrome. The 2.7.3 live MindTap pace/refresh checks remain outstanding. GitHub access was unavailable; 2.7.3 is the latest published version according to the project owner. No push or release was attempted.
+
 ## October 6, 2026 — MindTap Course Mode visibility and warning (2.7.1)
 
 **Intent:** Keep Course Mode off individual assignments unless a course-level queue is active, minimize obstruction on the course activity list, and make the important verification warning visible inside Course Mode.

@@ -5,7 +5,7 @@ const vm=require('node:vm');
 const configScope={};
 vm.runInNewContext(fs.readFileSync('shared/config.js','utf8'),configScope);
 const current=configScope.StudyConfig.onboardingVersion;
-assert.equal(current,4,'the walkthrough version is advanced so existing installs see the updated setup');
+assert.equal(current,5,'the walkthrough version is advanced so existing installs see the updated setup');
 let saved={studyOnboarding:{version:current-1,acknowledged:true,completed:true}};
 const listeners={};
 const scope={StudyConfig:configScope.StudyConfig,chrome:{runtime:{getURL:path=>'chrome-extension://test/'+path,onInstalled:{addListener:fn=>{listeners.installed=fn;}}},storage:{local:{get:async()=>saved}} ,sidePanel:{setPanelBehavior:async()=>{} }}};

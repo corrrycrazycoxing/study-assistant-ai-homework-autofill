@@ -28,6 +28,11 @@ assert.match(shell,/position:fixed!important/,'the course-mode launcher is pinne
 assert.match(shell,/aria-expanded="false"/,'the course-mode launcher starts collapsed to keep the assignment list clear');
 assert.match(shell,/reviewAssignment/,'the top-level review dialog can reopen an assignment with pending media');
 assert.match(ui,/type==='reviewAssignment'/,'the assignment iframe handles user-requested media-review navigation');
+assert.match(ui,/Review required\.<\/strong> Course Mode may enter answers in confirmed zero-score homework or lessons/,'the Pearson Course Mode warning explains its scope and review duty');
+assert.match(ui,/id="ack-warning" type="checkbox"/,'Pearson Course Mode requires explicit acknowledgement before starting');
+assert.match(ui,/button\.disabled=!view\.getElementById\('ack-warning'\)\.checked/,'the assignment-list start control stays disabled until acknowledgement');
+assert.match(shell,/Review required\.<\/strong> Course Mode may enter answers in confirmed zero-score homework or lessons/,'the course-shell launcher presents the same prominent warning');
+assert.match(shell,/const canStart=\(\)=>ready&&count>0&&el\('ack-warning'\)\.checked/,'the course-shell start control requires a listed assignment and acknowledgement');
 assert(manifest.content_scripts.some(script=>script.js?.includes('content-scripts/pearson-course-shell.js')&&script.matches?.includes('https://mylabmastering.pearson.com/courses/*/menu/*')),'the top-level Pearson course shell loads the pinned launcher');
 const parseScoreSource=ui.match(/  function parseScore\(text\)\{[^}]+\}/)?.[0];
 assert(parseScoreSource,'the Pearson score parser is present');
@@ -37,6 +42,7 @@ assert.equal(parseScore('see score for Lesson Section 6.3 79.37%'),79.37,'scores
 assert.equal(parseScore('see score'),null,'unknown scores stay out of the automatic queue');
 assert.match(help,/<section id="full-course-mode">/,'the Help guide explains Pearson Full Course Mode');
 assert.match(help,/Continue without review pauses/,'the guide documents the optional review-pause setting');
+assert.match(help,/reload the assignment tab, the Pearson course or assignment-list tab, and each connected AI tab/,'the update guide includes the Pearson course-list tab so Course Mode reinjects after updates');
 assert.match(tour,/title:'11\. Pearson course mode'/,'the walkthrough has a Pearson course-mode step');
 assert.match(tour,/target:'#full-course-mode'/,'the walkthrough highlights the matching course-mode guide section');
 const eligible=vm.runInNewContext(eligibility+'\neligible',{String});

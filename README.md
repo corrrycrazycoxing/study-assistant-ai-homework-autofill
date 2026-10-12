@@ -1,24 +1,25 @@
-# Study Assistant — AI Homework Autofill (2.7.3)
+# Study Assistant — AI Homework Autofill (2.7.4)
 
 Autofill supported homework fields on **McGraw Connect, Pearson MyLab, Canvas and MindTap** using a connected ChatGPT, Gemini or DeepSeek tab. Review answers before final submission.
 
 ## Download and install
 
-**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.7.3/study-assistant-2.7.3.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
+**[Download Study Assistant for Chrome (ZIP)](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/download/v2.7.4/study-assistant-2.7.4.zip)** · [Release page](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest)
 
 1. Download the ZIP above and **extract it**. Keep the extracted folder; Chrome cannot load the ZIP itself.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the extracted **Study-Assistant-2.7.3** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
+3. Click **Load unpacked** and select the extracted **Study-Assistant-2.7.4** folder, which contains `manifest.json` directly. Do not select the ZIP or its parent folder.
 4. Open a supported assignment, reload that tab and your AI tab, then click the Study Assistant extension icon to open its side panel.
 
-To update a previous unpacked installation, either use the optional helper described under [Updating an unpacked installation](#updating-an-unpacked-installation), or download and extract the new ZIP and load its folder in `chrome://extensions`. A GitHub release does not update local files automatically. Reload Study Assistant in Chrome after replacing the files, then reload your assignment and AI tabs.
+To update a previous unpacked installation, either use the optional helper described under [Updating an unpacked installation](#updating-an-unpacked-installation), or download and extract the new ZIP and load its folder in `chrome://extensions`. A GitHub release does not update local files automatically. Reload Study Assistant in Chrome after replacing the files, then reload your assignment tab, Pearson course or assignment-list tab, and AI tabs. Course Mode is injected into the course list, so an already-open Pearson course tab must be reloaded too.
 
 
 [Latest GitHub release](https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest) · [Changelog](CHANGELOG.md) · [Versioning and release process](VERSIONING.md) · [Privacy policy](PRIVACY.md) · [Terms of use](TERMS.md) · [Publication checklist](PUBLISHING.md) · [Security notes](SECURITY.md)
 
 ## What changed recently
 
-- **2.7.3:** MindTap Course Mode detects course outlines inside its web components and follows course/assignment navigation. In-progress assignments stay excluded by default; an opt-in checkbox and confirmation prompt let you include them. First-use setup appears again after updating so existing users see the latest walkthrough. Case variations in MindTap status labels are supported, and empty scans report filter counts to aid diagnosis. The Course Mode warning and manual review/submission gates remain. Live Chrome verification is pending.
+- **2.7.4:** Pearson now explains when the AI cannot determine a field from missing source data, identifies affected fields, and shows “Needs source data” instead of the misleading generic invalid-value error. Pearson Course Mode displays a review warning and requires acknowledgement before starting. The first-use walkthrough is shown again, and update steps now tell you to reload the Pearson course-list tab as well as the assignment and AI tabs. See [release notes](RELEASE-NOTES.md). Live verification of the updated build is pending.
+- **2.7.3:** MindTap Course Mode detects course outlines inside its web components and follows course/assignment navigation. In-progress assignments stay excluded by default; an opt-in checkbox and confirmation prompt let you include them. First-use setup appears again after updating so existing users see the latest walkthrough. Case variations in MindTap status labels are supported, and empty scans report filter counts to aid diagnosis. The Course Mode warning and manual review/submission gates remain.
 - **2.7.2:** Adds an always-visible **How to update** link beside the version status. **Refresh** now checks GitHub Releases immediately as well as refreshing the panel connection, so cached status cannot hide a newly published release for hours.
 - **2.7.1:** Hides MindTap Course Mode during a solo assignment and keeps its outline card collapsed until opened. It appears again at course-level review checkpoints and shows a prominent warning to verify results and completion in MindTap. The live queue still needs a safe not-started assignment for end-to-end verification.
 - **2.7.0:** Adds MindTap Course Mode with Apply It grade-counting work selected by default and checkboxes for optional Study It, Learn It and other assessment sections. It opens only visible, supported activities MindTap marks Not started; it excludes media, quizzes, tests and exams, and leaves assignment review/submission to you. Instant, Timed and Human pace preferences are now shared across supported platforms. See the [MindTap course mock](docs/mindtap-course-mock.html) and [release notes](RELEASE-NOTES.md). The live outline selectors were verified read-only; no eligible Apply It test assignment was available for an end-to-end run.
@@ -39,7 +40,7 @@ On GitHub, choose **Watch → Custom → Releases** to receive notifications whe
 
 Chrome Web Store installations use Chrome's automatic updates. The side panel shows **Update ready** and the version when Chrome reports a downloaded update. It does not poll GitHub, force a reload or interrupt a run. Chrome may install an update while the extension is idle, so a notice is not guaranteed to remain visible. See [Chrome's runtime update API](https://developer.chrome.com/docs/extensions/reference/api/runtime#event-onUpdateAvailable).
 
-If installed using **Load unpacked** from a GitHub download, update manually: download the new release ZIP, extract it, reload the extension in `chrome://extensions`, then reload the assignment and AI tabs. Unpacked installations do not receive Chrome Web Store updates.
+If installed using **Load unpacked** from a GitHub download, update manually: download the new release ZIP, extract it, reload the extension in `chrome://extensions`, then reload the assignment tab, Pearson course or assignment-list tab, and AI tabs. Unpacked installations do not receive Chrome Web Store updates.
 
 ### Updating an unpacked installation
 
@@ -47,7 +48,7 @@ The panel checks GitHub Releases and shows when a newer version exists. It canno
 
 1. If you have a local project source checkout, run `python3 scripts/update-unpacked.py "/path/to/the/folder/Chrome-loaded" --check` from that checkout. Replace `--check` with `--apply` to install the latest release into that same loaded folder. The helper verifies the release ZIP/version and preserves unrelated files. The helper is in the source checkout, not in the extension ZIP.
 2. If you do not have a source checkout, use the manual ZIP route above: download the latest release, extract it, and load its folder from `chrome://extensions` (remove or disable the previous copy if Chrome would otherwise keep two installs).
-3. In `chrome://extensions`, click **Reload** for Study Assistant after the files have been updated. Then reload the assignment tab and connected AI tabs.
+3. In `chrome://extensions`, click **Reload** for Study Assistant after the files have been updated. Then reload the assignment tab, Pearson course or assignment-list tab, and connected AI tabs. Reloading the assignment alone will not reinject Pearson Course Mode into an older course-list tab.
 
 The panel’s **Open Chrome extensions** button only opens the reload page; it does not download or apply the update. Keep the prior release ZIP if you may need to roll back. This helper is a local command, not a background Chrome update.
 

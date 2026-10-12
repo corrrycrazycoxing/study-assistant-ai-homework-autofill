@@ -1,13 +1,13 @@
-Study Assistant 2.7.3
+Study Assistant 2.7.4
 
-MindTap Course Mode now finds course outlines and activities inside open component roots, and follows navigation between the course outline and solo assignments. Not-started work stays the default; selecting **Allow in-progress assignments** requires confirmation before the queue starts. Existing users are shown the updated first-use walkthrough again after installing this version.
+Pearson now distinguishes missing answer context from malformed AI data. If a response leaves a field blank because referenced source values are not present, the preview marks that field **Needs source data**, explains which fields could not be determined and confirms that no answers were entered. Other invalid values identify the affected field and offer a retry/manual review action.
 
-MindTap status matching now ignores capitalization differences. If a scan finds activities but none qualify, Course Mode reports how many passed the status, selected-section, gradeability, visibility and assessment checks.
+Pearson Full Course Mode now displays a prominent review warning and keeps its start action disabled until you acknowledge that you will review results and submit assignments yourself. The updated setup notice appears again after installing this version.
 
-The panel has an always-visible **How to update** link beside the version status. It opens the unpacked-install instructions directly, whether or not an update is detected. The **Refresh** button checks GitHub Releases immediately instead of relying on a six-hour cached result, while also refreshing the assignment connection.
+The update instructions now say to reload the Pearson course or assignment-list tab as well as the assignment and AI tabs; otherwise Course Mode may not reappear in an already-open course page.
 
-Unpacked Chrome extensions still require you to install the downloaded/extracted files and click **Reload** in `chrome://extensions`; a GitHub release cannot replace local files automatically. After reloading the extension, reload the assignment and connected AI tabs.
+Unpacked Chrome extensions still require you to install the downloaded/extracted files and click **Reload** in `chrome://extensions`; a GitHub release cannot replace local files automatically.
 
-Verification: `node scripts/check.cjs` and `git diff --check` pass. Tests cover MindTap outline detection and queue gates, setup-version re-prompting, updater instructions and a forced release-status refresh. Live Chrome testing is pending; do not publish before the Course Mode and first-use walkthrough are verified in Chrome.
+Verification: `node scripts/check.cjs`, focused Pearson course and response tests, and `git diff --check` pass. Live Pearson confirms that the old 2.7.3 UI displayed a generic error when ChatGPT returned empty fields for a question missing its referenced sample data. The new build has not yet been loaded in Chrome, and the MindTap pace/refresh checks from 2.7.3 remain outstanding.
 
-Install: extract `study-assistant-2.7.3.zip`, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the extracted **Study-Assistant-2.7.3** folder containing `manifest.json` directly. The ZIP itself cannot be loaded.
+Install: extract `study-assistant-2.7.4.zip`, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the extracted **Study-Assistant-2.7.4** folder containing `manifest.json` directly. The ZIP itself cannot be loaded.

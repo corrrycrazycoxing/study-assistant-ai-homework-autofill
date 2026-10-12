@@ -122,6 +122,7 @@ async function request(message,sender,platform){
   }
   const pacing=StudyPacing.options(settings);
   if(platform==='mcgraw'&&pacing.mode!=='normal'&&settings.doubleCreditMode)throw Error('Turn Double Credit Mode off before using review pacing.');
+  if(pacing.mode==='review')message.prompt+='\n\nFor Guided Answers, make "explanation" a clear student-facing walkthrough in 3 to 5 short numbered steps: identify the concept, connect the relevant facts or rule, and show how they lead to the answer. Do not begin with or repeat only the final answer; put the conclusion in the last step. Explain why the answer fits. Keep calculations explicit when present. Do not claim to show private internal reasoning; provide a concise teaching explanation. Never enter or submit an answer.';
   if(pacing.mode==='human')message.prompt+='\n\nAlso include top-level "studyTiming": {"estimatedSeconds":number,"questionType":"reading|conceptual|calculation|written|mixed","fieldSeconds":{"field ID":number},"reason":"brief plain-text timing rationale"}. Estimate TOTAL time a typical student would realistically need for the CURRENT editable question/part, including reading, choosing a method, working on paper, calculator steps, writing/typing and checking. For each listed field, estimate its share of the work in fieldSeconds using the exact field IDs. Do not divide time equally when one field needs more calculation. Reading/recall may take tens of seconds; multi-step math, statistics and accounting generally take minutes. Do not assume 10 seconds per calculation or cap math at the Timed Auto review limit. Avoid counting solved/locked prior parts as fresh work. Give a typical-speed estimate between 15 and 7200 seconds; the extension applies the user’s speed and limits. This is a study pacing estimate, not measured human performance. Never provide executable code.';
   else if(pacing.mode!=='normal')message.prompt+='\n\nAlso include top-level "suggestedReviewSeconds" as a numeric estimate of useful review time for this entire question, including all parts, between '+pacing.min+' and '+pacing.max+' seconds. This is review time, not a claim about time spent solving. Never provide executable code.';
   if(image)message.prompt+='\n\nThe attached image is a cropped picture from THIS question. Use it together with the question text. Include top-level "manualReviewRequired": false only if the picture is readable and sufficient; otherwise true and explain what is unclear. Never guess missing labels or values.';
@@ -155,6 +156,15 @@ async function request(message,sender,platform){
 }
 async function handle(message,sender){
   if(!message||typeof message.type!=='string')return {received:false};
+  if(message.type==='studyQuickStart'){
+    if(!sender.tab||sender.id!==chrome.runtime.id)throw Error('Start must come from the Study Assistant page control.');
+    const data=await config(),platform=StudyConfig.detect(sender.url,data.canvasOrigins||[]);
+    if(!platform||!StudyConfig.allowed(platform,data.platformMode))throw Error('This page is not enabled in Study Assistant settings.');
+    await requireSetup();
+    const {pageStates={}}=await chrome.storage.session.get('pageStates'),page=Object.values(pageStates).filter(p=>p.tab===sender.tab.id&&p.platform===platform&&p.controls?.start===true&&Date.now()-p.updated<12000).sort((a,b)=>b.updated-a.updated)[0];
+    if(!page)throw Error('Open a supported assignment and try Start Auto again.');
+    return chrome.tabs.sendMessage(page.tab,{type:'studyPageCommand',pageId:page.pageId,action:'start'},page.documentId?{documentId:page.documentId}:{frameId:page.frame});
+  }
   if(message.type.startsWith('pearsonCourse')){await requireSetup();return pearsonCourseMessage(message,sender);}
   if(message.type.startsWith('mindtapCourse')){if(['mindtapCourseStart','mindtapCourseContinue'].includes(message.type))await requireSetup();return mindtapCourseMessage(message,sender);}
   if(message.type==='studyCompleteSetup'){if(!panelSender(sender))return {received:false};return completeSetup(message);}
@@ -300,6 +310,9 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
   if(message?.type==='studyReloadService'){
     if(!panelSender(sender)){reply({received:false});return;}
     reloadService(message).then(reply,error=>reply({received:false,error:error.message}));return true;
+  }
+  if(message?.type==='studyOpenOptions'&&sender.tab&&StudyConfig.detect(sender.url)){
+    chrome.runtime.openOptionsPage().then(()=>reply({received:true}),error=>reply({received:false,error:error.message}));return true;
   }
   // Short typing waits bypass the serialized question queue and hidden-page timers.
   if(message?.type==='studyDelay'){

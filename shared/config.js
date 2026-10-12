@@ -1,5 +1,5 @@
 (() => {
-  const onboardingVersion=4;
+  const onboardingVersion=5;
   const onboardingMessage='Complete first-use setup in the Study Assistant side panel before answering.';
   const platforms=['mcgraw','pearson','canvas','mindtap'];
   const pacingNames={normal:'Instant Auto',slow:'Timed Auto',human:'Human pace',review:'Guided Answers'};

@@ -24,6 +24,7 @@
     .body[hidden]{display:none}
     p{margin:9px 0;color:#b9c7e4}
     label{display:flex;align-items:flex-start;gap:7px;margin:8px 0;color:#dce4f7}
+    .warning{padding:9px 10px;border:1px solid #c18a2d;border-radius:8px;background:#302a1f;color:#f3dca9;margin:10px 0}
     small{display:block;color:#9faeca;margin-top:8px;font-size:11px}
     .actions{display:flex;gap:7px;flex-wrap:wrap}
     .attention{position:fixed;inset:0;background:#050811d9;z-index:2147483647;display:grid;place-items:center;padding:20px;user-select:text}
@@ -37,9 +38,11 @@
     <div class="bar"><span class="title">Pearson Course Mode</span><span id="count" class="count">Checking…</span><button id="toggle" class="secondary" aria-expanded="false">Open</button></div>
     <div id="body" class="body" hidden>
       <p id="status">Waiting for the Pearson assignments list.</p>
+      <div class="warning"><strong>Review required.</strong> Course Mode may enter answers in confirmed zero-score homework or lessons, can miss work, and stops when a question needs attention. Review every result in Pearson; you submit assignments yourself.</div>
+      <label><input id="ack-warning" type="checkbox"> I understand and will review the results before submitting.</label>
       <label><input id="skip-pause" type="checkbox"> Continue without review pauses</label>
       <div class="actions"><button id="go" disabled>Go through homework &amp; lessons</button><button id="stop" class="secondary" hidden>Stop</button></div>
-      <small>Only confirmed zero-score, unstarted homework or lessons are opened, using Start or the first question link Pearson provides. Questions can continue while required media stays pending for final review. Check media status in Pearson. Pearson Save is used between assignments; final submission stays yours.</small>
+      <small>Only confirmed zero-score, unstarted homework or lessons are opened. Scored, resumed or unclear items stay untouched. Required media remains pending for review. Course Mode uses Pearson Save between assignments.</small>
     </div>
   </section>
   <div id="attention" class="attention" hidden><section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="attention-title"><h2 id="attention-title">Manual review needed</h2><p id="summary"></p><div id="items"></div><button id="close" class="secondary">Close</button></section></div>`;
@@ -47,6 +50,8 @@
 
   const el=id=>root.getElementById(id);
   let count=0,ready=false;
+  const canStart=()=>ready&&count>0&&el('ack-warning').checked;
+  el('ack-warning').addEventListener('change',()=>{el('go').disabled=!canStart();});
   const frames=()=>[...document.querySelectorAll('iframe')].filter(frame=>frame.isConnected);
   function send(type,extra={}){
     const frame=frames().find(candidate=>{try{return candidate.contentWindow===lastSource;}catch{return false;}});
@@ -69,11 +74,11 @@
     if(event.data.type==='ready'){
       ready=true;count=Number(event.data.count)||0;updateCount();
       el('status').textContent=`${count} homework or lesson assignments are listed. Go checks each score before opening anything.`;
-      el('go').disabled=count===0;
+      el('go').disabled=!canStart();
     }
     if(event.data.type==='status'){
       count=Number(event.data.count)||count;updateCount();el('status').textContent=String(event.data.text||'');
-      if(/Course run finished|No confirmed 0%|Stopped\./i.test(event.data.text||'')){el('go').disabled=!ready;el('stop').hidden=true;}
+      if(/Course run finished|No confirmed 0%|Stopped\./i.test(event.data.text||'')){el('go').disabled=!canStart();el('stop').hidden=true;}
       else if(/Opening |Working on assignment|Checking score|saved this assignment|Required media/i.test(event.data.text||'')){el('go').disabled=true;el('stop').hidden=false;}
     }
     if(event.data.type==='review'){
