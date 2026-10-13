@@ -136,8 +136,14 @@ async function request(message,sender,platform){
       if(open.length&&!tabs.length)throw Error('The selected readings notebook is not open. Open it or choose another notebook.');
     }
     if(tabs.length>1&&!settings.notebookUrl)throw Error('Multiple notebooks are open. Choose the readings notebook in settings.');
-    for(const tab of tabs){if(tab.frozen||tab.discarded)continue;try{if((await chrome.tabs.sendMessage(tab.id,{type:'notebookReady'}))?.ready){notebook=tab;break;}}catch{}}
-    if(tabs.length&&!notebook)throw Error('NotebookLM needs attention. Open or reload the notebook, select sources and clear its unsent prompt, then retry.');
+    let notebookStatus='';
+    for(const tab of tabs){if(tab.frozen||tab.discarded)continue;try{const state=await chrome.tabs.sendMessage(tab.id,{type:'notebookReady'});if(state?.ready){notebook=tab;break;}notebookStatus=state?.reason||notebookStatus;}catch{}}
+    if(tabs.length&&!notebook){
+      if(notebookStatus==='Generating source answer')throw Error('NotebookLM is still finishing its previous answer. Wait for the response to finish; do not reload the notebook.');
+      if(notebookStatus==='Unsent draft')throw Error('NotebookLM has an unsent prompt. Send or clear that draft before asking again.');
+      if(notebookStatus==='Notebook chat is loading')throw Error('NotebookLM chat is still loading. Wait for the query box to appear, then refresh the connection.');
+      throw Error('The NotebookLM connection is unavailable. Refresh the notebook tab, then refresh the connection in Study Assistant.');
+    }
   }
   if(!formatter)throw Error('AI tab needs attention. Open or reload Gemini, ChatGPT or DeepSeek, clear its prompt, then retry. Background tabs must stay loaded and unfrozen.');
   const selected=image?formatter.tab:notebook||formatter.tab;
@@ -278,6 +284,12 @@ async function handle(message,sender){
       if(pending.phase!=='grounding')return {received:false};
       if(message.type==='notebookError'||typeof message.response!=='string'||!message.response.trim()||message.response.length>20000||/SOURCE_NOT_FOUND/i.test(message.response)){
         await cancel(pending);return deliver(pending,{error:message.error||'The notebook sources did not support an answer. Review it manually.'});
+      }
+      const structured=StudySecurity.notebookEnvelope(message.response,{requestId:pending.id,snapshotHash:pending.snapshotHash,prompt:pending.prompt,image:Boolean(pending.image)});
+      if(structured){
+        const direct={...pending,grounded:message.response,notebookUrl:sender.url};
+        try{return await deliver(direct,{response:JSON.stringify(structured)});}
+        finally{await chrome.storage.session.remove(['pending','pictureCapture']);await releaseTabs(pending);}
       }
       const next={...pending,phase:'formatting',ai:pending.formatter,aiOrigin:origins[pending.model],grounded:message.response,notebookUrl:sender.url};
       await chrome.storage.session.set({pending:next});if(next.switchTabs)await focusTab(next.ai);

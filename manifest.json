@@ -211,6 +211,7 @@
         "https://notebook.google.com/*"
       ],
       "js": [
+        "shared/security.js",
         "content-scripts/notebook.js"
       ]
     }

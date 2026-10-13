@@ -41,7 +41,7 @@ Completion is remembered locally for this extension in this Chrome profile, acro
 
 Chrome requires a user gesture to open its side panel. On a reloaded supported assignment, click the setup launcher or the extension icon. The extension cannot automatically force open Chrome’s side panel just because it was installed or enabled. Setup also works before an assignment connects.
 
-**Why NotebookLM?** Questions tied to readings may expect a particular author’s definition, example or wording. NotebookLM uses the sources you select and can supply citations to check. That can be more useful than a broad chatbot answer that does not match your course. Add the relevant assigned readings and keep that notebook open. This extension asks it for a source-based answer, then a regular chatbot formats that response for entry. It does not send the whole notebook to that chatbot. Missing/irrelevant sources and AI mistakes still need review. The walkthrough, Settings and Help all explain this choice.
+**Why NotebookLM?** Questions tied to readings may expect a particular author’s definition, example or wording. NotebookLM uses the sources you select and can supply citations to check. That can be more useful than a broad chatbot answer that does not match your course. Add the relevant assigned readings and keep that notebook open. This extension asks it for a source-based answer and uses it directly when it already matches the required answer format. A regular chatbot formats other responses for entry. It does not send the whole notebook to that chatbot. Missing/irrelevant sources and AI mistakes still need review. The walkthrough, Settings and Help all explain this choice.
 
 API/source references: [Chrome side panel](https://developer.chrome.com/docs/extensions/reference/api/sidePanel), [Google source-based chat](https://support.google.com/notebooklm/answer/16179559?hl=en).
 
@@ -137,7 +137,7 @@ Upload controls and readiness checks were tested with synthetic browser previews
 
 Open a specific notebook at notebook.google.com or notebooklm.google.com, select its sources and keep a regular chatbot open. Select **Readings notebook for this platform** when multiple notebooks are open.
 
-The flow is: notebook gives a source-grounded answer with citations → regular chatbot maps it to the exact answer format → extension fills the fields using the site&#x27;s adapter. AI-generated code is never executed. The original McGraw answer string/array format is translated at the worker boundary so it also uses the common connection.
+The flow is: NotebookLM gives a source-grounded answer with citations. If it already matches the active question&#x27;s validated answer format, the extension uses it directly; otherwise, a regular chatbot maps it to that format. The extension fills fields using the site&#x27;s adapter. AI-generated code is never executed. The original McGraw answer string/array format is translated at the worker boundary so it also uses the common connection.
 
 With no notebook open, a ready regular chatbot answers directly. A busy notebook, unsent draft, missing selected sources, unsupported source answer or missing citation stops the request. If other notebooks are open but the selected notebook is absent, it stops rather than choosing a different notebook. Original McGraw controls do not display a source preview; citations remain in the NotebookLM/chatbot conversations. Other adapters display source-grounded previews.
 

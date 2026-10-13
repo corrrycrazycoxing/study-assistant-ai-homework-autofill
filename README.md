@@ -108,7 +108,7 @@ Upload controls and readiness checks were tested with synthetic browser previews
 
 Open a specific notebook at notebook.google.com or notebooklm.google.com, select its sources and keep a regular chatbot open. Select **Readings notebook for this platform** when multiple notebooks are open.
 
-The flow is: notebook gives a source-grounded answer with citations → regular chatbot maps it to the exact answer format → extension fills the fields using the site's adapter. AI-generated code is never executed. The original McGraw answer string/array format is translated at the worker boundary so it also uses the common connection.
+The flow is: NotebookLM gives a source-grounded answer with citations. If it already matches the active question's validated answer format, the extension uses it directly; otherwise, a regular chatbot maps it to that format. The extension then fills fields using the site's adapter. AI-generated code is never executed. The original McGraw answer string/array format is translated at the worker boundary so it also uses the common connection.
 
 With no notebook open, a ready regular chatbot answers directly. A busy notebook, unsent draft, missing selected sources, unsupported source answer or missing citation stops the request. If other notebooks are open but the selected notebook is absent, it stops rather than choosing a different notebook. Original McGraw controls do not display a source preview; citations remain in the NotebookLM/chatbot conversations. Other adapters display source-grounded previews.
 

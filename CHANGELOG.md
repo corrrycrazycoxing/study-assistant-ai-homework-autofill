@@ -5,6 +5,9 @@ Versions listed here describe source changes. A version is downloadable as a Git
 ## 2.7.4 — October 12, 2026
 
 ### Fixed
+- Accept NotebookLM's inline numbered source citations as well as citation chips, and use a complete response directly when it matches the active question's validated answer schema, avoiding an extra chatbot formatting round. Retain formatting fallback for other responses. Confirm a notebook prompt was actually sent and retry through its form/keyboard when the send click leaves it as an unsent draft.
+- Match a completed NotebookLM response by its unique request ID rather than exact rendered prompt text, so UI-normalized quotes or whitespace do not leave the Canvas run waiting after the answer appears.
+- Match NotebookLM send confirmation by request ID, wait for delayed UI acknowledgement before retrying, and distinguish a busy notebook or unsent draft from an unavailable connection so users are not told to reload a working notebook.
 - Explain when Pearson answer fields cannot be determined from missing source data instead of showing the generic invalid-value error. Affected fields are marked **Needs source data**, and no answers are entered.
 - Identify the exact Pearson field when the AI returns an unsupported value.
 - Require acknowledgement of the Pearson Course Mode review warning before starting.
