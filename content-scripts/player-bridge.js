@@ -17,18 +17,6 @@
     document.dispatchEvent(new CustomEvent('mylab-assistant-course-open-result',{detail:JSON.stringify({token:request.token,...result})}));
     if(result.ok)window.doHomework(Number(request.id),false,true);
   });
-  document.addEventListener('mylab-assistant-course-save-request',event=>{
-    let request;try{request=JSON.parse(event.detail);}catch{return;}
-    if(typeof request?.token!=='string'||request.token.length>80)return;
-    let result;
-    try{
-      if(location.origin!=='https://mylab.pearson.com'||location.pathname.toLowerCase()!=='/student/playerhomework.aspx')throw Error('Pearson Save is available only on the homework player.');
-      if(typeof window.homeworkSaveForLater!=='function')throw Error('Pearson did not expose its Save action. Save this assignment manually.');
-      window.homeworkSaveForLater();
-      result={ok:true};
-    }catch(error){result={ok:false,error:error.message};}
-    document.dispatchEvent(new CustomEvent('mylab-assistant-course-save-result',{detail:JSON.stringify({token:request.token,...result})}));
-  });
   document.addEventListener('mylab-assistant-player-request',event=>{
     let request;try{request=JSON.parse(event.detail);}catch{return;}
     if(typeof request?.token!=='string'||request.token.length>80)return;

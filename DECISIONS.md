@@ -1,5 +1,19 @@
 # Development decisions and handoffs
 
+## October 19, 2026 — Connect information-page traversal
+
+Start Auto should continue through the observed framework video/reference layout rather than fail because it has no fields. Classify information only when no answer/unsupported widget or visible Check my work control exists and the page has recognizable video/reference/instruction content. Do not equate an unsupported assessed question with an information page. Next is used once per page, waits for the next rendered page to settle, and has a per-run repeated-page/200-page guard. Information pages are neither graded nor counted as answered. Linked-question ranges use the actual current question number for end detection. Ask AI alone remains on the current information page with a clear instruction to use Start Auto.
+
+Production-function tests cover consecutive information pages followed by an AI question, video control exclusion, unknown/custom/assessed page refusal, hidden Next controls, linked progress labels, final-page handling, navigation cycles, failed navigation and Stop. The test adapter mirrors this flow and provides a browser test button. The full suite passed before loading the local build in Chrome.
+
+## October 18, 2026 — Connect MAP text fallback and full-page check results
+
+Follow-up identity fix: keep video player/transcript initialization out of the question fingerprint. Live markup placed those asynchronous nodes inside Activity Content; real question changes still use URL, item/progress and the remaining prompt text. Prompts keep the available descriptive transcript. Chrome confirmed the extension reloaded with this patch, but the assignment tab closed before a live retest.
+
+Use the visible prompt, choices and available transcript when video is present. Video player artwork is not a question diagram. Failed/disabled image capture permits a text-only request; when the model declines because context is missing, show that information and prepare no answer. Preserve strict request/hash/field validation by mapping MAP's field `id` to the shared validator's `key` at its boundary.
+
+Live computer inspection showed a valid `f0` reply being rejected before that mapping fix. After reload, Connect filled and marked the answer Correct. Its Check my work mode replaces the page controls rather than opening a dialog; recognize the newly visible Return to question control and close that result view before advancing. Production callback/result-function tests cover these cases. The result-view fix still needs loading and live verification; no new release was published in this pass.
+
 ## October 6, 2026 — Restore top-hung pace controls and support Aplia table inputs
 
 **Intent:** Keep the familiar pace choices visible without covering the middle of assignments, and make the inspected numeric table question eligible for field-by-field answer assistance.
@@ -159,3 +173,67 @@ The `v2.5.2` release was published and independently confirmed through GitHub's 
 **Checks:** `node tests/mindtap-course.cjs`, `node scripts/check.cjs`, and `python3 scripts/package.py v2.7.0` passed; package includes the matching 2.7.0 manifest and ZIP integrity checks. `git diff --check` and a changed-file secret-pattern scan passed. After GitHub access became available, `origin/main` was fetched and confirmed at the expected base before committing; the `v2.7.0` tag did not previously exist.
 
 **Publication:** Commit `8ad0c6b2293040c90dd446d908aac66439fec27d` and tag `v2.7.0` were pushed to `main` and GitHub. The public release and matching `study-assistant-2.7.0.zip` (929,487 bytes, SHA-256 `731ceb9b6a51931ec74790c64fb1a66e38c653af9d62d788cbd1be8c47991e39`) were verified at https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.7.0 . Browser-level mock verification and live end-to-end MindTap assignment validation remain outstanding as documented above.
+
+
+## October 19, 2026 — Pearson native launch, retry and startup ownership
+
+Course Mode must authorize both Overview → player and native Start → player; some assignments skip Overview. Record the verified gate as launching and require the matching assignment and related tab before the actual question frame can claim it. Use Pearson's native doExercise for a visible homework question rather than embedding a synthesized player URL in the course iframe. Wrapper documents must not request/adopt/stop the question run. Order interrupted-run cleanup before the course claim, and claim/start once after content mounts.
+
+The owner asked Auto to retry wrong questions rather than moving on. Explicit incorrect/partial feedback now precedes positive keywords; Similar Question opens a fresh version and requests fresh answers. Variant changes do not reset the three-retry budget; repeated failure stops on that question, including Course Mode. Hidden list scores are provisional until the start/overview check. Save only bounded course-review metadata locally, defer the popup until completion, and retain a dismissed report for explicit reopening. Equation dropdown choices use one accessible label in both worlds and accept validated Fillin IDs such as INE01. Pearson compact controls use native-control geometry to avoid Save and Settings.
+
+Automatic chatbot recovery is confined to pre-dispatch idle/disconnected tabs, protects drafts/attachments/generating responses, is cancellable/cooldown bounded and shows Tab reloading… at Ask AI. Accepted requests are not replayed. Full regression/syntax and diff checks pass. Owner confirms dropdown and course scanning behavior; toolbar placement was observed live. Browser tools became disabled before the latest course handoff retest, so installation and live behavior of that final patch remain unverified. No publication in this session.
+
+
+### Pearson launch correction after restored live inspection
+
+Computer inspection reproduced the remaining stall: native doExercise delegates to the embedded shell and Chrome reported Pop-up blocked. Replace that path with a background-created player tab whose homework/question IDs must match the verified overview's pending list. Preserve opener identity and prevent duplicate opens. This avoids relying on shell messaging or changing Chrome popup settings. All embedded course documents now hide their own card and forward status to the one outer launcher. The full regression suite passes; final live start result is recorded in HANDOFF.md.
+
+### Follow course navigation without a debugger
+
+The owner observed Course Mode working after dismissing ChatGPT's Chrome debugger banner. Disconnect it and leave the live course alone; the causal explanation remains unconfirmed. Final transition fixes are local until the current run ends. Assignment and saved-list transitions activate their own tabs independently of AI Watch automation. Preserve the outer course shell on return and rebind a recreated list frame only after the same course/tab is verified. Clear all prior player launch metadata at assignment advance so repeated question numbers cannot reopen an old assignment. A saved overview retires that player's leftover Auto/pending state even if Save unloaded it before RunStop, then checks every pending question before advancing. Manual Save follows this same verification and stops on unaccounted unfinished work. Synthetic production tests cover both complete and incomplete Save paths; no further live debugger test or publication is claimed.
+
+### Do not abandon a course handoff on an incidental rendering detail
+
+Native-only follow-up still showed Ready after the player opened. The startup path must tolerate style-only visibility changes and a missing decorative heading: check mounted question content on a bounded 500ms fallback as well as DOM mutations. A temporarily missing assignment identity is retryable, while an unrelated player, mismatched assignment or inactive course phase cannot start Auto. Show the rejection reason instead of silently consuming the handoff. Tests cover missing headings, delayed visibility without a child mutation, transient identity and bounded failure. Verification continues through native Chrome controls without reconnecting the browser debugger.
+
+The fresh native-only run at 11:54 confirmed automatic start without pressing Start Auto, accepted Part 1, advancement to Part 2 and continued progress to Part 4. Left Auto running. End-of-assignment Save/return remains covered by synthetic production tests, not yet by this live observation.
+
+## October 20, 2026 — Separate course setup and active Course Auto controls
+
+Ask for the queue's speed in the course launcher rather than relying on an unrelated assignment preference. Restore the prior assignment pace when Course Auto stops. Started homework/lessons require an explicit unchecked-by-default opt-in and a verified unfinished overview; a Resume gate alone cannot authorize entry. Preserve current values and reject conflicts before writing; confirmed wrong-answer retries remain available.
+
+After acknowledgement, collapse the warning into Review notice. During scanning show structured course-list progress; inside the player expand a dedicated Course Auto view with assignment count and the current question's five stages. Stop Course Auto is owned by the exact registered player frame and stops the queue, then restores regular assignment controls. Map the unified Stop to the course control while it is active. Reuse the shared production UI in a local native-browser preview, and forward safe automatic chatbot-reload status into its stage strip.
+
+Positive-result dialogs that offer only OK/Close/Continue may be dismissed before looking for the native header Next. Detect a new editable part after dismissal so Continue cannot accidentally skip it. Full regressions and native preview checks pass. The unpacked extension was reloaded without browser debugging. Pearson's live portal showed a blank Course Home during the last check, so live verification of this new UI and started-work option remains outstanding. No publication.
+
+## October 20, 2026 — Defer unsupported Pearson questions to course-end review
+
+- A visible numeric inline sample can satisfy an accompanying-table reference when its expected sample size is present. Preserve accessible math labels in prompt text; retain missing packet/printout safeguards.
+- Skip ownership is established by the registered question frame/document plus Chrome’s current outer player URL, never the nested frame’s URL or the initial launch question.
+- Per the owner’s request, Course Auto banks question-level failures and keeps going through questions and assignments. Persist only question/assignment identifiers, labels and bounded reasons, then use the existing final popup. Cancel the pending request before navigation and ignore late responses. Explicit Stop and uncertain navigation/Save remain stopping conditions. Single-assignment Auto retains stop-on-error behavior.
+- Bound Similar Question retries to three fresh attempts; after exhaustion Course Auto banks the failure without counting it as correct. Tests cover deferred failures, preservation of cancellation, next pages without fields and end-of-course report aggregation.
+
+## October 20, 2026 — Started-work scores include fractional credit
+
+Native evidence showed 0.83/5 on an unfinished Pearson homework that Course Mode skipped. Read decimal earned/possible points and tolerate percentage whitespace; wait briefly for overview score metadata. When Include started is enabled, inspect the verified gate's overview without relying on an exact Resume label. Only a non-complete score plus known per-question results and pending questions can authorize the player. Opt-out and completed-assignment guards remain unchanged. New regression covers actual partial-credit values through the background Auto handoff.
+
+## October 20, 2026 — Save means the native nested player Save
+
+Use the exact question-frame native Save button instead of outer homeworkSaveForLater, which bypassed the visible player sequence. Player closure triggers a matching overview refresh and score verification, never unconditional queue advancement. After verification navigate the known course iframe to the original list; do not reopen the same shell URL and restore its stale overview. Preserve direct-list fallback if the iframe receiver disappears. Explicit Pearson Correct status takes precedence over reduced points from a late penalty when deciding whether a question is pending. Native Save recovery confirmed 37/40 and five Correct results; the patched automatic end-to-end return needs live verification after reload.
+
+## October 20, 2026 — Only a banked skip may leave an unchecked answer
+
+Pearson’s exact no-credit/continue-without-checking warning is accepted only for a current question already recorded in the final review bank. Pass a per-navigation permit through Next and native Save; no persistent blanket consent. Normal navigation cancels with No and keeps the answer for review. Reject unrelated or ambiguous modals and respect cancellation. A navigation timeout is not evidence of assignment completion and must never trigger Save. Live Course Auto reached assignment 2 of 8; this warning was the next blocker.
+
+The outer Pearson player URL can remain on its launch exercise after Next. Persist the full visible overview question-number-to-exercise mapping; use the current displayed question number for each skipped item. Do not silently reuse the launch ID when mapping is missing. New native gate requests inspect the overview before starting so unstarted work also has the mapping. Distinct-skip regression uses a stale outer URL and nonmatching display/exercise IDs.
+
+## October 20, 2026 — Commit the course return before navigating
+
+A native return stall exposed Chrome’s asynchronous-message-channel closure error. Never unload the overview’s course tab while its request is awaiting a background reply. Commit the next index and return destination, respond, then let the source page navigate. A matching old overview or dropped reply can query the committed destination read-only; it cannot repeat queue advancement. Clear the marker only upon actual list arrival. Other background navigation handlers acknowledge before deferring reload/navigation. Production regressions cover both player layouts, lost replies, stale-owner rejection and duplicate-overview idempotence.
+
+Also use exact overview totals (Questions=N, Correct=N, Partial Credit=0, Incorrect=0) as completed-work evidence when every question is linked. This avoids reopening penalty-scored completed lessons even if an individual status icon lacks a readable label. The fallback is regression-tested; leave the active fresh course run undisturbed.
+
+
+## October 20, 2026 — Save click receipts precede warning waits
+
+A closed tab and updated score cannot prove Pearson Save was used. Reply immediately after the native Save click, then keep checking the exact unchecked-answer warning without holding the response channel. The initiating Auto loop awaits that local warning work before its normal stop cleanup. Persist click evidence only for the registered player owner; manual native Save uses the same path. Stop on an unconfirmed close/redirect or rejected warning; a delayed genuine receipt may recover a close already observed. Verify remaining question IDs and the actual assignments-list arrival before advancing. Clear the prior click/closure metadata between assignments. Include hidden accessible link status text when interpreting Correct questions with late penalties. Full regression checks pass. Native final-run observation confirmed automatic player exit/return to the course list and end report, followed by Course run finished / 8 of 8 and 35/35 (100%) for the last homework in Gradebook. No manual Save or navigation was clicked during the observed completion. The report still contains some already-Correct questions as no-editable-fields entries; do not interpret that report as every listed item being unanswered.

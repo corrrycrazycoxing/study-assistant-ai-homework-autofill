@@ -1,0 +1,25 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const stored={},storage={get:async keys=>Object.fromEntries((Array.isArray(keys)?keys:[keys]).map(key=>[key,stored[key]])),set:async values=>Object.assign(stored,values)};
+const context={URL,Date,Error,crypto:require('node:crypto').webcrypto,chrome:{storage:{session:storage,local:storage},tabs:{sendMessage:async()=>({received:true})}}};
+vm.createContext(context);vm.runInContext(fs.readFileSync('background/pearson-course.js','utf8'),context);
+const list={url:'https://mylab.pearson.com/courses/123/assignments',tab:{id:10},frameId:2};
+const overview={...list,url:'https://mylab.pearson.com/Student/OverviewHomework.aspx?homeworkId=456'};
+const player=question=>({url:'https://tdx.acs.pearson.com/Player/Player.aspx?cultureId=en-US',tab:{id:20,openerTabId:10,url:'https://mylab.pearson.com/Student/PlayerHomework.aspx?homeworkId=456&questionId='+question},frameId:7,documentId:'question-doc'});
+const call=(type,sender,more={})=>context.pearsonCourseMessage({type,...more},sender);
+(async()=>{
+  await call('pearsonCourseStart',list,{assignments:[{title:'HW Section 7.5',key:'javascript:doHomework(456, false, true);'}]});
+  await call('pearsonCourseOverview',overview,{notStarted:true,questionsPending:true,pendingQuestionIds:['1','2','7'],questionRoutes:[{number:'1',id:'1'},{number:'2',id:'2'},{number:'3',id:'7'}]});await call('pearsonCoursePlayerReady',player('1'));
+  const source=fs.readFileSync('content-scripts/pearson.js','utf8'),code=source.slice(source.indexOf('  async function skipCourseQuestion('),source.indexOf('  async function startAuto('));
+  let advanced=0;
+  const content={courseRun:true,running:true,pending:{id:'old-request'},answer:null,responseWaiter:null,timer:null,apply:{},cancel:{},courseRecovery:false,clearTimeout,correction:{},clean:value=>value.trim(),document:{querySelector:()=>({textContent:'Question 3, 7.5.57-T'}),querySelectorAll:()=>[{textContent:'Question 3, 7.5.57-T'}]},snapshot:()=>({}),say:()=>{},advance:async()=>{assert.equal(content.pending,null,'pending request must be detached before moving');assert.equal(content.answer,null);advanced++;return true;},chrome:{runtime:{sendMessage:message=>{if(message.type==='pearsonCancel'){assert.equal(content.pending,null,'late answers cannot attach during cancellation');return Promise.resolve({received:true});}return context.pearsonCourseMessage(message,player('1'));}}}};
+  vm.createContext(content);vm.runInContext(code,content);
+  assert.equal(await content.skipCourseQuestion('Required packet is unavailable.',{}),true,'the nested frame needs no location/search IDs to record a skip');assert.equal(advanced,1);assert.equal(stored.pearsonCourse.skippedQuestions[0].questionId,'7','the displayed question resolves to its verified exercise ID despite a stale launch URL');
+  assert.equal(Object.values(stored.pearsonCourseReports)[0].questions[0].questionId,'7','the issue is banked persistently before navigating away');
+  await assert.rejects(content.skipCourseQuestion('stale issue',{identity:'Question 2'}),/question changed/);assert.equal(advanced,1,'manual question changes must not bank or skip the wrong question');
+  const more={label:'Question 3',questionNumber:'3',reason:'Missing linked source.'};
+  for(const sender of [{...player('3'),frameId:9},{...player('3'),documentId:'old-doc'},{...player('3'),tab:{...player('3').tab,url:player('3').tab.url.replace('456','999')}}])assert.equal((await call('pearsonCourseQuestionSkipped',sender,more)).received,false);
+  assert.equal((await call('pearsonCourseQuestionSkipped',player('3'),{...more,questionId:'1'})).received,false,'a stale explicit question ID is rejected');
+  assert.equal((await call('pearsonCourseQuestionSkipped',player('1'),{...more,questionNumber:'9'})).received,false,'a question absent from the verified overview cannot be banked');
+  content.document.querySelectorAll=()=>[{textContent:'Question 2, 7.5.56'}];await content.skipCourseQuestion('Another source is unavailable.',{});assert.deepEqual(Array.from(stored.pearsonCourse.skippedQuestions,item=>item.questionId),['7','2'],'distinct skipped questions stay distinct while the outer launch URL is unchanged');
+  console.log('PASS Pearson nested-frame skip uses current verified outer route and rejects stale/unrelated owners');
+})().catch(error=>{console.error(error);process.exitCode=1;});

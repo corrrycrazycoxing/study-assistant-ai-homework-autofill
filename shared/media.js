@@ -1,8 +1,10 @@
 (() => {
   'use strict';
   const visible=e=>e?.isConnected&&e.getClientRects().length>0&&!e.closest('[hidden],[aria-hidden="true"]');
+  const videoArtwork=e=>e.closest('video,[aria-label*="Video Player"],[id^="GASPAR_"],.video-js,.jwplayer,.mejs-container');
+  function videos(root){return [...root.querySelectorAll('video,[aria-label*="Video Player"],[id^="GASPAR_"],.video-js,.jwplayer,.mejs-container')].filter(visible);}
   function graphics(root){
-    return [...root.querySelectorAll('img,canvas,svg')].filter(e=>visible(e)&&!e.matches('.equation_image,.math_equation,.q4-select-vertical-spacer,.q4-choice-option-correctness-indicator,.q4-numericEntry-control-correctness')&&!e.closest('.q4-explanation,.q4-equation,.eqEditor,[data-equation-content]')).filter(e=>{const r=e.getBoundingClientRect();return r.width>=40&&r.height>=30;});
+    return [...root.querySelectorAll('img,canvas,svg')].filter(e=>visible(e)&&!videoArtwork(e)&&!e.matches('.equation_image,.math_equation,.q4-select-vertical-spacer,.q4-choice-option-correctness-indicator,.q4-numericEntry-control-correctness')&&!e.closest('.q4-explanation,.q4-equation,.eqEditor,[data-equation-content]')).filter(e=>{const r=e.getBoundingClientRect();return r.width>=40&&r.height>=30;});
   }
   async function capture(chrome,root,id,guard,panel){
     if(!guard())throw Error('Stopped.');
@@ -21,5 +23,5 @@
       return result.token;
     }finally{if(panel)panel.style.visibility=previous;}
   }
-  globalThis.StudyMedia={graphics,capture};
+  globalThis.StudyMedia={graphics,videos,capture};
 })();

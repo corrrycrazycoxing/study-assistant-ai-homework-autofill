@@ -1,0 +1,26 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const stored={},created=[];
+const session={get:async key=>({[key]:stored[key]}),set:async data=>Object.assign(stored,data),remove:async key=>delete stored[key]};
+let activeTab=false;
+const chrome={storage:{session,local:session,sync:{get:async()=>({watchAutomation:activeTab})}},tabs:{create:async options=>{created.push(options);return {id:20};},get:async()=>({id:20}),sendMessage:async()=>({received:true})}};
+const context={chrome,URL,Date,Error,crypto:require('node:crypto').webcrypto};vm.createContext(context);vm.runInContext(fs.readFileSync('background/pearson-course.js','utf8'),context);
+const list={url:'https://mylab.pearson.com/courses/123/assignments',tab:{id:10},frameId:2};
+const overview={...list,url:'https://mylab.pearson.com/Student/OverviewHomework.aspx?homeworkId=456'};
+const call=(type,fields={},sender=overview)=>context.pearsonCourseMessage({type,...fields},sender);
+(async()=>{
+  await call('pearsonCourseStart',{assignments:[{title:'HW Section 7.5',key:'javascript:doHomework(456, false, true);'}]},list);
+  assert.equal((await call('pearsonCourseOpenQuestion',{questionId:'1'})).received,false,'no player opens before the overview is verified');
+  await call('pearsonCourseOverview',{notStarted:true,questionsPending:true,pendingQuestionIds:['1','2']});
+  for(const [fields,sender] of [[{questionId:'3'},overview],[{questionId:'1'},{...overview,frameId:8}],[{questionId:'1'},{...overview,url:overview.url.replace('456','999')}],[{questionId:'1);bad()'},overview]])assert.equal((await call('pearsonCourseOpenQuestion',fields,sender)).received,false);
+  assert.equal(created.length,0);
+  assert.equal((await call('pearsonCourseOpenQuestion',{questionId:'1'})).received,true);
+  const target=new URL(created[0].url);assert.equal(target.origin,'https://mylab.pearson.com');assert.equal(target.pathname,'/Student/PlayerHomework.aspx');assert.equal(target.searchParams.get('homeworkId'),'456');assert.equal(target.searchParams.get('questionId'),'1');assert.equal(created[0].openerTabId,10);assert.equal(created[0].active,true);
+  await call('pearsonCourseOpenQuestion',{questionId:'1'});assert.equal(created.length,1,'duplicate UI requests cannot open duplicate player tabs');
+  const player={url:'https://tdx.acs.pearson.com/Player/Player.aspx',tab:{id:20,url:created[0].url},frameId:7,documentId:'child-player'};
+  assert.equal((await call('pearsonCoursePlayerReady',{}, {...player,tab:{id:99}})).start,undefined,'missing metadata cannot authorize an unrelated player tab');
+  assert.equal((await call('pearsonCoursePlayerReady',{}, {...player,tab:{id:20,url:created[0].url.replace('456','999')}})).start,undefined,'an explicit different assignment ID overrides the recorded tab identity');
+  assert.equal((await call('pearsonCoursePlayerReady',{}, {...player,tab:{id:20}})).start,true,'the exact created player keeps its verified assignment ID while outer tab metadata is unavailable');
+  assert.equal((await call('pearsonCourseOpenQuestion',{questionId:'2'})).received,false,'a running player cannot launch another question');
+  const ui=fs.readFileSync('content-scripts/pearson-course.js','utf8');assert.match(ui,/if\(embeddedCourse\)host\.style\.display='none'/,'all embedded overview/start/list cards stay hidden');assert.match(ui,/if\(embeddedCourse\)window\.top\.postMessage/,'the single outer UI receives status from embedded overviews');assert.match(ui,/if\(embeddedCourse\)window\.addEventListener\('message'/,'the outer Stop works on overview pages as well as the list');
+  console.log('PASS verified Pearson player-tab launch, assignment identity, duplicate prevention and single embedded Course UI');
+})().catch(error=>{console.error(error);process.exitCode=1;});

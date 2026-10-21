@@ -9,11 +9,68 @@ StudyConfig.boot('mindtap', (chrome) => {
   let settings={...StudyConfig.defaults.mindtap,autoFill:false,pauseBeforeSubmit:false,showExplanation:true,gradeBeforeAdvance:false};
   const ready=chrome.storage.sync.get(settings).then(v=>Object.assign(settings,v));
   chrome.storage.onChanged.addListener((changes,area)=>{if(area==='sync')for(const key of Object.keys(settings))if(changes[key])settings[key]=changes[key].newValue;});
-  let panel,ui,pending=null,answer=null,timer=null,running=false,starting=false,guided=false,generation=0,runId=null,count=0,responseWaiter=null,pauseWaiter=null,courseRun=false,courseSkipPause=false,courseOriginalPause=null,courseReadyRequested=false;
+  let panel,ui,pending=null,answer=null,timer=null,running=false,starting=false,guided=false,generation=0,runId=null,count=0,responseWaiter=null,pauseWaiter=null,courseRun=false,courseSkipPause=false,courseOriginalPause=null,courseReadyRequested=false,assignmentRun=false;
   let done=new Set();
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const say=s=>{if(ui)ui.getElementById('status').textContent=s;};
   function questionRoots(){return [...document.querySelectorAll('section.q4-problem#quiz-cip')].filter(visible);}
+  function assignmentOverview(){return location.pathname==='/af/servlet/quiz'&&new URLSearchParams(location.search).get('quiz_action')==='showContents'&&!!document.querySelector('#tblQuestions');}
+  function assignmentItems(){
+    if(!assignmentOverview())return [];
+    const items=[...document.querySelectorAll('#tblQuestions a[href],#tblQuestions a[onclick]')].filter(visible).map(link=>{
+      const onclick=link.getAttribute('onclick')||'',href=link.getAttribute('href')||'';
+      const match=/onClickProblemSetItem\s*\(\s*['"]([^'"]+)['"]\s*\)/i.exec(onclick+' '+href);
+      if(!match)return null;
+      let target;try{target=new URL(match[1],location.origin);}catch{return null;}
+      if(target.origin!==location.origin||target.pathname!=='/af/servlet/quiz'||target.searchParams.get('quiz_action')!=='takeQuiz'||!target.searchParams.get('quiz_probGuid'))return null;
+      const title=clean(link.textContent);if(!title)return null;
+      return {id:target.searchParams.get('quiz_probGuid'),title,href:target.pathname+target.search,inProgress:/in progress/i.test(link.closest('tr')?.textContent||'')};
+    }).filter(Boolean);
+    return [...new Map(items.map(item=>[item.id,item])).values()];
+  }
+  function openAssignmentItem(item){
+    if(!item||!assignmentOverview()){say('Open the assignment question list to continue.');return false;}
+    const link=[...document.querySelectorAll('#tblQuestions a[href],#tblQuestions a[onclick]')].find(candidate=>{
+      const raw=candidate.getAttribute('onclick')||'',href=candidate.getAttribute('href')||'',match=/onClickProblemSetItem\s*\(\s*['"]([^'"]+)['"]\s*\)/i.exec(raw+' '+href);
+      try{return match&&new URL(match[1],location.origin).searchParams.get('quiz_probGuid')===item.id;}catch{return false;}
+    });
+    if(!link){say('Could not find '+item.title+' in the assignment list. Auto stopped for review.');return false;}
+    say(item.index?'Opening question set '+item.index+': '+item.title:'Opening '+item.title);link.click();watchAssignmentItem(item);return true;
+  }
+  async function startAssignmentRun(){
+    if(!assignmentOverview()){say('Open the assignment question list before using Run All Questions.');return;}
+    await ready;
+    if(settings.pacingMode==='review'){say('Run All Questions needs an Auto pace. Choose Instant, Timed or Human pace first.');return;}
+    const items=assignmentItems();if(!items.length){say('No supported question links were found in this assignment.');return;}
+    const active=items.filter(item=>item.inProgress).length;
+    const warning=active?` ${active} question set(s) are marked in progress and may contain saved answers.`:'';
+    if(!window.confirm(`Run Auto through all ${items.length} question sets in this assignment?${warning} Existing answers are preserved; Auto stops for unsupported questions. The assignment will not be submitted.`))return;
+    const result=await chrome.runtime.sendMessage({type:'mindtapAssignmentStart',items});
+    if(!result?.received){say(result?.error||'Could not start Run All Questions.');return;}
+    assignmentRun=true;ui.getElementById('stop').disabled=false;syncAssignmentControl();
+    if(!openAssignmentItem(result.item)){await chrome.runtime.sendMessage({type:'mindtapAssignmentStop'}).catch(()=>{});assignmentRun=false;ui.getElementById('stop').disabled=true;syncAssignmentControl();}
+  }
+  async function watchAssignmentItem(item){
+    const mine=++generation,started=Date.now();
+    try{
+      while(assignmentRun&&mine===generation&&Date.now()-started<30000){
+        const params=new URLSearchParams(location.search);
+        if(params.get('quiz_action')==='takeQuiz'&&params.get('quiz_probGuid')===item.id&&questionRoots().length){
+          const launched=await chrome.runtime.sendMessage({type:'mindtapAssignmentReady'}).catch(()=>null);
+          if(launched?.start){say('Run All Questions · '+(launched.index+1)+' of '+launched.total+': '+launched.title);await start();}
+          return;
+        }
+        await delay(200);
+      }
+      if(assignmentRun&&mine===generation)await stop('The next question set did not open. Auto stopped safely. Review the assignment manually.');
+    }catch(error){if(assignmentRun&&mine===generation)await stop(error.message);}
+  }
+  function syncAssignmentControl(){
+    if(!ui)return;
+    const overview=assignmentOverview(),button=ui.getElementById('run-assignment');
+    if(button){button.hidden=!overview;button.disabled=assignmentRun;button.textContent=assignmentRun?'Run in progress':'Run All Questions';}
+    for(const id of ['start','resume','ask','fill','cancel']){const control=ui.getElementById(id);if(control)control.hidden=overview;}
+  }
   function action(id){const candidates=[...document.querySelectorAll('#'+id+' button')].filter(usable);return candidates.length===1?candidates[0]:null;}
   function editable(){return Boolean(action('saveAndContinueButtonDiv')||action('gradeItNowButtonDiv')||action('checkAnswerButtonDiv'));}
   function textOf(el){
@@ -210,14 +267,15 @@ StudyConfig.boot('mindtap', (chrome) => {
     say('Answers filled. Review MindTap’s save status before submitting.');
     return fields;
   }
-  async function stop(message='Stopped.',preserveCourse=false){
+  async function stop(message='Stopped.',preserveCourse=false,preserveAssignment=false){
     if(courseRun&&!preserveCourse)await chrome.runtime.sendMessage({type:'mindtapCourseStop'}).catch(()=>{});
+    if(assignmentRun&&!preserveAssignment)await chrome.runtime.sendMessage({type:'mindtapAssignmentStop'}).catch(()=>{});
     if(courseOriginalPause!==null){settings.pauseBeforeSubmit=courseOriginalPause;courseOriginalPause=null;}
     pacer.cancel();
-    generation++;running=false;starting=false;guided=false;courseRun=false;courseSkipPause=false;entryStarted=false;graphEntryStarted=false;
+    generation++;running=false;starting=false;guided=false;courseRun=false;courseSkipPause=false;assignmentRun=preserveAssignment&&assignmentRun;entryStarted=false;graphEntryStarted=false;
     const oldId=runId,requestId=pending?.id;runId=null;pending=null;answer=null;clearTimeout(timer);
     responseWaiter?.reject(Error(message));responseWaiter=null;pauseWaiter?.reject(Error(message));pauseWaiter=null;
-    if(ui){ui.getElementById('start').disabled=filling;ui.getElementById('stop').disabled=true;ui.getElementById('resume').hidden=true;ui.getElementById('ask').disabled=filling;ui.getElementById('fill').disabled=true;ui.getElementById('cancel').disabled=true;say(message);}
+    if(ui){ui.getElementById('start').disabled=filling;ui.getElementById('stop').disabled=!assignmentRun;ui.getElementById('resume').hidden=true;ui.getElementById('ask').disabled=filling;ui.getElementById('fill').disabled=true;ui.getElementById('cancel').disabled=true;say(message);syncAssignmentControl();}
     if(oldId)await chrome.runtime.sendMessage({type:'mindtapRunStop',runId:oldId}).catch(()=>{});
     else if(requestId)await chrome.runtime.sendMessage({type:'mindtapCancel',id:requestId}).catch(()=>{});
   }
@@ -273,12 +331,50 @@ StudyConfig.boot('mindtap', (chrome) => {
       await waitFor(()=>{if(questionRoots().length&&clean(questionRoots()[0].querySelector('.q4-problem-title')?.textContent)!==snap.title)throw Error('The problem changed while grading. Auto stopped.');return action('nextQuestionButtonDiv');},mine,30000);next=action('nextQuestionButtonDiv');
     }
     await update('advance',snap.key,snap.title);if(!running||mine!==generation)throw Error('Stopped.');say('Saving and moving to the next problem…');next.click();
-    await waitFor(()=>{const roots=questionRoots();return !roots.length||snapshot(roots[0]).key!==snap.key;},mine,30000);
+    let transition;try{transition=await waitForNextQuestion(snap.key,mine,30000);}catch(error){
+      if(assignmentRun&&assignmentOverview()){await finishAssignmentSet();return false;}
+      if(questionRoots().length)throw error;
+      if(courseRun){await chrome.runtime.sendMessage({type:'mindtapCourseFinished'});await stop('Question flow finished. Review and submit this assignment yourself, then continue Course Mode.',true);return false;}
+      throw Error('Returned to the assignment list. Review and submit the assignment manually.');
+    }
+    if(transition==='overview'&&assignmentRun){await finishAssignmentSet();return false;}
     if(!questionRoots().length){
       if(courseRun){await chrome.runtime.sendMessage({type:'mindtapCourseFinished'});await stop('Question flow finished. Review and submit this assignment yourself, then continue Course Mode.',true);return false;}
       throw Error('Returned to the assignment list. Review and submit the assignment manually.');
     }
     done.add(snap.key);count++;await update('answer','');return true;
+  }
+  async function waitForResumeTarget(resumed,timeout=30000){
+    const started=Date.now();
+    while(Date.now()-started<timeout){
+      for(const root of questionRoots()){
+        try{
+          const current=snapshot(root);
+          if(resumed.phase==='grade'?current.title===resumed.lastTitle&&!!action('nextQuestionButtonDiv'):current.key!==resumed.lastKey&&current.unansweredFields.length>0)return true;
+        }catch{}
+      }
+      await delay(200);
+    }
+    return false;
+  }
+  async function waitForNextQuestion(previousKey,mine,timeout=30000){
+    return waitFor(()=>{
+      if(assignmentRun&&assignmentOverview())return 'overview';
+      for(const root of questionRoots()){
+        try{if(snapshot(root).key!==previousKey)return 'question';}catch{}
+      }
+      return false;
+    },mine,timeout);
+  }
+  async function finishAssignmentSet(){
+    const oldRun=await chrome.runtime.sendMessage({type:'mindtapRunState'}).catch(()=>null);
+    if(oldRun?.running)await chrome.runtime.sendMessage({type:'mindtapRunStop',runId:oldRun.runId}).catch(()=>{});
+    await stop('Question set finished. Moving through the assignment…',courseRun,true);
+    const result=await chrome.runtime.sendMessage({type:'mindtapAssignmentFinished'}).catch(()=>null);
+    if(!result?.received){assignmentRun=false;if(ui)syncAssignmentControl();say('Could not continue the assignment question queue. Review the assignment manually.');return;}
+    if(result.done){assignmentRun=false;if(ui){ui.getElementById('stop').disabled=true;syncAssignmentControl();}say('All question sets reached. Review your answers and submit the assignment yourself.');return;}
+    const item={...result.item,index:result.index+1};
+    if(!openAssignmentItem(item)){await chrome.runtime.sendMessage({type:'mindtapAssignmentStop'}).catch(()=>{});assignmentRun=false;if(ui){ui.getElementById('stop').disabled=true;syncAssignmentControl();}}
   }
   async function start(resumed=null){
     if(running||starting)return;
@@ -298,7 +394,7 @@ StudyConfig.boot('mindtap', (chrome) => {
         if(clean(questionRoots()[0].querySelector('.q4-problem-title')?.textContent)!==resumed.lastTitle)throw Error('The problem changed during grading. Review it manually.');
         if(!action('nextQuestionButtonDiv'))throw Error('A grading transition was interrupted. Review the current problem manually.');
         await update('advance',resumed.lastKey,resumed.lastTitle);if(!running||mine!==generation)throw Error('Stopped.');action('nextQuestionButtonDiv').click();
-        await waitFor(()=>!questionRoots().length||snapshot(questionRoots()[0]).key!==resumed.lastKey,mine,30000);
+        await waitForNextQuestion(resumed.lastKey,mine,30000);
       }
       if(resumed?.phase==='advance'&&questionRoots().length&&snapshot(questionRoots()[0]).key===resumed.lastKey)throw Error('Navigation did not leave the previous problem. Review its save state manually.');
       while(running&&mine===generation){
@@ -327,15 +423,31 @@ StudyConfig.boot('mindtap', (chrome) => {
   async function beginCourse(){
     if(courseReadyRequested||!ui)return;courseReadyRequested=true;
     await ready;
+    const assignmentState=await chrome.runtime.sendMessage({type:'mindtapAssignmentState'}).catch(()=>null);
+    if(assignmentState?.running){
+      assignmentRun=true;ui.getElementById('stop').disabled=assignmentState.phase==='review';syncAssignmentControl();
+      if(assignmentState.phase==='review'){say('All question sets reached. Review your answers and submit the assignment yourself.');return;}
+      if(assignmentOverview()){
+        if(assignmentState.phase==='running'){await finishAssignmentSet();return;}
+        if(assignmentState.phase==='opening'){openAssignmentItem({...assignmentState.item,index:assignmentState.index+1});return;}
+      }
+      if(new URLSearchParams(location.search).get('quiz_action')==='takeQuiz'&&assignmentState.phase==='opening'){
+        const launched=await chrome.runtime.sendMessage({type:'mindtapAssignmentReady'}).catch(()=>null);
+        if(launched?.start){say('Run All Questions · '+(launched.index+1)+' of '+launched.total+': '+launched.title);await start();return;}
+      }
+    }
     const courseState=await chrome.runtime.sendMessage({type:'mindtapCourseReady'}).catch(()=>null);
     if(courseState?.start){courseRun=true;courseSkipPause=courseState.skipReviewPause===true;if(courseSkipPause){courseOriginalPause=settings.pauseBeforeSubmit;settings.pauseBeforeSubmit=false;}}
     const resumed=await chrome.runtime.sendMessage({type:'mindtapRunState'}).catch(()=>null);
     if(resumed?.running){
       const transitionFresh=['grade','advance'].includes(resumed.phase)&&Date.now()-(resumed.time||0)<2*60*1000;
-      if(transitionFresh&&questionRoots().length){say('MindTap refreshed while moving to the next question. Reconnecting Auto…');await start(resumed);return;}
+      if(transitionFresh){
+        say('MindTap is loading the next question. Reconnecting Auto…');
+        if(await waitForResumeTarget(resumed)){await start(resumed);return;}
+      }
       await chrome.runtime.sendMessage({type:'mindtapRunStop',runId:resumed.runId}).catch(()=>{});
-      if(courseRun)await chrome.runtime.sendMessage({type:'mindtapCourseBlocked',reason:'MindTap refreshed outside a safe question transition. Review the current assignment before continuing.'}).catch(()=>{});
-      courseRun=false;say('MindTap refreshed. Review the current assignment; Auto stopped safely.');globalThis.StudyMonitor?.notice('MindTap refreshed outside a safe transition. Review the current assignment before resuming.');return;
+      if(courseRun)await chrome.runtime.sendMessage({type:'mindtapCourseBlocked',reason:'MindTap did not finish loading the next question. Review the current assignment before continuing.'}).catch(()=>{});
+      courseRun=false;say(transitionFresh?'The next question did not finish loading. Auto stopped safely; review the assignment and restart.':'MindTap refreshed outside a safe question transition. Review the current assignment; Auto stopped safely.');globalThis.StudyMonitor?.notice('MindTap refreshed without a safe question transition. Review the current assignment before resuming.');return;
     }
     if(!courseState?.start)return;
     if(settings.pacingMode==='review'){await chrome.runtime.sendMessage({type:'mindtapCourseBlocked',reason:'Guided Answers is one question at a time. Choose an Auto pace before starting Course Mode.'}).catch(()=>{});say('Course Mode needs Instant Auto, Timed Auto or Human pace.');return;}
@@ -349,8 +461,9 @@ StudyConfig.boot('mindtap', (chrome) => {
     if(!questionRoots().length&&!(location.hostname==='aplia.apps.ng.cengage.com'&&location.pathname==='/af/servlet/quiz'))return;
     panel=document.createElement('div');panel.id='mindtap-assistant-panel';panel.style.cssText='position:fixed;right:16px;bottom:70px;z-index:2147483647;max-width:calc(100vw - 32px)';
     ui=panel.attachShadow({mode:'open'});
-    ui.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#eee}*{box-sizing:border-box}details{width:330px;max-width:calc(100vw - 32px);background:#141414;border:1px solid #414141;border-radius:14px;box-shadow:0 8px 30px #0004;padding:14px}summary{cursor:pointer;font-size:15px;font-weight:650}.badge{color:#a3aaff;font-size:11px;margin:8px 0}button{font:inherit;margin:8px 5px 0 0;padding:8px 12px;border:0;border-radius:8px;background:#5264ff;color:white;cursor:pointer}button.secondary{background:#303030}button:disabled{opacity:.45}pre{white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;font:13px/1.5 system-ui}#status{color:#ccc}small{color:#aaa}</style><details><summary>✦ MindTap Assistant</summary><div class="badge">STUDY ASSISTANT · MINDTAP APLIA 2.7.4</div><button id="start">Start Auto</button><button id="stop" class="secondary" disabled>Stop</button><button id="resume" hidden>Resume Auto</button><br><button id="ask">Ask AI</button><button id="fill" disabled>Fill answers</button><button id="cancel" class="secondary" disabled>Cancel</button><pre id="status">Ready. Start Auto fills unanswered supported questions. Turn Pause After Fill off in settings to continue automatically. Existing answers are preserved. Final submission is manual.</pre><pre id="preview"></pre><small>Aplia fields. Graphs and other MindTap players require manual work. Final submission is manual.</small></details>';
+    ui.innerHTML='<style>:host{font:13px/1.5 system-ui;color:#eee}*{box-sizing:border-box}details{width:330px;max-width:calc(100vw - 32px);background:#141414;border:1px solid #414141;border-radius:14px;box-shadow:0 8px 30px #0004;padding:14px}summary{cursor:pointer;font-size:15px;font-weight:650}.badge{color:#a3aaff;font-size:11px;margin:8px 0}button{font:inherit;margin:8px 5px 0 0;padding:8px 12px;border:0;border-radius:8px;background:#5264ff;color:white;cursor:pointer}button.secondary{background:#303030}button:disabled{opacity:.45}pre{white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;font:13px/1.5 system-ui}#status{color:#ccc}small{color:#aaa}</style><details><summary>✦ MindTap Assistant</summary><div class="badge">STUDY ASSISTANT · MINDTAP APLIA 2.7.4</div><button id="start">Start Auto</button><button id="stop" class="secondary" disabled>Stop</button><button id="resume" hidden>Resume Auto</button><button id="run-assignment" hidden>Run All Questions</button><br><button id="ask">Ask AI</button><button id="fill" disabled>Fill answers</button><button id="cancel" class="secondary" disabled>Cancel</button><pre id="status">Ready. Start Auto fills unanswered supported questions. Turn Pause After Fill off in settings to continue automatically. Existing answers are preserved. Final submission is manual.</pre><pre id="preview"></pre><small>Aplia fields. Graphs and other MindTap players require manual work. Final submission is manual.</small></details>';
     ui.getElementById('start').onclick=()=>start();ui.getElementById('stop').onclick=()=>stop();ui.getElementById('cancel').onclick=()=>stop();
+    ui.getElementById('run-assignment').onclick=()=>startAssignmentRun().catch(error=>say(error.message));
     ui.getElementById('resume').onclick=()=>{ui.getElementById('resume').hidden=true;const waiter=pauseWaiter;pauseWaiter=null;waiter?.resolve();};
     ui.getElementById('ask').onclick=async()=>{try{await ready;await request(choose());}catch(e){await stop(e.message);}};
     ui.getElementById('fill').onclick=()=>fill().catch(e=>stop(e.message));document.body.append(panel);pacer.attach(ui);
@@ -358,5 +471,5 @@ StudyConfig.boot('mindtap', (chrome) => {
     beginCourse().catch(error=>say(error.message));
   }
   globalThis.StudyMonitor?.setRecovery(async()=>{if(running||starting||pending||filling)throw Error('Stop the current work before recovering.');if(questionRoots().some(root=>hasAnswer(snapshot(root))))throw Error('Review and save the existing answer manually, then move to an unanswered problem before recovering.');const recoveryToken=generation;const state=await chrome.runtime.sendMessage({type:'mindtapRunStart',resumeCheckpoint:true});if(!state?.running)throw Error(state?.error||'No saved progress.');if(recoveryToken!==generation){await chrome.runtime.sendMessage({type:'mindtapRunStop',runId:state.runId});throw Error('Recovery cancelled.');}start(state);});
-  new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});mount();
+    new MutationObserver(()=>{mount();syncAssignmentControl();}).observe(document.documentElement,{childList:true,subtree:true});mount();syncAssignmentControl();
 });

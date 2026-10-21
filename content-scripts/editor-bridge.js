@@ -3,9 +3,8 @@
   'use strict';
   const numeric = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
   const normalize = s => String(s).replace(/[\s\u200B-\u200D\uFEFF]/g, '').replace(/\u2212/g, '-');
-  const label = s => String(s||'').replace(/\s+/g,' ').trim();
   async function chooseDropdown(field){
-    if(typeof field.id!=='string'||!/^FL[A-Za-z0-9]+$/.test(field.id)||typeof field.value!=='string'||!field.value.trim()||field.value.length>200)throw Error('Invalid Pearson dropdown choice.');
+    if(typeof field.id!=='string'||!/^[A-Za-z][A-Za-z0-9_-]{0,99}$/.test(field.id)||typeof field.value!=='string'||!field.value.trim()||field.value.length>200)throw Error('Invalid Pearson dropdown choice.');
     const hit=document.getElementById(field.id);
     if(!hit?.matches('.xlFillinItem[aria-haspopup]')||!hit.closest('.contentPanel .contentHolder')||!hit.getClientRects().length||hit.closest('[aria-disabled="true"],.disabled')||hit.classList.contains('answered'))throw Error('Pearson dropdown is unavailable or read-only.');
     const widget=window.dijit?.byNode(hit.parentElement);
@@ -16,10 +15,10 @@
     });
     widget.openDropDown();
     const menu=document.getElementById(hit.getAttribute('aria-owns')||field.id+'_menu');
-    const choices=[...(menu?.querySelectorAll('[role="option"]')||[])].filter(el=>label(el.querySelector('.dijitMenuItemLabel')?.textContent||el.textContent)===field.value);
+    const choices=[...(menu?.querySelectorAll('[role="option"]')||[])].filter(el=>StudyPearsonLabels.text(el.querySelector('.dijitMenuItemLabel')||el)===field.value);
     if(choices.length!==1)throw Error('Pearson did not show a unique matching dropdown choice.');
     choices[0].click();
-    if(label(hit.textContent).replace(/^▼\s*/,'')!==field.value)throw Error('Pearson did not retain the dropdown choice.');
+    if(StudyPearsonLabels.text(hit)!==field.value)throw Error('Pearson did not retain the dropdown choice.');
   }
   document.addEventListener('mylab-assistant-editor-request', async event => {
     let request;

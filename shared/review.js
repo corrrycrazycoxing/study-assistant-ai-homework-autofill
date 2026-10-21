@@ -3,6 +3,7 @@
   function activity(s){
     const p=s.page,status=p?.status||'',run=s.run?.tab===p?.tab?s.run:null;
     if(!p)return {stage:null,label:'Connect an assignment to see progress'};
+    if(s.phase==='reloading')return {stage:1,label:'Tab reloading…'};
     if(s.phase==='vision')return {stage:0,label:'Reading the picture'};
     if(s.phase==='grounding')return {stage:1,label:'Checking assigned readings'};
     if(s.phase==='formatting')return {stage:2,label:'Preparing the source answer'};
@@ -19,6 +20,7 @@
   function recovery(s,localError=''){
     const text=localError||s.page?.status||'',page=s.page;
     if(!page)return {kind:'connection',title:'Connect your assignment',message:'Open a supported assignment, reload it after updating, then refresh this panel.',actions:['refresh']};
+    if(s.phase==='reloading')return null;
     if(/extension context invalidated|extension updated|reloaded|reload the extension|stale|assignment.*changed|question.*changed|panel connection|controls changed|receiving end/i.test(text))return {kind:'connection',title:'Reconnect the page',message:'Reload the assignment and AI tabs after an update, then refresh the panel. Entered answers stay on the assignment.',actions:['refresh','manual']};
     if(/notebook|sources? (?:do not|did not|missing|unavailable)|selected sources/i.test(text)&&/failed|not open|unavailable|reload|missing|choose|review|not support/i.test(text))return {kind:'readings',title:'Check your readings connection',message:'Open the selected notebook, select relevant sources and clear any unsent prompt. Then ask again when it is ready.',actions:['notebook','refresh','ask']};
     if(/timed out|timeout|no answer received|AI.*(?:failed|unavailable|did not accept)|chatbot|could not reach.*AI|no ready|AI tab.*(?:closed|busy)|open.*AI tab|regular.*tab|unsent draft|frozen/i.test(text))return {kind:'ai',title:'Check the chatbot connection',message:'Open your chatbot, finish signing in or clear its unsent draft, then refresh. Ask AI again sends a new request; it does not replay a save or grading step.',actions:['ai','refresh','ask']};

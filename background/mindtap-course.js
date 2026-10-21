@@ -4,15 +4,60 @@ async function mindtapCourseMessage(message,sender){
   let url;try{url=new URL(sender.url||'');}catch{return {received:false};}
   const host=url.origin==='https://ng.cengage.com'&&url.pathname==='/static/nb/ui/evo/index.html';
   const player=url.origin==='https://aplia.apps.ng.cengage.com'&&url.pathname==='/af/servlet/quiz';
+  const assignmentAction=url.searchParams.get('quiz_action');
+  const assignmentOverview=player&&assignmentAction==='showContents';
+  const assignmentQuestion=player&&assignmentAction==='takeQuiz';
   const read=async()=>((await chrome.storage.session.get('mindtapCourse')).mindtapCourse||null);
   const save=run=>chrome.storage.session.set({mindtapCourse:run});
   if(message.type==='mindtapCourseStart'){
+    const {mindtapAssignmentRun}=await chrome.storage.session.get('mindtapAssignmentRun');
+    if(mindtapAssignmentRun?.tab===sender.tab.id&&mindtapAssignmentRun.phase!=='review')throw Error('An assignment question run is already active in this tab.');
     const categories=Array.isArray(message.selectedCategories)?message.selectedCategories:['apply'];
     const includeInProgress=message.includeInProgress===true;
     if(!host||sender.frameId!==0||categories.length>4||categories.some(key=>!StudyMindTapCourse.categoryKeys.includes(key))||!Array.isArray(message.assignments)||!message.assignments.length||message.assignments.length>200||message.assignments.some(a=>!StudyMindTapCourse.eligible(a,categories,{includeInProgress})))throw Error('Choose supported activity sections and assessments explicitly marked Not started, or explicitly allow in-progress work.');
     const run={tab:sender.tab.id,courseUrl:url.href,assignments:message.assignments,selectedCategories:categories,includeInProgress,index:0,phase:'opening',done:[],skipped:[],skipReviewPause:message.skipReviewPause===true,time:Date.now()};
     await save(run);await chrome.tabs.sendMessage(run.tab,{type:'mindtapCourseOpen',item:run.assignments[0],index:0,total:run.assignments.length},{frameId:0}).catch(()=>{});
     return {received:true,phase:run.phase,title:run.assignments[0].title,total:run.assignments.length};
+  }
+  if(message.type==='mindtapAssignmentStart'){
+    if(!assignmentOverview||sender.frameId===0||!Array.isArray(message.items)||!message.items.length||message.items.length>100)throw Error('Open an Aplia assignment question list before starting Run All Questions.');
+    const context=url.searchParams.get('ctx');
+    const items=message.items.map(item=>{
+      if(!item||typeof item.title!=='string'||!item.title.trim()||item.title.length>300||typeof item.href!=='string'||item.href.length>2000)throw Error('The assignment question list could not be read safely.');
+      let target;try{target=new URL(item.href,url.origin);}catch{throw Error('A question link in this assignment is invalid.');}
+      if(target.origin!==url.origin||target.pathname!=='/af/servlet/quiz'||target.searchParams.get('quiz_action')!=='takeQuiz'||!/^Q[A-Za-z0-9_-]{8,100}$/.test(target.searchParams.get('quiz_probGuid')||'')||!context||target.searchParams.get('ctx')!==context)throw Error('A question link does not belong to this MindTap assignment.');
+      return {id:target.searchParams.get('quiz_probGuid'),title:item.title.trim(),href:target.pathname+target.search};
+    });
+    const {autoRun,mindtapCourse,mindtapAssignmentRun}=await chrome.storage.session.get(['autoRun','mindtapCourse','mindtapAssignmentRun']);
+    if(autoRun?.tab===sender.tab.id||mindtapCourse?.tab===sender.tab.id&&['opening','running','review'].includes(mindtapCourse.phase)||mindtapAssignmentRun?.tab===sender.tab.id&&mindtapAssignmentRun.phase!=='review')throw Error('Stop the current MindTap automation before starting Run All Questions.');
+    const run={tab:sender.tab.id,frame:sender.frameId,origin:url.origin,context,items,index:0,phase:'opening',done:[],time:Date.now()};
+    await chrome.storage.session.set({mindtapAssignmentRun:run});
+    return {received:true,phase:run.phase,item:items[0],index:0,total:items.length};
+  }
+  if(message.type==='mindtapAssignmentState'){
+    const {mindtapAssignmentRun:run}=await chrome.storage.session.get('mindtapAssignmentRun');
+    if(!player||run?.tab!==sender.tab.id||url.searchParams.get('ctx')!==run.context)return {received:true,running:false};
+    if(Date.now()-run.time>4*60*60*1000){await chrome.storage.session.remove('mindtapAssignmentRun');return {received:true,running:false};}
+    return {received:true,running:true,phase:run.phase,index:run.index,total:run.items.length,item:run.items[run.index]||null,done:run.done.length};
+  }
+  if(message.type==='mindtapAssignmentReady'){
+    const {mindtapAssignmentRun:run}=await chrome.storage.session.get('mindtapAssignmentRun');
+    if(!assignmentQuestion||run?.tab!==sender.tab.id||url.searchParams.get('ctx')!==run.context||url.searchParams.get('quiz_probGuid')!==run.items[run.index]?.id||run.phase!=='opening')return {received:false};
+    run.phase='running';run.time=Date.now();await chrome.storage.session.set({mindtapAssignmentRun:run});
+    return {received:true,start:true,index:run.index,total:run.items.length,title:run.items[run.index].title};
+  }
+  if(message.type==='mindtapAssignmentFinished'){
+    const {mindtapAssignmentRun:run}=await chrome.storage.session.get('mindtapAssignmentRun');
+    if(!assignmentOverview||run?.tab!==sender.tab.id||url.searchParams.get('ctx')!==run.context||run.phase!=='running')return {received:false};
+    run.done.push(run.items[run.index]);run.index++;run.time=Date.now();
+    if(run.index>=run.items.length)run.phase='review';else run.phase='opening';
+    await chrome.storage.session.set({mindtapAssignmentRun:run});
+    return {received:true,phase:run.phase,done:run.phase==='review',index:run.index,total:run.items.length,item:run.items[run.index]||null,completed:run.done.length};
+  }
+  if(message.type==='mindtapAssignmentStop'){
+    const {mindtapAssignmentRun:run}=await chrome.storage.session.get('mindtapAssignmentRun');
+    if(!player||run?.tab!==sender.tab.id)return {received:false};
+    await chrome.storage.session.remove('mindtapAssignmentRun');return {received:true};
   }
   const run=await read();
   if(message.type==='mindtapCourseState'){

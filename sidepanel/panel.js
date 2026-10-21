@@ -121,7 +121,7 @@ function render(s){
  select.value=value;select.disabled=!options.length||busy||!!draftState;
  $('platform').textContent=page?StudyConfig.names[page.platform]: 'No assignment connected';
  $('count').textContent=(s.run&&page&&s.run.tab===page.tab?s.run.count:s.checkpoint?.count||0)+' confirmed';
- const phases={vision:'Reading the picture',grounding:'Checking NotebookLM readings',formatting:'Formatting the source answer',answer:'Waiting for AI'};
+ const phases={reloading:'Tab reloading…',vision:'Reading the picture',grounding:'Checking NotebookLM readings',formatting:'Formatting the source answer',answer:'Waiting for AI'};
  $('phase').textContent=s.phase?phases[s.phase]||s.phase:page?.timer?'Review countdown':s.run&&page&&s.run.tab===page.tab?'Auto in progress':page?'Assignment connected':'Open a supported assignment';
  $('status').textContent=page?.status||'Reload a supported assignment after loading this version. Its page controls remain available when this panel is closed.';
  const update=s.updateAvailable;

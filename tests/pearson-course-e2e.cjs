@@ -5,8 +5,8 @@ const vm=require('node:vm');
 // Drive the production background state machine through a complete synthetic
 // Pearson course run. No browser, Pearson account, or assignment is contacted.
 const stored={},messages=[],updates=[];
-const chrome={storage:{session:{get:async key=>({[key]:stored[key]}),set:async value=>Object.assign(stored,value),remove:async key=>{delete stored[key];}}},tabs:{sendMessage:async(tab,message,options)=>{messages.push({tab,message,options});return {received:true};},update:async(tab,options)=>{updates.push({tab,options});return {};}}};
-const context={chrome,URL,Date,Error};vm.createContext(context);
+const chrome={storage:{local:{get:async key=>({[key]:stored[key]}),set:async values=>Object.assign(stored,values)},session:{get:async key=>({[key]:stored[key]}),set:async value=>Object.assign(stored,value),remove:async key=>{delete stored[key];}}},tabs:{sendMessage:async(tab,message,options)=>{messages.push({tab,message,options});return {received:true,saveClicked:message.type==='pearsonCourseSave'};},update:async(tab,options)=>{updates.push({tab,options});return {};}}};
+const context={chrome,URL,Date,Error,crypto:require('node:crypto').webcrypto};vm.createContext(context);
 vm.runInContext(fs.readFileSync('background/pearson-course.js','utf8'),context);
 const send=(type,from,fields={})=>context.pearsonCourseMessage({type,...fields},from);
 const link=(id,title)=>({title,key:`javascript:doHomework(${id}, false, true)`});
@@ -21,6 +21,19 @@ const player=(id,questionId,tabId=11)=>({url:`https://mylab.pearson.com/Student/
   const skipped={title:'Already-scored lesson',reason:'Already has a score'};
   assert.equal((await send('pearsonCourseStart',list,{assignments:[lesson,homework],skippedAssignments:[skipped],skipReviewPause:true})).received,true);
   assert.equal((await send('pearsonCourseList',list)).title,lesson.title);
+
+  // Native Start may go straight to the nested player, with no Overview.
+  assert.equal((await send('pearsonCoursePlayerReady',player(101,'11'))).start,undefined,'a matching tab alone cannot start unverified work');
+  assert.equal((await send('pearsonCourseGate',gate(101),{canStart:true})).action,'start');
+  const nestedPlayer={url:'https://tdx.acs.pearson.com/Player/Player.aspx?cultureId=en-US',tab:{id:11,openerTabId:10,url:'https://mylab.pearson.com/Student/PlayerHomework.aspx?homeworkId=101&questionId=11'},frameId:8,documentId:'player-doc'};
+  assert.equal((await send('pearsonCoursePlayerReady',{...nestedPlayer,tab:{...nestedPlayer.tab,id:12,openerTabId:99}})).start,undefined,'an unrelated tab cannot claim a launch');
+  assert.equal((await send('pearsonCoursePlayerReady',{...nestedPlayer,tab:{...nestedPlayer.tab,url:'https://mylab.pearson.com/Student/PlayerHomework.aspx?homeworkId=999'}})).start,undefined,'another assignment cannot claim a launch');
+  assert.equal((await send('pearsonCoursePlayerReady',{...nestedPlayer,url:'https://mylab.pearson.com/Student/OverviewHomework.aspx?homeworkId=101'})).start,undefined,'wrapper and overview documents cannot claim the question runner');
+  assert.equal((await send('pearsonCoursePlayerReady',nestedPlayer)).start,true,'verified native Start hands off directly to the actual nested question frame');
+  assert.equal(stored.pearsonCourse.playerFrame,8);
+  assert.equal((await send('pearsonCoursePlayerReady',nestedPlayer)).start,undefined,'duplicate ready events cannot start a second run');
+  await send('pearsonCourseStop',list);
+  await send('pearsonCourseStart',list,{assignments:[lesson,homework],skippedAssignments:[skipped],skipReviewPause:true});
 
   // Pearson confirms the native Start button before entering the assignment.
   assert.equal((await send('pearsonCourseGate',gate(101),{canStart:true})).action,'start');
@@ -58,7 +71,7 @@ const player=(id,questionId,tabId=11)=>({url:`https://mylab.pearson.com/Student/
   assert.equal(report.skippedAssignments[0].title,skipped.title);
   assert.equal(report.pendingMediaAssignments[0].title,homework.title,'the end-of-run report retains pending media for the specific assignment');
   assert.equal(report.pendingMediaAssignments[0].assignmentId,'202','the media-review action is tied to the Pearson assignment ID');
-  assert.equal(updates.at(-1).options.url,list.url,'the last Save returns to the original course assignment list');
+  assert.equal(messages.at(-1).message.type,'pearsonCourseReturnToList');assert.equal(messages.at(-1).message.url,list.url,'the last Save returns the assignment frame to the original list');
   assert.equal(messages.filter(item=>item.message.type==='pearsonCourseSave').length,2);
 
   // Unknown unanswered questions still stop the run; media status is tracked

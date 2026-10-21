@@ -52,13 +52,13 @@
   "content_scripts": [
     {
       "matches": ["https://mylab.pearson.com/Student/DoAssignments.aspx*", "https://mylab.pearson.com/courses/*/assignments*", "https://mylab.pearson.com/Student/DoHomework.aspx*", "https://mylab.pearson.com/Student/OverviewHomework.aspx*"],
-      "js": ["content-scripts/pearson-course.js"],
+      "js": ["shared/pearson-course-ui.js", "content-scripts/pearson-course.js"],
       "all_frames": true,
       "run_at": "document_idle"
     },
     {
       "matches": ["https://mylabmastering.pearson.com/courses/*/menu/*"],
-      "js": ["content-scripts/pearson-course-shell.js"],
+      "js": ["shared/pearson-course-ui.js", "content-scripts/pearson-course-shell.js"],
       "run_at": "document_idle"
     },
     {
@@ -101,6 +101,7 @@
         "https://mylab.pearson.com/*"
       ],
       "js": [
+        "shared/pearson-labels.js",
         "content-scripts/editor-bridge.js",
         "content-scripts/player-bridge.js"
       ],
@@ -154,6 +155,9 @@
         "shared/monitor.js",
         "shared/pacing.js",
         "shared/media.js",
+        "shared/pearson-labels.js",
+        "shared/review.js",
+        "shared/pearson-course-ui.js",
         "content-scripts/pearson.js"
       ],
       "all_frames": true,

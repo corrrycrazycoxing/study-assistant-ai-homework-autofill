@@ -6,7 +6,7 @@
   const hidden=new Map(),leases=new Set();let connectListener=null,acknowledged=false,welcomeHost=null,storageListener=null;
   const definitions=[
     ['study-connect-assistant','mcgraw',{start:'[data-start]',ask:'[data-ask]',fill:'[data-fill]',resume:'[data-resume]',stop:'[data-stop]'},'[data-status]','[data-preview]'],
-    ['mylab-assistant-panel','pearson',{start:'#start',ask:'#ask',fill:'#apply',resume:'#resume',stop:'#stop'},'#status','#preview'],
+    ['mylab-assistant-panel','pearson',{start:'#start',ask:'#ask',fill:'#apply',resume:'#resume',stop:'#assignment-controls:not([hidden]) #stop,#course-auto-view:not([hidden]) #stop-course-auto'},'#status','#preview'],
     ['canvas-assistant-panel','canvas',{start:'#start',ask:'#ask',fill:'#fill',resume:'#resume',stop:'#stop'},'#status','#preview'],
     ['mindtap-assistant-panel','mindtap',{start:'#start',ask:'#ask',fill:'#fill',resume:'#resume',stop:'#stop'},'#status','#preview']
   ];

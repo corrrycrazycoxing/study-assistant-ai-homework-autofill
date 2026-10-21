@@ -1,0 +1,42 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const ui=fs.readFileSync('content-scripts/pearson-course.js','utf8');
+const scoreCode=ui.slice(ui.indexOf('  const scored='),ui.indexOf('  const questionLinks='));
+const parseCode=ui.slice(ui.indexOf('  function parseScore('),ui.indexOf('  async function readScore('));
+const overviewCode=ui.slice(ui.indexOf('  let overviewReadAttempts='),ui.indexOf('  async function gateReady('));
+const makeLink=(id,score)=>({score,textContent:'Question '+id,closest(){return {textContent:'Question '+id+' '+this.score};},querySelectorAll(){return this.correct?[{getAttribute:()=> 'Correct'}]:[];},getAttribute:name=>name==='href'?'javascript:doExercise('+id+');':null});
+const links=[makeLink(1,'(5/5)'),makeLink(2,'(5/5)'),makeLink(3,'(0.83/5)'),...['4','5','6','7'].map(id=>makeLink(id,'(0/5)'))];
+let currentScore='30.95% (10.83 points out of 35)',scheduled=[],counts=[];const sent=[];
+const scope={Number,String,clean:value=>String(value||'').replace(/\s+/g,' ').trim(),document:{getElementById:()=>({textContent:currentScore}),querySelectorAll:()=>counts.map(textContent=>({textContent}))},questionLinks:()=>links,mediaLinks:()=>[],unstartedWork:()=>false,status:()=>{},setTimeout:fn=>scheduled.push(fn),send:async(type,fields)=>{sent.push({type,...fields});return {received:false};}};
+vm.createContext(scope);vm.runInContext(parseCode+scoreCode+overviewCode,scope);
+(async()=>{
+  await scope.overviewReady();const payload=sent.at(-1);
+  assert.equal(payload.canResume,true,'the live 0.83/5 partial-credit question must not exclude started work');assert.deepEqual(Array.from(payload.pendingQuestionIds),['3','4','5','6','7']);
+  currentScore='30.95 % (10.83 points out of 35)';await scope.overviewReady();assert.equal(sent.at(-1).canResume,true,'spaces before the percent sign are supported');
+  currentScore='';links[2].score='';sent.length=0;await scope.overviewReady();assert.equal(sent.length,0,'loading scores cannot be treated as unavailable immediately');assert.equal(scheduled.length,1);
+  currentScore='30.95% (10.83 points out of 35)';links[2].score='(0.83/5)';await scheduled.shift()();assert.equal(sent.at(-1).canResume,true,'delayed scores are rechecked');
+  links[2].score='(3/6)';links[2].correct=true;await scope.overviewReady();assert(!Array.from(sent.at(-1).pendingQuestionIds).includes('3'),'Pearson Correct remains complete despite late-penalty credit below maximum');
+  links[2].correct=false;links[2].textContent='Question 3 Correct';await scope.overviewReady();assert(!Array.from(sent.at(-1).pendingQuestionIds).includes('3'),'hidden accessible Correct text matches the live link description despite penalty points');links[2].textContent='Question 3';
+  links[2].score='(0.83/5)';for(const link of links)link.score='(5/5)';currentScore='100% (35 points out of 35)';await scope.overviewReady();assert.equal(sent.at(-1).canResume,false,'completed assignments remain excluded');
+
+  links[2].score='(3/6)';links[2].correct=false;currentScore='92.50% (37 points out of 40)';counts=['Questions: 7','Correct: 7','Partial Credit: 0','Incorrect: 0'];await scope.overviewReady();assert.equal(sent.at(-1).questionsPending,false,'the overview all-Correct count excludes finished penalty-credit work even if an individual icon has no readable label');assert.equal(sent.at(-1).canResume,false);counts=[];
+
+  const stored={},storage={get:async keys=>Object.fromEntries((Array.isArray(keys)?keys:[keys]).map(key=>[key,stored[key]])),set:async value=>Object.assign(stored,value)};
+  const bg={URL,Date,Error,crypto:require('node:crypto').webcrypto,chrome:{storage:{session:storage,local:storage},tabs:{sendMessage:async()=>({received:true})}}};vm.createContext(bg);vm.runInContext(fs.readFileSync('background/pearson-course.js','utf8'),bg);
+  const list={url:'https://mylab.pearson.com/courses/123/assignments',tab:{id:10},frameId:2};
+  const gate={...list,url:'https://mylab.pearson.com/Student/DoHomework.aspx?homeworkId=456'};
+  const overview={...list,url:'https://mylab.pearson.com/Student/OverviewHomework.aspx?homeworkId=456'};
+  const player={url:'https://tdx.acs.pearson.com/Player/Player.aspx',tab:{id:20,openerTabId:10,url:'https://mylab.pearson.com/Student/PlayerHomework.aspx?homeworkId=456'},frameId:7};
+  const assignments=[{title:'HW Section 7.5-7.6 Hypothesis Tests T and Prop',key:'javascript:doHomework(456, false, true);'}];
+  const call=(type,sender,fields={})=>bg.pearsonCourseMessage({type,...fields},sender);
+  await call('pearsonCourseStart',list,{assignments,includeStarted:true});
+  assert.equal((await call('pearsonCourseGate',gate,{canStart:false,canResume:false})).action,'overview','opted-in work is inspected even without an exact Resume label');
+  assert.equal((await call('pearsonCoursePlayerReady',player)).start,undefined,'inspection alone never authorizes answers');
+  assert.equal((await call('pearsonCourseOverview',overview,payload)).action,'question');
+  assert.equal((await call('pearsonCoursePlayerReady',player)).start,true,'verified partial-credit work starts Auto');
+  await call('pearsonCourseStart',list,{assignments,includeStarted:false});
+  assert.equal((await call('pearsonCourseGate',gate,{canStart:false,canResume:false})).action,'done','started work still requires opt-in');
+  await call('pearsonCourseStart',list,{assignments,includeStarted:false});
+  assert.equal((await call('pearsonCourseGate',gate,{canStart:true,requireQuestionRoutes:true})).action,'overview','new unstarted launches also verify question routes before starting');
+  assert.equal((await call('pearsonCoursePlayerReady',player)).start,undefined,'the route inspection never starts Auto before the overview');
+  console.log('PASS Pearson started homework with fractional credit, delayed scores, gate inspection and Auto authorization');
+})().catch(error=>{console.error(error);process.exitCode=1;});

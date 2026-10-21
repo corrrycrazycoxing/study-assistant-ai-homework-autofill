@@ -24,15 +24,16 @@ async function receivePageState(m,sender){
   const fresh=Object.fromEntries(Object.entries(pageStates).filter(([,v])=>Date.now()-v.updated<20000).slice(-30));await chrome.storage.session.set({pageStates:fresh});return {received:true};
 }
 async function connections(settings){
+  const {aiTabRecovery}=await chrome.storage.session.get('aiTabRecovery'),reloading=aiTabRecovery&&Date.now()-aiTabRecovery.time<30000?aiTabRecovery.ai:null;
   const services=[];for(const [model,pattern] of Object.entries(hosts)){
     const tabs=await chrome.tabs.query({url:pattern});let status='Not open',ready=false;
-    for(const tab of tabs){if(tab.frozen||tab.discarded){status='Open tab to resume';continue;}try{const r=await chrome.tabs.sendMessage(tab.id,{type:'assistantReady'});status=r?.reason||'Needs reload';if(r?.ready){status='Ready';ready=true;break;}}catch{status='Reload this tab';}}
+    for(const tab of tabs){if(tab.id===reloading){status='Tab reloading…';continue;}if(tab.frozen||tab.discarded){status='Open tab to resume';continue;}const r=await probeAiTab(tab,model);status=r.reason==='Disconnected'?'Reconnects automatically when needed':r.reason||'Needs reload';if(r.ready){status='Ready';ready=true;break;}}
     services.push({model,ready,status});
   }
   const books=(await chrome.tabs.query({url:notebookHosts})).filter(t=>{try{return /^\/notebook\/[^/]+\/?$/.test(new URL(t.url).pathname);}catch{return false;}});
   const selected=settings?.notebookUrl?books.filter(t=>t.url.split('?')[0]===settings.notebookUrl.split('?')[0]):books;
   let notebook={ready:false,status:!selected.length?(books.length?'Selected notebook is not open':'Not open'):selected.length>1?'Choose one readings notebook':'Needs reload'};
-  if(selected.length===1){if(selected[0].frozen||selected[0].discarded)notebook.status='Open tab to resume';else try{const r=await chrome.tabs.sendMessage(selected[0].id,{type:'notebookReady'});notebook={ready:!!r?.ready,status:r?.reason||(!r?.ready?'Needs reload':'Ready'),sources:r?.sources||0};}catch{notebook.status='Reload this notebook';}}
+  if(selected.length===1){if(selected[0].id===reloading)notebook.status='Tab reloading…';else if(selected[0].frozen||selected[0].discarded)notebook.status='Open tab to resume';else{const r=await probeAiTab(selected[0],'notebook');notebook={ready:!!r.ready,status:r.reason==='Disconnected'?'Reconnects automatically when needed':r.reason||'Needs reload',sources:r.sources||0};}}
   return {services,notebook};
 }
 async function setupComplete(){const {studyOnboarding}=await chrome.storage.local.get('studyOnboarding');return studyOnboarding?.version===StudyConfig.onboardingVersion&&studyOnboarding.acknowledged===true&&studyOnboarding.completed===true;}
@@ -58,9 +59,10 @@ async function panelSnapshot(m){
     try{const r=await chrome.tabs.sendMessage(page.tab,{type:'studyPageProbe'},page.documentId?{documentId:page.documentId}:{frameId:page.frame});if(!r?.state||r.state.pageId!==page.pageId)page=null;else page={...page,...r.state};}catch{page=null;}
   }
   const data=await config(),preferences=page?StudyConfig.preferences(data,page.platform):{};
-  const {pending,updateAvailable}=await chrome.storage.session.get(['pending','updateAvailable']);const checkpoint=page?await readCheckpoint(page.checkpointKey):null;
+  const {pending,updateAvailable,aiTabRecovery}=await chrome.storage.session.get(['pending','updateAvailable','aiTabRecovery']);const checkpoint=page?await readCheckpoint(page.checkpointKey):null;
+  const reloading=page&&aiTabRecovery?.tab===page.tab&&aiTabRecovery.frame===page.frame&&(!page.documentId||!aiTabRecovery.documentId||page.documentId===aiTabRecovery.documentId)&&Date.now()-aiTabRecovery.time<30000;
   return {received:true,onboardingRequired:!await setupComplete(),setupDefaults:{aiModel:data.aiModel||'gemini',watchAutomation:data.watchAutomation===true,platformSettings:Object.fromEntries(StudyConfig.platforms.map(p=>[p,StudyConfig.preferences(data,p)]))},settingsIntent,pages:pages.map(p=>({tab:p.tab,pageId:p.pageId,platform:p.platform,title:p.title})),page:page?{pageId:page.pageId,tab:page.tab,frame:page.frame,documentId:page.documentId,platform:page.platform,kind:page.kind,status:page.status,preview:page.preview,controls:page.controls,timer:page.timer,recoverable:page.recoverable}:null,
-    run:run?{platform:run.platform,tab:run.tab,count:run.count||0,phase:run.phase||'answer'}:null,phase:pending&&page&&pending.tab===page.tab?pending.phase:null,
+    run:run?{platform:run.platform,tab:run.tab,count:run.count||0,phase:run.phase||'answer'}:null,phase:reloading?'reloading':pending&&page&&pending.tab===page.tab?pending.phase:null,
     checkpoint:checkpoint?{count:checkpoint.count,done:checkpoint.done.length,phase:checkpoint.phase,updated:checkpoint.updated}:null,updateAvailable:updateAvailable||null,connections:await connections(preferences),preferences:{pacingMode:preferences.pacingMode,pauseBeforeSubmit:preferences.pauseBeforeSubmit,preferNotebook:preferences.preferNotebook,aiModel:preferences.aiModel,watchAutomation:data.watchAutomation===true}};
 }
 async function panelCommand(m){

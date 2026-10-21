@@ -2,9 +2,19 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
-## 2.7.4 — October 12, 2026
+## 2.7.4 — October 20, 2026
+
+### Changed
+- Pearson Course Auto offers queue-specific speed, optional started homework, assignment/question progress, Stop Course Auto, and a saved end-of-course issues report. Existing answers remain protected; final submission stays manual.
+- Reconnect idle disconnected chatbot tabs before sending a question, preserving drafts and running responses, with a bounded retry and “Tab reloading…” progress.
+- Add MindTap Aplia assignment question traversal and transition recovery; leave final assignment review/submission manual.
 
 ### Fixed
+- Click Pearson’s native Save before returning to the captured course list. Require a Save click receipt, recover lost replies, and reject unsaved tab closure as completion.
+- Start Auto after opening a verified Pearson assignment, handle fractional and late-penalty scores, accept accessible math/dropdown labels, and keep pace controls clear of native buttons.
+- Bank unsupported Pearson questions and continue, handle the unchecked-answer warning only for a recorded skip, and retry confirmed wrong answers with bounded Similar Question attempts.
+- Distinguish Connect videos from question images, allow self-contained text questions without picture capture, stabilize video question identity, and continue through information pages.
+- Recognize Connect’s full-page Check my work feedback before returning to the question and continuing.
 - Accept NotebookLM's inline numbered source citations as well as citation chips, and use a complete response directly when it matches the active question's validated answer schema, avoiding an extra chatbot formatting round. Retain formatting fallback for other responses. Confirm a notebook prompt was actually sent and retry through its form/keyboard when the send click leaves it as an unsent draft.
 - Match a completed NotebookLM response by its unique request ID rather than exact rendered prompt text, so UI-normalized quotes or whitespace do not leave the Canvas run waiting after the answer appears.
 - Match NotebookLM send confirmation by request ID, wait for delayed UI acknowledgement before retrying, and distinguish a busy notebook or unsent draft from an unavailable connection so users are not told to reload a working notebook.
@@ -15,8 +25,9 @@ Versions listed here describe source changes. A version is downloadable as a Git
 - Re-show the current first-use setup notice after updating.
 
 ### Verification
-- Focused Pearson response, Course Mode, walkthrough and end-to-end tests pass, along with the full repository check suite.
-- Live Pearson showed the 2.7.3 generic error for an AI response with blank fields because the question referenced sample data not present in the visible prompt. The 2.7.4 build has not yet been loaded in Chrome. The live MindTap pace and refresh checks documented for 2.7.3 remain outstanding; this candidate is not ready to publish.
+- Full `scripts/check.cjs` regression suite and `git diff --check` pass; the installable ZIP is checked against the manifest allowlist.
+- Native Chrome observation confirmed Pearson automatically starting, answering the last homework through its final question, returning to the course list and showing the end report. Gradebook showed 35/35 (100%) for that homework and Course Auto showed 8 of 8 processed.
+- Known limitation: the Pearson report can include already-correct questions as “No editable answer fields” entries; processed does not mean every assignment was answered. Connect, MindTap, and recovery changes have regression coverage; full live completion across all supported platforms is not claimed.
 
 ## 2.7.3 — October 6, 2026
 
