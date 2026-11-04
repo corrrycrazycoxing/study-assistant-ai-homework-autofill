@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><title>Study Assistant 2.7.4 setup</title><style>body{font:15px/1.6 system-ui;background:#121212;color:#eee;max-width:850px;margin:45px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}@media(min-width:1200px){body{max-width:none;margin:28px;padding:0 24px}pre{column-count:2;column-gap:48px}}</style><pre># Study Assistant 2.7.4
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Study Assistant 2.8.0 setup</title><style>body{font:15px/1.6 system-ui;background:#121212;color:#eee;max-width:850px;margin:45px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}@media(min-width:1200px){body{max-width:none;margin:28px;padding:0 24px}pre{column-count:2;column-gap:48px}}</style><pre># Study Assistant 2.8.0
 
 One Chrome extension containing the original Auto-McGraw SmartBook/Connect adapters, Pearson MyLab, Canvas and Cengage MindTap Aplia. It selects the adapter by the website and uses one shared AI/NotebookLM connection. Each platform has its own settings.
 
@@ -14,9 +14,17 @@ The assistant shows the current stage: Read, Ask AI, Prepare, Enter or Check. It
 
 An **Attention needed** card translates connection and unsupported-control messages into next steps. Available buttons can refresh the connection, open a chatbot/notebook, focus the assignment or explicitly ask again. They do not replay a save or grading action. Go to assignment only focuses that tab; use Stop all before taking over a running task. Raw troubleshooting text stays under Details.
 
-**Edit answer** is available for supported prepared answers in newer Connect MAP, Pearson, Canvas and MindTap. Use Ask AI with Auto Fill after Ask AI off, then edit the preview before filling. Saving updates the prepared answer used by Fill answers; it does not enter answers, save the assignment or grade. Exact choices and existing adapter validators apply. The editor invalidates on a question change, answer revision or running/filling workflow. Once filling has been attempted, ask again to prepare a fresh answer. Current nonempty native values are shown for comparison; replacement settings still apply when filling.
+**Edit answer** is available for supported prepared answers in newer Connect MAP, Pearson, Canvas and MindTap. Use Ask AI, then edit the prepared preview before filling. Saving updates the prepared answer used by Fill answers; it does not enter answers, save the assignment or grade. Exact choices and existing adapter validators apply. The editor invalidates on a question change, answer revision or running/filling workflow. Once filling has been attempted, ask again to prepare a fresh answer. Current nonempty native values are shown for comparison; replacement settings still apply when filling.
 
 Journal account/debit/credit cells are separate editable fields, with the original row count and balance checks. Adding/removing journal rows is not supported. Edited answers replace the AI explanation with a notice that its original explanation and citations may no longer support the edits. Original SmartBook and older Connect do not support this editor. No new permissions were added.
+
+## Canvas Course Auto: choose courses
+
+Open the Canvas dashboard, All Courses, or an individual course home. The Course Auto panel lists current courses with individual checkboxes and Select all listed courses. It also appears in the extension side panel. Saved choices return on the same Canvas site. The dashboard loads the same-site All Courses list so courses without dashboard cards can be selected; Past Enrollments are excluded.
+
+Choose the shared Auto speed, whether to include started work, and whether to skip overdue assignments. Start selected courses scans their assignment lists, then runs the existing Canvas → McGraw launch and question workflow. Progress switches from courses scanned to assignments processed and identifies the current course. Empty or unavailable course lists are recorded in the review list. After the queue finishes, the owner tab returns to the dashboard or course page where it began. Stop Course Auto stops the queue.
+
+This selection layer does not add new assignment adapters: existing quiz/exam exclusions, scored-work checks, started-work rules, and manual final submission/review still apply. Unsupported launches still need review before continuing.
 
 ## Included from 2.3.3: structured settings
 
@@ -71,7 +79,7 @@ The monitor also stops cleanly when Chrome invalidates an old extension after up
 
 ## Install
 
-1. Extract **study-assistant-2.7.4.zip**.
+1. Extract **study-assistant-2.8.0.zip**.
 2. Open **chrome://extensions**, enable **Developer mode**, click **Load unpacked**, and select the extracted folder containing **manifest.json**. Do not select its parent folder or the ZIP.
 3. Disable the separate Auto-McGraw, Pearson, Canvas and MindTap extensions so their AI connectors do not compete with this one.
 4. Reload your assignment and any open Gemini, ChatGPT, DeepSeek or NotebookLM tabs. Sign into the AI services and leave their prompt boxes empty.
@@ -103,7 +111,7 @@ Click **McGraw**, **Pearson**, **Canvas** or **MindTap** under **Settings for** 
 
 **Pause after fill** is also directly available in the side panel and saves the selected platform’s setting. Turning it off while paused resumes that selected run. **Pause After Fill** is on by default for Pearson, Canvas and MindTap. Turn it off in the relevant platform settings for continuous answering. SmartBook&#x27;s Pause Before Submit is also on by default in this combined build. New Connect uses the same default pause before recording or advancing. Older Connect waits for Continue now after filling when its pause setting is enabled. Original SmartBook and older Connect otherwise retain their original navigation/submission behavior.
 
-**Auto Fill after Ask AI** controls single-question filling on Pearson, Canvas and MindTap; Start Auto always fills supported fields. **Show Explanations** controls their preview. New Connect also supports these settings. Original SmartBook and older Connect keep their original Ask AI automation and do not use these single-question options.
+**Ask AI** prepares a preview for explicit filling in newer adapters; **Start Auto** fills supported fields automatically. **Show Explanations** controls the preview. Original SmartBook and older Connect retain their automation flow.
 
 **Check work before Next** is on by default for Connect MAP. It uses an available enabled Check my work control once after the final journal transaction or native answer. Checking may consume a website attempt. An unrecognized result or dialog stops for review instead of repeating the check. Disable this setting to advance without it. Final assignment submission remains manual.
 

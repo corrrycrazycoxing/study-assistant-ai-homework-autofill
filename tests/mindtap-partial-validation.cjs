@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('content-scripts/mindtap.js','utf8');
+const protectedField={key:'f0',kind:'dropdown',el:{},current:{kind:'dropdown',selectedValues:['Existing']},answered:true,options:['Existing','Other']};
+const blank={key:'f1',kind:'number',el:{},current:{kind:'number',value:''},answered:false};
+const fresh={title:'Question',text:'Prompt',signature:'same',securitySnapshot:{snapshotHash:'hash'},fields:[protectedField,blank]};
+const context={pending:{...fresh,root:{},allFields:fresh.fields,fields:[blank],protectedFields:[{...protectedField,current:{...protectedField.current}}]},answer:{f1:'12'},entryStarted:false,settings:{includePictures:false},snapshot:()=>fresh};
+vm.createContext(context);vm.runInContext(source.slice(source.indexOf('  function validate(){'),source.indexOf('  globalThis.StudyMonitor?.setEditor')),context);
+const result=context.validate();assert.equal(result.length,1);assert.equal(result[0].key,'f1','filled protected fields are never added to the write plan');
+assert.equal(result[0].value,'12');
+context.answer={f0:'Other',f1:'12'};assert.throws(()=>context.validate(),/missing or extra/,'AI cannot add an existing answer to the write plan');
+context.answer={f1:'12'};protectedField.current={kind:'dropdown',selectedValues:['Other']};assert.throws(()=>context.validate(),/existing answer changed/);
+protectedField.current={kind:'dropdown',selectedValues:['Existing']};blank.answered=true;assert.throws(()=>context.validate(),/field changed while waiting/);
+blank.answered=false;assert.equal(context.validate().length,1);
+console.log('PASS MindTap partial answer validation writes only requested blanks and rejects protected/changed/extra fields');

@@ -22,7 +22,7 @@ const mindtapShell=readFileSync(base+'content-scripts/mindtap-course.js','utf8')
 assert.match(mindtapShell,/paceControls\.attachControls\(document\.body\)/,'MindTap pace controls mount in the top-level page');
 assert.match(mindtapShell,/paceControls\.hideControls\(\)/,'MindTap pace controls leave the page when the assignment frame closes');
 const mindtap=readFileSync(base+'content-scripts/mindtap.js','utf8');
-assert.match(mindtap,/transitionFresh=\['grade','advance'\]\.includes\(resumed\.phase\)/,'MindTap checks saved transition state after a refresh');
+assert.match(mindtap,/transitionFresh=\['grade','retry','advance'\]\.includes\(resumed\.phase\)/,'MindTap checks saved grade/retry/navigation transition state after a refresh');
 assert.match(mindtap,/await start\(resumed\)/,'MindTap resumes only the saved safe question transition');
 const monitor=readFileSync(base+'shared/monitor.js','utf8');
 assert.doesNotMatch(monitor,/\.study-pace-controls\{display:none!important\}/,'the compact adapter does not hide the pace-mode tab');

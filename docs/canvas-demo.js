@@ -1,5 +1,5 @@
 let fixtureEditor;window.StudyMonitor={setEditor:e=>fixtureEditor=e,setRecovery:()=>{},setReplacement:()=>{},notice:()=>{}};
-let listener,storageListener,index=0,scenario='all',prompts=[],run=null,nexts=0,submits=0,backup=false,lastBackup=0,persisted={},backups=0;
+const storageListeners=[];let listener,index=0,scenario='all',prompts=[],run=null,nexts=0,submits=0,backup=false,lastBackup=0,persisted={},backups=0,preps=0;
 const config={autoFill:false,pauseBeforeSubmit:false,showExplanation:true,pacingMode:'normal'};
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 const choice=(q,text,i,type)=>'<div class="answer"><label class="answer_row"><span class="answer_input">'+(type==='checkbox'?'<input type="hidden" value="0">':'')+'<input class="question_input" type="'+type+'" name="question_'+q+'" id="q'+q+'a'+i+'" aria-labelledby="q'+q+'label'+i+'"></span><div id="q'+q+'label'+i+'">'+text+'</div></label></div>';
@@ -12,7 +12,8 @@ const questions=[
 '<div class="question short_answer_question" id="question_6"><h3>Question 6</h3><div class="question_text">Existing student answer must be preserved.</div><input class="question_input" name="question_6" value="my own answer"></div>'
 ];
 const expected=[{f0:'Balance sheet'},{f0:['Cash flows','Balance sheet']},{f0:'0.2048'},{f0:'red',f1:'blue'},{f0:'Assets',f1:'Cash'}];
-window.chrome={storage:{local:{get:async()=>({studyOnboarding:{version:1,acknowledged:true,completed:true}})},sync:{get:async()=>({platformMode:'auto',platformSettings:{canvas:{...config}}})},onChanged:{addListener:f=>storageListener=f}},runtime:{onMessage:{addListener:f=>listener=f},sendMessage:async m=>{
+window.chrome={storage:{local:{get:async()=>({studyOnboarding:{version:1,acknowledged:true,completed:true}})},sync:{get:async()=>({platformMode:'auto',platformSettings:{canvas:{...config}}})},onChanged:{addListener:f=>storageListeners.push(f)}},runtime:{onMessage:{addListener:f=>listener=f},sendMessage:async m=>{
+ if(m.type==='canvasPrepareReadings'){preps++;if(scenario==='preparefail')return {received:false,error:'No reading matches this quiz'};if(['stopprep','editprep'].includes(scenario))await delay(800);return {received:true,skipped:true};}
  if(m.type==='canvasRunState')return {running:false};
  if(m.type==='canvasRunStart'){run={running:true,runId:'test-run',count:0,done:[]};return run;}
  if(m.type==='canvasRunStop'){run=null;return {received:true};}
@@ -20,7 +21,9 @@ window.chrome={storage:{local:{get:async()=>({studyOnboarding:{version:1,acknowl
  if(m.type==='canvasCancel')return {received:true};
  if(m.type!=='canvasQuestion')return {received:false};
  prompts.push(m.prompt);const number=m.prompt.includes('Which statement')?0:m.prompt.includes('ending cash')?1:m.prompt.includes('binomial probability')?2:m.prompt.includes('Fill in colors')?3:4;
- const a=scenario==='invalid'?{f0:'Not an option'}:expected[number];
+ const batch=/\"field\":\"q1_f0\"/.test(m.prompt);
+ const a=batch?Object.fromEntries(expected.flatMap((row,index)=>Object.entries(row).map(([key,value])=>['q'+(index+1)+'_'+key,value]))):{...expected[number]};
+ if(scenario==='invalid')a[Object.keys(a)[0]]='Not an option';
  const reply=JSON.stringify({requestId:m.id,snapshotHash:m.snapshotHash,answer:a,explanation:'Simulated answer for adapter verification.'});
  setTimeout(()=>listener({type:'canvasAnswer',id:m.id,response:reply,...(scenario==='notebook'?{grounded:'The balance sheet reports assets on a specific date. [1: Demo accounting reading]'}:{})},{},()=>{}),scenario==='stop'||scenario==='stale'?800:60);
  return {received:true};
@@ -50,9 +53,11 @@ const panel=()=>document.getElementById('canvas-assistant-panel').shadowRoot;
 function assert(ok,label){if(!ok)throw Error(label);results.textContent+='\nPASS: '+label;}
 async function until(fn,timeout=22000){const start=Date.now();while(!fn()){if(Date.now()-start>timeout)throw Error('Timeout: '+panel().getElementById('status').textContent);await delay(40);}}
 async function test(name){try{
- scenario=name;index=0;prompts=[];nexts=submits=backups=0;lastBackup=0;persisted={};backup=false;run=null;config.pauseBeforeSubmit=name==='pause';config.pacingMode=name==='guided'?'review':'normal';notifySettings({pauseBeforeSubmit:{newValue:config.pauseBeforeSubmit},pacingMode:{newValue:config.pacingMode}},'sync');render();results.textContent=name;panel().querySelector('details').open=true;panel().getElementById('start').click();
+ document.getElementById('quiz_title').textContent='Canvas verification: '+name+' '+Date.now();
+ scenario=name;index=0;prompts=[];preps=0;nexts=submits=backups=0,preps=0;lastBackup=0;persisted={};backup=false;run=null;config.pauseBeforeSubmit=name==='pause';config.pacingMode=name==='guided'?'review':'normal';notifySettings({pauseBeforeSubmit:{newValue:config.pauseBeforeSubmit},pacingMode:{newValue:config.pacingMode}},'sync');render();results.textContent=name;panel().querySelector('details').open=true;panel().getElementById('start').click();
+ if(['stopprep','editprep'].includes(name)){await until(()=>preps===1);if(name==='stopprep')panel().getElementById('stop').click();else quiz.querySelector('input[type=radio]').click();await delay(1100);assert(prompts.length===0,'Stop or an entered answer during source preparation prevents sending');assert(submits===0,'source preparation never submits');results.textContent+='\nALL CHECKS PASSED';return;}
  await until(()=>prompts.length>0||panel().getElementById('status').textContent.includes('manual entry'));
- if(name==='pause'){for(let q=0;q<5;q++){await until(()=>!panel().getElementById('resume').hidden);assert(prompts.length===q+1,'paused after question '+(q+1));panel().getElementById('resume').click();await until(()=>panel().getElementById('resume').hidden);}}
+ if(name==='pause'){await until(()=>!panel().getElementById('resume').hidden);assert(prompts.length===1,'paused once after the visible question batch');panel().getElementById('resume').click();await until(()=>panel().getElementById('resume').hidden);}
  if(name==='stop'){await until(()=>prompts.length===1);panel().getElementById('stop').click();await delay(1000);assert(!values().q1a1&&!run&&submits===0,'Stop rejects late response');}
  else if(name==='guided'){await until(()=>panel().getElementById('status').textContent.includes('Guided answer ready'));assert(prompts.length===1&&!values().q1a1&&!values().q1a2,'Guided answer leaves site fields untouched');assert(panel().getElementById('fill').disabled&&submits===0,'Guided answer cannot fill or submit');}
  else if(name==='stale'){await until(()=>prompts.length===1);quiz.querySelector('.question_text').textContent='Changed question';await until(()=>!run);assert(!values().q1a1,'Changed question rejects old answer');}
@@ -60,22 +65,23 @@ async function test(name){try{
  else if(name==='unsupported'||name==='review'){await until(()=>panel().getElementById('status').textContent.includes('manual entry'));assert(prompts.length===0&&submits===0,'Unsupported or read-only question does not send or fill');}
  else{
   await until(()=>panel().getElementById('status').textContent.includes('Finished visible'));
-  assert(prompts.length===(name==='new'||name==='notebook'?1:5),'one AI request per unanswered question');assert(submits===0,'final Submit never clicked');assert(!run,'run metadata cleared on completion');
-  if(name==='all'||name==='pause'){const v=values();assert(v.q1a1&&v.q2a0&&v.q2a1&&!v.q2a2,'radio and checkbox groups retained');assert(v.question_3==='0.2048'&&v.question_4_red==='red'&&v.question_4_blue==='blue','numeric and multiple blanks retained');assert(v.question_5_a==='91'&&v.question_5_b==='54','dropdown answers use option IDs');assert(v.question_6==='my own answer','existing answer preserved');assert(persisted.question_5_a==='91'&&persisted.q2a1,'fresh autosave captured complete answers');}
+  assert(prompts.length===(name==='paged'?5:1),'one AI request for visible questions; paged questions remain separate');assert(submits===0,'final Submit never clicked');assert(!run,'run metadata cleared on completion');
+  if(name==='all'||name==='pause'){const v=values();assert(v.q1a1&&v.q2a0&&v.q2a1&&!v.q2a2,'radio and checkbox groups retained');assert(v.question_3==='0.2048'&&v.question_4_red==='red'&&v.question_4_blue==='blue','numeric and multiple blanks retained');assert(v.question_5_a==='91'&&v.question_5_b==='54','dropdown answers use option IDs');assert(v.question_6==='my own answer','existing answer preserved');assert(backups>0,'normal Canvas change handlers still request background autosave');}
   if(name==='paged')assert(nexts===4&&index===4,'one-at-a-time flow advances four times');
+  if(name==='preparefail')assert(values().q1a1&&prompts.length===1,'failed automatic matching does not veto normal source/AI selection');
   if(name==='notebook')assert(values().q1a1&&panel().getElementById('preview').textContent.includes('Demo accounting reading'),'notebook answer and citation preview retained');
   if(name==='new')assert(quiz.querySelector('input[aria-label="Balance sheet"]').checked,'experimental Learnosity radio selection retained');
  }
  results.textContent+='\nALL CHECKS PASSED';
 }catch(e){results.textContent+='\nFAIL: '+e.message;panel().getElementById('stop').click();}}
-for(const name of ['all','paged','pause','new','notebook','guided','stop','stale','invalid','unsupported','review']){const b=document.createElement('button');b.textContent='Test '+name;b.onclick=()=>test(name);document.getElementById('cases').append(b);}
+for(const name of ['all','paged','pause','new','notebook','guided','stop','stale','invalid','unsupported','review','preparefail','stopprep','editprep']){const b=document.createElement('button');b.textContent='Test '+name;b.onclick=()=>test(name);document.getElementById('cases').append(b);}
 render();
 
-function notifySettings(changes,area){const old={...config};for(const [key,c] of Object.entries(changes))old[key]=!c.newValue;storageListener?.({platformSettings:{oldValue:{canvas:old},newValue:{canvas:{...config}}}},area);}
+function notifySettings(changes,area){const old={...config};for(const [key,c] of Object.entries(changes))old[key]=!c.newValue;for(const listener of storageListeners)listener({platformSettings:{oldValue:{canvas:old},newValue:{canvas:{...config}}}},area);}
 
 const editTest=document.createElement('button');editTest.textContent='Test answer editing';document.getElementById('cases').append(editTest);
 editTest.onclick=async()=>{try{
- scenario='all';render();config.autoFill=false;config.pauseBeforeSubmit=false;results.textContent='Answer editor';panel().querySelector('details').open=true;panel().getElementById('ask').click();await until(()=>fixtureEditor?.canEdit());
+ scenario='edit';render();config.autoFill=false;config.pauseBeforeSubmit=false;results.textContent='Answer editor';panel().querySelector('details').open=true;panel().getElementById('ask').click();await until(()=>fixtureEditor?.canEdit());
  const before=fixtureEditor.read();assert(before.fields[0].type==='single'&&before.fields[0].value==='Balance sheet','Current prepared choice is editable');
  let rejected=false;try{fixtureEditor.apply({f0:'Not an option'});}catch{rejected=true;}assert(rejected&&fixtureEditor.read().fields[0].value==='Balance sheet','Invalid choice leaves prepared answer intact');
  fixtureEditor.apply({f0:'Income statement'});assert(!values().q1a0&&!values().q1a1,'Saving edits never fills the quiz');assert(fixtureEditor.read().token!==before.token,'Edited answer receives a new revision');

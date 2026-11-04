@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+class Element{constructor(tag='div'){this.tagName=tag;this.children=[];this.checked=false;this.disabled=false;this.value='';}append(...nodes){this.children.push(...nodes);}replaceChildren(...nodes){this.children=nodes;}querySelectorAll(){return this.children.flatMap(row=>row.children.filter(e=>e.tagName==='input'));}}
+const elements=new Map(),el=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
+const courses=[{title:'ACCT 201',url:'https://canvas.test/courses/1'},{title:'MATH 108 - 01',url:'https://canvas.test/courses/2'}];
+const source=fs.readFileSync('sidepanel/panel.js','utf8'),picker=source.slice(source.indexOf("let coursePickerKey="),source.indexOf('let courseLease=')),allHandler=source.slice(source.indexOf("$('canvas-course-all').onchange="),source.indexOf("$('canvas-course-load').onclick="));
+const context={$:el,document:{createElement:tag=>new Element(tag),createTextNode:text=>text},snapshot:{canvasCourse:{tab:5,hub:true,courses,selected:[]}},busy:false};vm.createContext(context);vm.runInContext(picker+allHandler,context);
+context.renderCoursePicker(context.snapshot.canvasCourse);assert.equal(el('canvas-course-start').disabled,true);assert.equal(el('canvas-course-list').children.length,2);
+const boxes=el('canvas-course-list').querySelectorAll('input');boxes[0].checked=true;boxes[0].onchange();assert.equal(el('canvas-course-start').disabled,false);assert(el('canvas-course-all').indeterminate);
+context.renderCoursePicker(context.snapshot.canvasCourse);assert(boxes[0].checked,'snapshot polling preserves unsent checkbox changes');assert.equal(vm.runInContext('coursePicks.size',context),1);
+el('canvas-course-all').checked=true;el('canvas-course-all').onchange();assert(boxes.every(b=>b.checked));assert.equal(vm.runInContext('coursePicks.size',context),2);assert.equal(el('canvas-course-all').indeterminate,false);
+el('canvas-course-all').checked=false;el('canvas-course-all').onchange();assert.equal(el('canvas-course-start').disabled,true);assert(boxes.every(b=>!b.checked));
+context.snapshot.canvasCourse={tab:6,hub:true,courses,selected:[courses[1].url]};context.renderCoursePicker(context.snapshot.canvasCourse);assert.equal(el('canvas-course-list').children[1].children[0].checked,true,'a new tab restores its own saved selection');
+context.renderCoursePicker({hub:false});assert.equal(el('canvas-course-picker').hidden,true);
+console.log('PASS side-panel individual/select-all checkboxes, disabled empty selection, partial state, polling stability and saved tab selection');

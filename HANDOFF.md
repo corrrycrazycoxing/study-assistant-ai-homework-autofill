@@ -1,5 +1,9 @@
 # Start here when continuing in another chat
 
+## November 3, 2026 — Release 2.8.0
+
+The production release contains Canvas course selection, NotebookLM reading preparation, shared controls and platform fixes. The release uses a separate worktree to preserve local experimental changes. SmartBook matching has fixture coverage and live selector verification. Live automatic drops are pending.
+
 ## October 20, 2026 — GitHub publication preparation
 
 The owner explicitly requested the Git push. Origin/main was fetched and matched local main before publication. Package the existing 2.7.4 candidate with current release notes and known report-quality limits; preserve the existing version and all requested pending platform fixes. Run the full regression suite, secret/diff checks and ZIP validation before committing. A matching v2.7.4 release and ZIP are required by repository publishing instructions. Publication verified: source commit 9d663af41d31154a9ec4d04646674aa9012085a8 was pushed to origin/main; tag v2.7.4 points to that commit. GitHub release https://github.com/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/tag/v2.7.4 is public and its 972,886-byte study-assistant-2.7.4.zip asset is uploaded. Published and local SHA-256 match: 393182b74a606059a4b26c70e5f11ce02ff612a38a23ac7de21bdd7374f72c7b. Full regression, diff and package/secret-pattern checks passed. The downloaded asset was compared byte-for-byte with the local package. No Chrome Web Store submission. The follow-up handoff commit changes documentation only; release runtime remains pinned to the source tag.

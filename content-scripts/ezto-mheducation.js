@@ -20,21 +20,20 @@ async function askUnified(question) {
     if(!current())return;
     const result=await chrome.runtime.sendMessage({type:'sendQuestionToChatGPT',id,question,imageToken});
     if(!result?.received)throw Error(result?.error||'Could not connect to the AI tab.');
-  }catch(error){if(mine===legacyEpoch){isAutomating=false;updateUnifiedStopped();alert(error.message);}}
+  }catch(error){if(mine===legacyEpoch){isAutomating=false;updateUnifiedStopped();globalThis.StudyMonitor?.notice(error.message);}}
 }
 function updateUnifiedStopped(){
   legacyEpoch++;legacyPacer.cancel();
   unifiedRequestId=null;
   chrome.runtime.sendMessage({type:'mcgrawCancel'}).catch(()=>{});
-  const btn=document.querySelector('.automcgraw-btn,.header__automcgraw--main');
-  if(btn)btn.textContent='Ask AI';
+  globalThis.StudyMonitor?.report();
 }
 let messageListener = null;
 let isAutomating = false;
 let unifiedRequestId = null, unifiedSignature = null;
 let lastIncorrectQuestion = null;
 let lastCorrectAnswer = null;
-let buttonAdded = false;
+let controlsRegistered = false;
 
 function setupMessageListener() {
   if (messageListener) {
@@ -79,20 +78,20 @@ function isQuizPage() {
   );
 }
 
-function checkForQuizAndAddButton() {
-  if (buttonAdded) return;
+function ensureAssistant() {
+  if (controlsRegistered) return;
 
   const helpLink = document.querySelector(".header__help");
   if (helpLink && isQuizPage()) {
-    addAssistantButton();
-    buttonAdded = true;
+    mountAssistant();
+    controlsRegistered = true;
   }
 }
 
 function startPageObserver() {
   const observer = new MutationObserver(() => {
-    if (!buttonAdded) {
-      checkForQuizAndAddButton();
+    if (!controlsRegistered) {
+      ensureAssistant();
     }
   });
 
@@ -101,7 +100,7 @@ function startPageObserver() {
     subtree: true,
   });
 
-  checkForQuizAndAddButton();
+  ensureAssistant();
 }
 
 function checkForQuizEnd() {
@@ -127,23 +126,8 @@ function stopAutomation(reason = "Quiz completed") {
   isAutomating = false;
   chrome.runtime.sendMessage({type:'mcgrawCancel'}).catch(()=>{});
 
-  chrome.storage.sync.get("aiModel", function (data) {
-    const currentModel = data.aiModel || "chatgpt";
-    let currentModelName = "ChatGPT";
+  globalThis.StudyMonitor?.notice(`Automation stopped: ${reason}`);
 
-    if (currentModel === "gemini") {
-      currentModelName = "Gemini";
-    } else if (currentModel === "deepseek") {
-      currentModelName = "DeepSeek";
-    }
-
-    const btn = document.querySelector(".header__automcgraw--main");
-    if (btn) {
-      btn.textContent = `Ask ${currentModelName}`;
-    }
-  });
-
-  alert(`Automation stopped: ${reason}`);
 }
 
 function checkForNextStep() {
@@ -228,7 +212,8 @@ async function processChatGPTResponse(responseText) {
     const response=StudySecurity.parse(responseText),answer=response.answer;
     if(legacySettings.pacingMode==='review'){
       stopAutomation('Guided answer ready. Enter it yourself.');
-      alert('Guided answer: '+JSON.stringify(answer)+'\n\n'+String(response.explanation||''));
+      globalThis.StudyMonitor?.showPreview('Answer: '+JSON.stringify(answer)+'\n\n'+String(response.explanation||''));
+      globalThis.StudyMonitor?.notice('Guided answer ready. Nothing was entered or submitted.');
       return;
     }
     legacyPacer.begin(response.studyTiming||response.suggestedReviewSeconds,1,{text:parseQuestion().question});
@@ -311,151 +296,11 @@ async function handleFillInTheBlankAnswer(answer,current=()=>isAutomating) {
   }
 }
 
-function addAssistantButton() {
-  const helpLink = document.querySelector(".header__help");
-  if (!helpLink) return;
-
-  const buttonContainer = document.createElement("div");
-  buttonContainer.className = "header__automcgraw";
-  buttonContainer.style.cssText = `
-    display: inline-flex;
-    margin-right: 20px;
-    align-items: center;
-  `;
-
-  chrome.storage.sync.get("aiModel", function (data) {
-    const aiModel = data.aiModel || "chatgpt";
-    let modelName = "ChatGPT";
-
-    if (aiModel === "gemini") {
-      modelName = "Gemini";
-    } else if (aiModel === "deepseek") {
-      modelName = "DeepSeek";
-    }
-
-    const btn = document.createElement("button");
-    btn.textContent = `Ask ${modelName}`;
-    btn.type = "button";
-    btn.className = "header__automcgraw--main";
-    btn.style.cssText = `
-      background: #fff;
-      border: 1px solid #ccc;
-      color: #333;
-      padding: 8px 12px;
-      font-size: 14px;
-      font-family: inherit;
-      cursor: pointer;
-      border-radius: 4px 0 0 4px;
-      border-right: none;
-      height: 32px;
-      line-height: 1;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      transition: background-color 0.2s ease;
-    `;
-
-    btn.addEventListener("mouseenter", () => {
-      btn.style.backgroundColor = "#f5f5f5";
-    });
-
-    btn.addEventListener("mouseleave", () => {
-      btn.style.backgroundColor = "#fff";
-    });
-
-    btn.addEventListener("click", () => {
-      if (isAutomating) {
-        stopAutomation("Manual stop");
-      } else {
-        const proceed = confirm(
-          "Start quiz automation? The automation will stop automatically when the quiz ends.\n\nClick OK to begin, or Cancel to stop."
-        );
-        if (proceed) {
-          isAutomating = true;
-          btn.textContent = "Stop Automation";
-          checkForNextStep();
-        }
-      }
-    });
-
-    const settingsBtn = document.createElement("button");
-    settingsBtn.type = "button";
-    settingsBtn.className = "header__automcgraw--settings";
-    settingsBtn.title = "Study Assistant Settings";
-    settingsBtn.setAttribute("aria-label", "Study Assistant Settings");
-    settingsBtn.style.cssText = `
-      background: #fff;
-      border: 1px solid #ccc;
-      color: #333;
-      padding: 8px 10px;
-      font-size: 14px;
-      cursor: pointer;
-      border-radius: 0 4px 4px 0;
-      height: 32px;
-      line-height: 1;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: background-color 0.2s ease;
-    `;
-
-    settingsBtn.addEventListener("mouseenter", () => {
-      settingsBtn.style.backgroundColor = "#f5f5f5";
-    });
-
-    settingsBtn.addEventListener("mouseleave", () => {
-      settingsBtn.style.backgroundColor = "#fff";
-    });
-
-    settingsBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-      </svg>
-    `;
-
-    settingsBtn.addEventListener("click", () => {
-      chrome.runtime.sendMessage({ type: "openSettings" });
-    });
-
-    buttonContainer.appendChild(btn);
-    buttonContainer.appendChild(settingsBtn);
-      legacyPacer.attach(buttonContainer);
-    helpLink.parentNode.insertBefore(buttonContainer, helpLink);
-
-    chrome.storage.onChanged.addListener((changes) => {
-      if (changes.aiModel) {
-        const newModel = changes.aiModel.newValue;
-        let newModelName = "ChatGPT";
-
-        if (newModel === "gemini") {
-          newModelName = "Gemini";
-        } else if (newModel === "deepseek") {
-          newModelName = "DeepSeek";
-        }
-
-        if (!isAutomating) {
-          btn.textContent = `Ask ${newModelName}`;
-        }
-      }
-    });
-  });
-}
-
-function waitForElement(selector, timeout = 5000) {
-  return new Promise((resolve, reject) => {
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      const el = document.querySelector(selector);
-      if (el) {
-        clearInterval(interval);
-        resolve(el);
-      } else if (Date.now() - startTime > timeout) {
-        clearInterval(interval);
-        reject(new Error("Element not found: " + selector));
-      }
-    }, 100);
-  });
+function mountAssistant() {
+    legacyPacer.attach(document.body);
+    const start=()=>{if(isAutomating)return;isAutomating=true;globalThis.StudyMonitor?.clearNotice(); checkForNextStep();};
+    const stop=()=>{isAutomating=false;updateUnifiedStopped(); globalThis.StudyMonitor?.notice('Auto stopped.');};
+    globalThis.StudyMonitor?.register({platform:'mcgraw',read:()=>({status:isAutomating?'Waiting for the chatbot or the next question…':'Ready. Choose Start Auto or Ask AI.',controls:{start:!isAutomating,ask:!isAutomating,stop:isAutomating}}),actions:{start,ask:start,stop}});
 }
 
 setupMessageListener();

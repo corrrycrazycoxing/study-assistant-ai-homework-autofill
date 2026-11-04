@@ -7,7 +7,7 @@ async function scenario({mounted=true,ready=true,oldRun=false,start=true,guided=
   const scope={panel:{isConnected:mounted},running:false,courseRun:false,originalPause:null,coursePaceOriginal:null,courseContext:null,coursePanel:{show:()=>{}},settingsReady:Promise.resolve(),settings:{pacingMode:guided?'review':'normal',pauseBeforeSubmit:true},
     document:{documentElement:{},querySelectorAll:()=>ready?[{textContent:'Current question',getClientRects:()=>[{}]}]:[],querySelector:()=>ready&&heading?{textContent:'Question 1'}:null},
     setTimeout:fn=>{timers.set(++timerId,fn);return timerId;},clearTimeout:id=>timers.delete(id),
-    clean:s=>String(s||'').trim(),say:text=>events.push(text),mount:()=>{},MutationObserver:class{constructor(fn){observers.push(fn);}observe(){}},StudyMonitor:{notice:()=>{}},
+    clean:s=>String(s||'').trim(),say:text=>events.push(text),mount:()=>{},syncQuestionPanel:()=>{},MutationObserver:class{constructor(fn){observers.push(fn);}observe(){}},StudyMonitor:{notice:()=>{}},
     chrome:{runtime:{sendMessage:async message=>{
       events.push(message.type);
       if(message.type==='pearsonRunState'){await Promise.resolve();return {running:oldRun,runId:'old'};}

@@ -3,6 +3,8 @@ import importlib.util
 import io
 import json
 import tempfile
+import subprocess
+import sys
 import unittest
 from unittest.mock import patch
 import zipfile
@@ -31,9 +33,9 @@ class UpdaterTests(unittest.TestCase):
 
     def test_archive_validation(self):
         manifest = json.dumps({'name': 'Study Assistant', 'version': '2.5.6'})
-        with archive({'manifest.json': manifest, 'popup/index.html': 'ok'}) as bundle:
+        with archive({'manifest.json': manifest, 'popup/index.html': 'ok', 'VERSIONING.md': 'policy'}) as bundle:
             updater.verify_archive(bundle, '2.5.6')
-        with archive({'Study-Assistant-2.5.6/manifest.json': manifest, 'Study-Assistant-2.5.6/popup/index.html': 'ok'}) as bundle:
+        with archive({'Study-Assistant-2.5.6/manifest.json': manifest, 'Study-Assistant-2.5.6/popup/index.html': 'ok', 'Study-Assistant-2.5.6/VERSIONING.md': 'policy'}) as bundle:
             self.assertEqual(updater.verify_archive(bundle, '2.5.6'), 'Study-Assistant-2.5.6/')
         for files in [
             {'manifest.json': manifest, '../escape': 'bad'},
@@ -43,6 +45,17 @@ class UpdaterTests(unittest.TestCase):
             with self.subTest(files=list(files)):
                 with archive(files) as bundle, self.assertRaises(ValueError):
                     updater.verify_archive(bundle, '2.5.6')
+
+    def test_actual_packager_output(self):
+        root = script.parents[1]
+        version = json.loads((root / 'manifest.json').read_text())['version']
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / 'release.zip'
+            subprocess.run([sys.executable, str(root / 'scripts/package.py'), '--output', str(output)], check=True, capture_output=True)
+            with zipfile.ZipFile(output) as bundle:
+                prefix = updater.verify_archive(bundle, version)
+                self.assertIn(prefix + 'VERSIONING.md', bundle.namelist())
+                self.assertIn(prefix + 'shared/build.js', bundle.namelist())
 
     def test_install_folder_is_separate_from_source(self):
         with tempfile.TemporaryDirectory() as temp:

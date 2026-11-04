@@ -1,5 +1,9 @@
 # Development decisions and handoffs
 
+## November 3, 2026 — Production release scope
+
+The production release contains Canvas course selection, NotebookLM reading preparation, shared controls and platform fixes. The release uses a separate worktree to preserve local experimental changes. SmartBook matching has fixture coverage and live selector verification. Live automatic drops are pending.
+
 ## October 19, 2026 — Connect information-page traversal
 
 Start Auto should continue through the observed framework video/reference layout rather than fail because it has no fields. Classify information only when no answer/unsupported widget or visible Check my work control exists and the page has recognizable video/reference/instruction content. Do not equate an unsupported assessed question with an information page. Next is used once per page, waits for the next rendered page to settle, and has a per-run repeated-page/200-page guard. Information pages are neither graded nor counted as answered. Linked-question ranges use the actual current question number for end detection. Ask AI alone remains on the current information page with a clear instruction to use Start Auto.

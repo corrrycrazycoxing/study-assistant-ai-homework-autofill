@@ -13,7 +13,9 @@ async function notifyAiRecovery(state,active){await chrome.tabs.sendMessage(stat
 async function boundedAiRead(operation){let timer;try{return await Promise.race([operation,new Promise(resolve=>{timer=setTimeout(()=>resolve(null),1500);})]);}catch{return null;}finally{clearTimeout(timer);}}
 async function probeAiTab(tab,model){
   if(tab.frozen||tab.discarded)return {ready:false,reason:tab.discarded?'Disconnected':'Tab frozen'};
-  return await boundedAiRead(chrome.tabs.sendMessage(tab.id,{type:model==='notebook'?'notebookReady':'assistantReady'},{frameId:0}))||{ready:false,reason:'Disconnected'};
+  const result=await boundedAiRead(chrome.tabs.sendMessage(tab.id,{type:model==='notebook'?'notebookReady':'assistantReady'},{frameId:0}));
+  if(globalThis.StudyBuild?.id&&result&&result.buildId!==StudyBuild.id)return {ready:false,reason:'Disconnected',stale:true};
+  return result||{ready:false,reason:'Disconnected'};
 }
 // Runs read-only in the AI page. Return booleans/reasons, never draft contents.
 function inspectAiReloadSafety(model){

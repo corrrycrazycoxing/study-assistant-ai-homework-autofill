@@ -7,7 +7,7 @@ const makeLink=(id,score)=>({score,textContent:'Question '+id,closest(){return {
 const links=[makeLink(1,'(5/5)'),makeLink(2,'(5/5)'),makeLink(3,'(0.83/5)'),...['4','5','6','7'].map(id=>makeLink(id,'(0/5)'))];
 let currentScore='30.95% (10.83 points out of 35)',scheduled=[],counts=[];const sent=[];
 const scope={Number,String,clean:value=>String(value||'').replace(/\s+/g,' ').trim(),document:{getElementById:()=>({textContent:currentScore}),querySelectorAll:()=>counts.map(textContent=>({textContent}))},questionLinks:()=>links,mediaLinks:()=>[],unstartedWork:()=>false,status:()=>{},setTimeout:fn=>scheduled.push(fn),send:async(type,fields)=>{sent.push({type,...fields});return {received:false};}};
-vm.createContext(scope);vm.runInContext(parseCode+scoreCode+overviewCode,scope);
+vm.createContext(scope);vm.runInContext(parseCode+scoreCode+ui.slice(ui.indexOf('  function questionRoute('),ui.indexOf('  const mediaLinks='))+overviewCode,scope);
 (async()=>{
   await scope.overviewReady();const payload=sent.at(-1);
   assert.equal(payload.canResume,true,'the live 0.83/5 partial-credit question must not exclude started work');assert.deepEqual(Array.from(payload.pendingQuestionIds),['3','4','5','6','7']);

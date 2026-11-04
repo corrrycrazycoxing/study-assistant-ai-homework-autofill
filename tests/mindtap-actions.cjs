@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('content-scripts/mindtap.js','utf8');const code=source.slice(source.indexOf('  function action('),source.indexOf('  function textOf('));
+let buttons=[],legacy=[];
+const button=(text,extra={})=>({textContent:text,getAttribute:()=>null,...extra});
+const context={document:{querySelectorAll:selector=>selector.startsWith('#')?legacy:buttons},usable:element=>!element.disabled&&!element.hidden,clean:value=>String(value||'').replace(/\s+/g,' ').trim()};vm.createContext(context);vm.runInContext(code,context);
+const grade=button('Grade It Now',{tagName:'BUTTON',value:'grade-command'}),save=button('Save & Continue',{tagName:'BUTTON',value:'save-command'}),submit=button("I'm Done, Submit Assignment Now");buttons=[grade,save,submit];
+assert.equal(context.action('gradeItNowButtonDiv'),grade);assert.equal(context.action('saveAndContinueButtonDiv'),save);assert.equal(context.editable(),true,'native enabled controls identify editable questions without the old wrapper IDs');
+const inputSave=button('',{tagName:'INPUT',value:'Save & Continue'});buttons=[inputSave];assert.equal(context.action('saveAndContinueButtonDiv'),inputSave,'input buttons use their displayed value while button command values do not override visible labels');
+buttons=[submit];assert.equal(context.editable(),false,'final submission is never treated as question save or grading');
+buttons=[button('Grade It Now',{disabled:true}),button('Save & Continue',{hidden:true})];assert.equal(context.editable(),false);
+buttons=[grade,button('Grade It Now')];assert.equal(context.action('gradeItNowButtonDiv'),null,'ambiguous grading controls are rejected');
+legacy=[grade,button('Grade It Now')];buttons=[grade];assert.equal(context.action('gradeItNowButtonDiv'),null,'ambiguous legacy wrappers do not fall back');
+console.log('PASS MindTap native action labels, editable controls, disabled/ambiguous rejection and no final-submit fallback');

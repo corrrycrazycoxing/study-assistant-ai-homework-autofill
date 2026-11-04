@@ -16,6 +16,7 @@ async function exercise(resumed,initial,next,timeout=100){
     questionRoots:()=>root?[root]:[],
     snapshot:node=>node,
     action:()=>true,
+    editable:()=>true,
     delay:ms=>new Promise(resolve=>setTimeout(resolve,Math.min(ms,2))),
     waitFor:async(read,mine,timeout)=>{
       const started=Date.now();
@@ -36,6 +37,8 @@ async function exercise(resumed,initial,next,timeout=100){
   assert.equal(await exercise({phase:'advance',lastKey:'old'},previous,null,20),false,'resume should stop safely if navigation never leaves the prior question');
   assert.equal(await exercise({phase:'grade',lastTitle:'Question 1'},null,previous),true,'grade recovery should wait for the same question to return');
   assert.equal(await exercise({phase:'grade',lastTitle:'Question 1'},null,next,20),false,'grade recovery must not mistake a different problem for the graded one');
+  assert.equal(await exercise({phase:'retry',lastTitle:'Question 1'},null,previous),true,'native retry transitions restore only the same titled problem with blank editable fields');
+  assert.equal(await exercise({phase:'retry',lastTitle:'Question 1'},null,next,20),false,'retry cannot authorize another problem');
   let root=previous;
   const context={Date,running:true,generation:1,assignmentRun:false,assignmentOverview:()=>false,questionRoots:()=>root?[root]:[],snapshot:node=>node,action:()=>true,delay:ms=>new Promise(resolve=>setTimeout(resolve,Math.min(ms,2))),waitFor:async(read,mine,timeout)=>{const started=Date.now();while(context.running&&mine===context.generation){const value=await read();if(value)return value;if(Date.now()-started>timeout)throw Error('transition timed out');await context.delay(2);}throw Error('stopped');}};
   vm.createContext(context);vm.runInContext(source.slice(start,end)+';this.waitForNextQuestion=waitForNextQuestion;',context);

@@ -95,7 +95,7 @@
     } catch(error) { if(active===request)clear(); throw error; }
   }
   chrome.runtime.onMessage.addListener((message,sender,reply)=>{
-    if (message.type==='assistantReady') { const editor=input();const reason=active?active.phase:!editor?'Sign in or reload':busy()?'Generating answer':inputText(editor)||StudyImageUpload.hasDraft(editor)?'Unsent draft':'Ready';reply({ready:reason==='Ready',reason,model:location.hostname}); return; }
+    if (message.type==='assistantReady') { const editor=input();const reason=active?active.phase:!editor?'Sign in or reload':busy()?'Generating answer':inputText(editor)||StudyImageUpload.hasDraft(editor)?'Unsent draft':'Ready';reply({buildId:globalThis.StudyBuild?.id,ready:reason==='Ready',reason,model:location.hostname}); return; }
     if (message.type==='cancelQuestion') { if(active?.id===message.id)clear();reply({received:true});return; }
     if (message.type==='receiveQuestion') { send(message).then(reply,error=>reply({received:false,error:error.message}));return true; }
   });

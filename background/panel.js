@@ -16,12 +16,24 @@ async function saveCheckpoint(run){
 }
 async function receivePageState(m,sender){
   const platform=await sourcePlatform(sender),s=m.state;if(!platform||!s||s.platform!==platform||typeof s.pageId!=='string'||s.pageId.length>80)return {received:false};
-  const clean={pageId:s.pageId,platform,kind:s.kind==='legacy'?'legacy':'modern',status:String(s.status||'').slice(0,3000),preview:String(s.preview||'').slice(0,12000),recoverable:s.recoverable===true,controls:{},timer:null};
-  for(const action of ['start','ask','fill','resume','stop','replaceStart','edit'])clean.controls[action]=s.controls?.[action]===true;
+  if(globalThis.StudyBuild?.id&&s.buildId!==StudyBuild.id)return {received:false,stale:true};
+  const clean={pageId:s.pageId,buildId:s.buildId,platform,kind:s.kind==='legacy'?'legacy':'modern',status:String(s.status||'').slice(0,3000),preview:String(s.preview||'').slice(0,12000),recoverable:s.recoverable===true,controls:{},timer:null};
+  for(const action of ['start','ask','fill','resume','stop','replaceStart','edit','cancel'])clean.controls[action]=s.controls?.[action]===true;
   if(s.timer)clean.timer={label:String(s.timer.label||'').slice(0,500),note:String(s.timer.note||'').slice(0,500),pauseLabel:String(s.timer.pauseLabel||'Pause').slice(0,80),progress:Math.max(0,Math.min(1,Number(s.timer.progress)||0))};
+  if(s.course&&Number.isSafeInteger(s.course.total)&&s.course.total>0&&Number.isSafeInteger(s.course.done)&&s.course.done>=0&&s.course.done<=s.course.total)clean.course={label:String(s.course.label||'').slice(0,500),total:s.course.total,done:s.course.done};
   const {pageStates={}}=await chrome.storage.session.get('pageStates');const key=sender.tab.id+':'+sender.frameId;
   pageStates[key]={...clean,tab:sender.tab.id,frame:sender.frameId,documentId:sender.documentId,sourceUrl:sender.url,title:sender.tab.title||StudyConfig.names[platform],updated:Date.now(),checkpointKey:await checkpointKey(sender,platform)};
-  const fresh=Object.fromEntries(Object.entries(pageStates).filter(([,v])=>Date.now()-v.updated<20000).slice(-30));await chrome.storage.session.set({pageStates:fresh});return {received:true};
+  const fresh=Object.fromEntries(Object.entries(pageStates).filter(([,v])=>Date.now()-v.updated<20000).slice(-30));await chrome.storage.session.set({pageStates:fresh});
+  await canvasMcGrawObserve(clean,sender);
+  const {canvasMcGrawCourse:courseRun}=await chrome.storage.session.get('canvasMcGrawCourse');
+  const course=courseRun?.playerTab===sender.tab.id&&['starting','running'].includes(courseRun.phase)?{label:'Assignment '+(courseRun.index+1)+' of '+courseRun.items.length+' · '+courseRun.items[courseRun.index].title,total:courseRun.items.length,done:courseRun.index}:null;
+  const run=await activeRun(),{pending,aiTabRecovery}=await chrome.storage.session.get(['pending','aiTabRecovery']);
+  const candidates=Object.values(fresh).filter(p=>p.tab===sender.tab.id&&Date.now()-p.updated<6000);
+  const rank=p=>p.frame===run?.frame&&run?.tab===p.tab?4:p.controls.stop?3:p.kind==='modern'?2:1;
+  const owner=candidates.sort((a,b)=>rank(b)-rank(a)||a.frame-b.frame)[0];
+  if(sender.frameId!==0&&owner?.pageId===s.pageId)await chrome.tabs.sendMessage(sender.tab.id,{type:'studyPresentationState',start:owner.controls.start===true,active:owner.controls.stop===true},{frameId:0}).catch(()=>{});
+  const reloading=aiTabRecovery?.tab===sender.tab.id&&aiTabRecovery.frame===sender.frameId&&Date.now()-aiTabRecovery.time<30000;
+  return {received:true,course,owner:owner?.pageId===s.pageId,phase:reloading?'reloading':pending?.tab===sender.tab.id&&pending.frame===sender.frameId?pending.phase:null,run:run?.tab===sender.tab.id&&run.frame===sender.frameId?{phase:run.phase}:null};
 }
 async function connections(settings){
   const {aiTabRecovery}=await chrome.storage.session.get('aiTabRecovery'),reloading=aiTabRecovery&&Date.now()-aiTabRecovery.time<30000?aiTabRecovery.ai:null;
@@ -59,16 +71,21 @@ async function panelSnapshot(m){
     try{const r=await chrome.tabs.sendMessage(page.tab,{type:'studyPageProbe'},page.documentId?{documentId:page.documentId}:{frameId:page.frame});if(!r?.state||r.state.pageId!==page.pageId)page=null;else page={...page,...r.state};}catch{page=null;}
   }
   const data=await config(),preferences=page?StudyConfig.preferences(data,page.platform):{};
-  const {pending,updateAvailable,aiTabRecovery}=await chrome.storage.session.get(['pending','updateAvailable','aiTabRecovery']);const checkpoint=page?await readCheckpoint(page.checkpointKey):null;
+  const {pending,updateAvailable,aiTabRecovery,canvasMcGrawCourse}=await chrome.storage.session.get(['pending','updateAvailable','aiTabRecovery','canvasMcGrawCourse']);
+  const courseTab=canvasMcGrawCourse&&live.get(canvasMcGrawCourse.tab);
+  const activeList=front.find(t=>t.active&&t.windowId===m.windowId&&StudyCanvasMcGrawCourse.entryUrl(t.url)&&StudyConfig.detect(t.url,data.canvasOrigins||[])==='canvas');
+  const course=courseTab&&courseTab.windowId===m.windowId&&Date.now()-canvasMcGrawCourse.updated<14400000&&(canvasMcGrawCourse.phase!=='done'||!activeList||activeList.id===courseTab.id)?{tab:canvasMcGrawCourse.tab,phase:canvasMcGrawCourse.phase,canStart:!!StudyCanvasMcGrawCourse.entryUrl(courseTab.url),courseTitle:canvasMcGrawCourse.items[canvasMcGrawCourse.index]?.courseTitle||canvasMcGrawCourse.courses?.[canvasMcGrawCourse.scanIndex]?.title||'',scanIndex:canvasMcGrawCourse.scanIndex||0,courseTotal:canvasMcGrawCourse.courses?.length||0,index:canvasMcGrawCourse.index,total:canvasMcGrawCourse.items.length,title:canvasMcGrawCourse.items[canvasMcGrawCourse.index]?.title||'',trainingStatus:canvasMcGrawCourse.trainingStatus||'',issues:canvasMcGrawCourse.issues||[]}:activeList?{tab:activeList.id,phase:'idle',canStart:true,index:0,total:0,title:'',issues:[]}:null;const checkpoint=page?await readCheckpoint(page.checkpointKey):null;
+  if(course){for(const issue of course.issues){if(!issue.url){const matches=(canvasMcGrawCourse?.items||[]).filter(item=>item.title===issue.title);if(matches.length===1)issue.url=matches[0].url;}}const probe=await chrome.tabs.sendMessage(course.tab,{type:'canvasCoursePanelProbe'},{frameId:0}).catch(()=>null);if(probe?.received){course.status=String(probe.status||'').slice(0,1000);course.hub=probe.hub===true;course.courses=StudyCanvasMcGrawCourse.courses(probe.courses||[],live.get(course.tab)?.url);course.selected=Array.isArray(probe.selected)?probe.selected.filter(url=>course.courses.some(c=>c.url===url)):[];}else if(['idle','done'].includes(course.phase))course.unavailable=true;}
   const reloading=page&&aiTabRecovery?.tab===page.tab&&aiTabRecovery.frame===page.frame&&(!page.documentId||!aiTabRecovery.documentId||page.documentId===aiTabRecovery.documentId)&&Date.now()-aiTabRecovery.time<30000;
-  return {received:true,onboardingRequired:!await setupComplete(),setupDefaults:{aiModel:data.aiModel||'gemini',watchAutomation:data.watchAutomation===true,platformSettings:Object.fromEntries(StudyConfig.platforms.map(p=>[p,StudyConfig.preferences(data,p)]))},settingsIntent,pages:pages.map(p=>({tab:p.tab,pageId:p.pageId,platform:p.platform,title:p.title})),page:page?{pageId:page.pageId,tab:page.tab,frame:page.frame,documentId:page.documentId,platform:page.platform,kind:page.kind,status:page.status,preview:page.preview,controls:page.controls,timer:page.timer,recoverable:page.recoverable}:null,
+  return {received:true,canvasCourse:course,onboardingRequired:!await setupComplete(),setupDefaults:{aiModel:data.aiModel||'gemini',watchAutomation:data.watchAutomation===true,platformSettings:Object.fromEntries(StudyConfig.platforms.map(p=>[p,StudyConfig.preferences(data,p)]))},settingsIntent,pages:pages.map(p=>({tab:p.tab,pageId:p.pageId,platform:p.platform,title:p.title,frame:p.frame,buildId:p.buildId})),page:page?{pageId:page.pageId,tab:page.tab,frame:page.frame,documentId:page.documentId,platform:page.platform,kind:page.kind,buildId:page.buildId,course:page.course||null,status:page.status,preview:page.preview,controls:page.controls,timer:page.timer,recoverable:page.recoverable}:null,
     run:run?{platform:run.platform,tab:run.tab,count:run.count||0,phase:run.phase||'answer'}:null,phase:reloading?'reloading':pending&&page&&pending.tab===page.tab?pending.phase:null,
     checkpoint:checkpoint?{count:checkpoint.count,done:checkpoint.done.length,phase:checkpoint.phase,updated:checkpoint.updated}:null,updateAvailable:updateAvailable||null,connections:await connections(preferences),preferences:{pacingMode:preferences.pacingMode,pauseBeforeSubmit:preferences.pauseBeforeSubmit,preferNotebook:preferences.preferNotebook,aiModel:preferences.aiModel,watchAutomation:data.watchAutomation===true}};
 }
 async function panelCommand(m){
   if(!['stop','timerStop'].includes(m.action))await requireSetup();
-  if(!['start','ask','fill','resume','stop','recover','replaceStart','timerPause','timerContinue','timerStop'].includes(m.action))throw Error('Unknown panel action.');
+  if(!['start','ask','fill','resume','stop','recover','replaceStart','timerPause','timerContinue','timerStop','cancel'].includes(m.action))throw Error('Unknown panel action.');
   const {pageStates={}}=await chrome.storage.session.get('pageStates');const p=Object.values(pageStates).find(p=>p.tab===m.tab&&p.pageId===m.pageId&&Date.now()-p.updated<12000);if(!p)throw Error('Assignment state is stale. Reload the assignment and refresh the panel.');
+  if(globalThis.StudyBuild?.id&&p.buildId!==StudyBuild.id)throw Error('This assignment is running an older build. Refresh the assignment before continuing.');
   if(!StudyConfig.allowed(p.platform,(await config()).platformMode))throw Error('This platform is disabled in settings.');
   return chrome.tabs.sendMessage(p.tab,{type:'studyPageCommand',pageId:p.pageId,action:m.action},p.documentId?{documentId:p.documentId}:{frameId:p.frame});
 }

@@ -36,6 +36,17 @@ assert.equal(vm.runInNewContext(feedbackKindSource+dialogSource+source.slice(fee
 dialog.textContent='Partially correct. Next question';
 assert.equal(vm.runInNewContext(feedbackKindSource+dialogSource+source.slice(feedbackStart,feedbackEnd)+'\ndomFeedback()', {document,clean,usable}),'partial');
 
+// Inline correct feedback exposes a native part Continue alongside header Next.
+const partContinue=button('Continue',()=>{});const hiddenContinue=button('Continue',()=>{});hiddenContinue.disabled=true;
+let continueButtons=[partContinue],headerButtons=[header,submit];
+const partDocument={querySelectorAll:selector=>selector.startsWith('.controlPanel button,')?continueButtons:selector.includes('.controlPanel .btnNext')?headerButtons:[]};
+const partScope={document:partDocument,clean,usable,resultDialog:()=>null};
+vm.createContext(partScope);vm.runInContext(source.slice(source.indexOf('  function partContinueButton()'),end),partScope);
+assert.equal(partScope.nextButton(),partContinue,'the active part Continue must precede header Next');
+continueButtons=[hiddenContinue];assert.equal(partScope.nextButton(),header,'disabled Continue cannot block question navigation');
+continueButtons=[partContinue,button('Continue',()=>{})];assert.throws(()=>partScope.nextButton(),/more than one/,'ambiguous Continue must not guess');
+continueButtons=[];headerButtons=[submit];assert.equal(partScope.nextButton(),undefined,'Submit is never a navigation fallback');
+
 const config=fs.readFileSync('shared/config.js','utf8');
 assert.match(config,/pauseBeforeSubmit:false/,'new installs default to no pause after fill');
 // A correct-result dialog can contain only OK. Dismiss it, then use the native

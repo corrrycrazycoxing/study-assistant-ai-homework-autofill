@@ -20,14 +20,13 @@ async function askUnified(question) {
     if(!current())return;
     const result=await chrome.runtime.sendMessage({type:'sendQuestionToChatGPT',id,question,imageToken});
     if(!result?.received)throw Error(result?.error||'Could not connect to the AI tab.');
-  }catch(error){if(mine===legacyEpoch){isAutomating=false;updateUnifiedStopped();alert(error.message);}}
+  }catch(error){if(mine===legacyEpoch){isAutomating=false;updateUnifiedStopped();globalThis.StudyMonitor?.notice(error.message);}}
 }
 function updateUnifiedStopped(){
   legacyEpoch++;legacyPacer.cancel();
   unifiedRequestId=null;
   chrome.runtime.sendMessage({type:'mcgrawCancel'}).catch(()=>{});
-  const btn=document.querySelector('.automcgraw-btn,.header__automcgraw--main');
-  if(btn)btn.textContent='Ask AI';
+  globalThis.StudyMonitor?.report();
 }
 let messageListener = null;
 let isAutomating = false;
@@ -147,22 +146,7 @@ function setupMessageListener() {
 
 function updateButtonState() {
   if(!isAutomating){legacyEpoch++;legacyPacer.cancel();}
-  chrome.storage.sync.get(["aiModel", "doubleCreditMode"], function (data) {
-    const currentModel = data.aiModel || "chatgpt";
-    const doubleMode = data.doubleCreditMode || false;
-    let currentModelName = "ChatGPT";
-
-    if (currentModel === "gemini") {
-      currentModelName = "Gemini";
-    } else if (currentModel === "deepseek") {
-      currentModelName = "DeepSeek";
-    }
-
-    const btn = document.querySelector(".automcgraw-btn");
-    if (btn) {
-      btn.textContent = `Ask ${currentModelName}${doubleMode ? " (2x)" : ""}`;
-    }
-  });
+  globalThis.StudyMonitor?.report();
 }
 
 function handleProcessResponseError(error) {
@@ -577,7 +561,7 @@ function handleForcedLearning() {
   return false;
 }
 
-function checkForNextStep() {
+async function checkForNextStep() {
   if (!isAutomating) return;
 
   if (handleTopicOverview()) {
@@ -961,13 +945,11 @@ function getMatchingComponent(container) {
   return container.querySelector(".matching-component");
 }
 
-// SmartBook rewrites a dropped choice from choices:* to response:* once it lands in a row.
-const MATCHING_ALL_CHOICE_SELECTOR =
+const MATCHING_CARD_SELECTOR = ".draggableItem[data-item-key]";
+const MATCHING_LEGACY_CHOICE_SELECTOR =
   '.choice-item-wrapper:not(.-placeholder)[id^="choices:"], .choice-item-wrapper:not(.-placeholder)[id^="response:"]';
-const MATCHING_POOL_CHOICE_SELECTOR =
-  '.choices-container .choice-item-wrapper:not(.-placeholder)[id^="choices:"]';
-const MATCHING_ROW_CHOICE_SELECTOR =
-  '.match-single-response-wrapper .choice-item-wrapper:not(.-placeholder)[id^="choices:"], .match-single-response-wrapper .choice-item-wrapper:not(.-placeholder)[id^="response:"]';
+const MATCHING_DROP_ZONE_SELECTOR =
+  '.match-single-response-wrapper .droppableContainer[data-drop-target-for-element="true"]';
 
 function getMatchingRows(container) {
   const matchingComponent = getMatchingComponent(container);
@@ -1000,70 +982,14 @@ function getMatchingChoiceItems(container) {
   const matchingComponent = getMatchingComponent(container);
   if (!matchingComponent) return [];
 
-  return Array.from(matchingComponent.querySelectorAll(MATCHING_ALL_CHOICE_SELECTOR));
-}
-
-function getMatchingDragHandle(choiceItem) {
-  if (!choiceItem) return null;
-
-  if (choiceItem.matches?.("[data-react-beautiful-dnd-drag-handle]")) {
-    return choiceItem;
-  }
-
-  return (
-    choiceItem.querySelector("[data-react-beautiful-dnd-drag-handle]") ||
-    choiceItem
-  );
-}
-
-function getMatchingPoolChoiceItems(container) {
-  const matchingComponent = getMatchingComponent(container);
-  if (!matchingComponent) return [];
-
-  return Array.from(matchingComponent.querySelectorAll(MATCHING_POOL_CHOICE_SELECTOR));
+  const cards = matchingComponent.querySelectorAll(MATCHING_CARD_SELECTOR);
+  return Array.from(cards.length ? cards : matchingComponent.querySelectorAll(MATCHING_LEGACY_CHOICE_SELECTOR));
 }
 
 function getMatchingRowChoiceItem(matchRow) {
-  if (!matchRow) return null;
-
-  return matchRow.querySelector(MATCHING_ROW_CHOICE_SELECTOR);
-}
-
-function getMatchingChoiceLocation(container, choiceText) {
-  if (!container || !choiceText) {
-    return null;
-  }
-
-  const rows = getMatchingRows(container);
-  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
-    const rowChoiceItem = getMatchingRowChoiceItem(rows[rowIndex]);
-    if (!rowChoiceItem) continue;
-
-    const rowChoiceText = getMatchingChoiceText(rowChoiceItem);
-    if (isAnswerMatch(rowChoiceText, choiceText)) {
-      return {
-        area: "row",
-        rowIndex,
-        poolIndex: -1,
-        item: rowChoiceItem,
-      };
-    }
-  }
-
-  const poolItems = getMatchingPoolChoiceItems(container);
-  for (let poolIndex = 0; poolIndex < poolItems.length; poolIndex += 1) {
-    const poolChoiceText = getMatchingChoiceText(poolItems[poolIndex]);
-    if (isAnswerMatch(poolChoiceText, choiceText)) {
-      return {
-        area: "pool",
-        rowIndex: -1,
-        poolIndex,
-        item: poolItems[poolIndex],
-      };
-    }
-  }
-
-  return null;
+  const response = matchRow?.querySelector(".match-single-response-wrapper");
+  return response?.querySelector(MATCHING_CARD_SELECTOR) ||
+    response?.querySelector(MATCHING_LEGACY_CHOICE_SELECTOR) || null;
 }
 
 function parseMatchingAnswerReference(referenceText, candidateTexts, label = "") {
@@ -1348,50 +1274,53 @@ function normalizeMatchingTargets(container, rawAnswer) {
   });
 }
 
-function getMatchingSnapshot(container) {
-  return getMatchingRows(container).map((row, rowIndex) => {
-    const rowChoiceItem = getMatchingRowChoiceItem(row);
-    return {
-      rowIndex,
-      promptText: getMatchingPromptText(row),
-      choiceText: rowChoiceItem ? getMatchingChoiceText(rowChoiceItem) : "",
-    };
-  });
-}
+async function moveMatchingChoiceToRow(container, card, target, current) {
+  const {rowIndex, promptText} = target;
+  const row = getMatchingRows(container)[rowIndex];
+  if (!current() || getMatchingPromptText(row) !== promptText) return false;
 
-function isMatchingAligned(container, targetsByRow) {
-  if (!container || !Array.isArray(targetsByRow) || targetsByRow.length === 0) {
-    return false;
+  const zones = Array.from(row.querySelectorAll(MATCHING_DROP_ZONE_SELECTOR))
+    .filter((zone) => zone.getClientRects().length);
+  if (zones.length !== 1 || !card.isConnected || !card.matches('[draggable="true"]') ||
+      !card.getClientRects().length) return false;
+
+  const zone = zones[0];
+  const key = card.dataset.itemKey;
+  const dataTransfer = new DataTransfer();
+  const emit = (element, type) => {
+    const {left, top, width, height} = element.getBoundingClientRect();
+    const recipient = element.isConnected ? element : container.ownerDocument;
+    return recipient.dispatchEvent(new DragEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      dataTransfer,
+      clientX: left + width / 2,
+      clientY: top + height / 2,
+    }));
+  };
+
+  if (!emit(card, "dragstart")) return false;
+  try {
+    // Let SmartBook initialize its drag state before targeting the row.
+    await delay(40);
+    if (!current() || !zone.isConnected) return false;
+    emit(zone, "dragenter");
+    emit(zone, "dragover");
+    await delay(40);
+    if (!current() || !zone.isConnected) return false;
+    emit(zone, "drop");
+  } finally {
+    emit(card, "dragend");
   }
 
-  const rows = getMatchingRows(container);
-  if (rows.length !== targetsByRow.length) {
-    return false;
+  // SmartBook can replace the dragged node. Verify the card key in the
+  // rendered response row before allowing the runner to check the answer.
+  for (let attempt = 0; attempt < 12 && current(); attempt += 1) {
+    const renderedRow = getMatchingRows(container)[rowIndex];
+    if (getMatchingPromptText(renderedRow) === promptText &&
+        getMatchingRowChoiceItem(renderedRow)?.dataset.itemKey === key) return true;
+    await delay(50);
   }
-
-  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
-    const target = targetsByRow[rowIndex];
-    if (!target || !target.choiceText) {
-      return false;
-    }
-
-    const currentChoice = getMatchingChoiceText(getMatchingRowChoiceItem(rows[rowIndex]));
-    if (!isAnswerMatch(currentChoice, target.choiceText)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-async function moveMatchingChoiceToRow(
-  container,
-  choiceText,
-  targetRowIndex,
-) {
-  // SmartBook's matching widget only exposes a keyboard drag-and-drop contract.
-  // Do not synthesize KeyboardEvent objects or attempt to make them trusted.
-  // The answer is shown for manual entry instead.
   return false;
 }
 
@@ -1427,120 +1356,36 @@ function formatMatchingTargetsForAlert(container, rawAnswer) {
   return fallbackLines;
 }
 
-async function applyMatchingAnswer(container, rawAnswer) {
-  const rows = getMatchingRows(container);
-  if (!rows.length) {
-    console.warn(LOG_PREFIX, "Matching question detected but no response rows found");
-    return false;
+async function applyMatchingAnswer(container, rawAnswer, isCurrent) {
+  const current = () => container.isConnected && isCurrent();
+  const targets = normalizeMatchingTargets(container, rawAnswer);
+  if (!current() || !targets.length || targets.some((target) => !target.choiceText)) return false;
+
+  const choices = getMatchingChoiceItems(container);
+  const plan = targets.map((target) => {
+    const matches = choices.filter((card) => isAnswerMatch(getMatchingChoiceText(card), target.choiceText));
+    return matches.length === 1 ? matches[0] : null;
+  });
+  if (plan.includes(null) || new Set(plan).size !== targets.length) return false;
+
+  for (const target of targets) {
+    if (!current()) return false;
+    const row = getMatchingRows(container)[target.rowIndex];
+    if (getMatchingPromptText(row) !== target.promptText) return false;
+    if (isAnswerMatch(getMatchingChoiceText(getMatchingRowChoiceItem(row)), target.choiceText)) continue;
+
+    const key = plan[target.rowIndex].dataset.itemKey;
+    const card = key && getMatchingChoiceItems(container).find((choice) => choice.dataset.itemKey === key);
+    if (!card || !await moveMatchingChoiceToRow(container, card, target, current)) return false;
   }
 
-  const targetsByRow = normalizeMatchingTargets(container, rawAnswer);
-  if (!targetsByRow.length) {
-    console.warn(LOG_PREFIX, "Matching question had no usable answers from AI");
-    return false;
-  }
-
-  if (targetsByRow.some((target) => !target.choiceText)) {
-    console.warn(LOG_PREFIX, "Matching targets were incomplete", targetsByRow);
-    return false;
-  }
-
-  console.info(
-    LOG_PREFIX,
-    "Matching target sequence",
-    targetsByRow.map((target) => `${target.promptText} -> ${target.choiceText}`)
-  );
-
-  const liftStrategies = [
-    // Space is the primary keyboard lift/drop gesture; Enter remains a fallback.
-    {
-      key: " ",
-      code: "Space",
-      keyCode: 32,
-    },
-    {
-      key: "Enter",
-      code: "Enter",
-      keyCode: 13,
-    },
-  ];
-
-  const maxPasses = 4;
-  // Re-run passes because one placement can dislodge another row's current choice.
-  for (let pass = 1; pass <= maxPasses; pass += 1) {
-    if (isMatchingAligned(container, targetsByRow)) {
-      return true;
-    }
-
-    for (let rowIndex = 0; rowIndex < targetsByRow.length; rowIndex += 1) {
-      const target = targetsByRow[rowIndex];
-      if (!target.choiceText) {
-        continue;
-      }
-
-      const currentLocation = getMatchingChoiceLocation(container, target.choiceText);
-      if (!currentLocation) {
-        console.warn(
-          LOG_PREFIX,
-          "Unable to locate matching choice:",
-          target.choiceText,
-          "snapshot:",
-          getMatchingSnapshot(container)
-        );
-        continue;
-      }
-
-      if (currentLocation.rowIndex === rowIndex) {
-        continue;
-      }
-
-      let moved = false;
-      for (const strategy of liftStrategies) {
-        const strategyLocation = getMatchingChoiceLocation(
-          container,
-          target.choiceText
-        );
-        if (!strategyLocation) {
-          break;
-        }
-        if (strategyLocation.rowIndex === rowIndex) {
-          moved = true;
-          break;
-        }
-
-        moved = await moveMatchingChoiceToRow(
-          container,
-          target.choiceText,
-          rowIndex,
-          strategy
-        );
-        if (moved) {
-          break;
-        }
-      }
-
-      if (!moved) {
-        console.warn(
-          LOG_PREFIX,
-          "Matching move may not have completed:",
-          `${target.promptText} -> ${target.choiceText}`,
-          "snapshot:",
-          getMatchingSnapshot(container)
-        );
-      }
-    }
-
-    if (!isMatchingAligned(container, targetsByRow)) {
-      console.info(
-        LOG_PREFIX,
-        `Matching pass ${pass} incomplete`,
-        getMatchingSnapshot(container)
-      );
-    }
-  }
-
-  return isMatchingAligned(container, targetsByRow);
+  return current() && targets.every(({rowIndex, promptText, choiceText}) => {
+    const row = getMatchingRows(container)[rowIndex];
+    return getMatchingPromptText(row) === promptText &&
+      isAnswerMatch(getMatchingChoiceText(getMatchingRowChoiceItem(row)), choiceText);
+  });
 }
+
 function extractChoicesFromCombinedAnswer(answerText, questionChoices) {
   if (typeof answerText !== "string" || questionChoices.length === 0) {
     return [];
@@ -1598,13 +1443,9 @@ async function fillInAnswersPaced(answers,container,current){
   }else{await legacyPacer.beforeField(0,1,current);legacyPacer.check(current);await fillInAnswers(answers,container);}
 }
 function showGuidedWalkthrough(response){
-  document.querySelector('.study-guided-walkthrough')?.remove();
-  const host=document.createElement('div');host.className='study-guided-walkthrough';host.style.cssText='position:fixed;top:12px;right:12px;z-index:2147483647;width:min(440px,calc(100vw - 24px));pointer-events:none';
-  const ui=host.attachShadow({mode:'open'}),answer=Array.isArray(response.answer)?response.answer.join('\n'):String(response.answer??'No confident answer was returned.'),explanation=String(response.explanation||'No step-by-step explanation was returned. Review the question and solve it yourself.');
-  ui.innerHTML='<style>:host{font:14px/1.55 system-ui,-apple-system,sans-serif;color:#edf1ff}*{box-sizing:border-box}section{pointer-events:auto;max-height:calc(100vh - 24px);overflow:auto;background:#171c29;border:1px solid #7182bd;border-radius:12px;box-shadow:0 8px 28px #0005;padding:16px}header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}h2{font-size:17px;line-height:1.25;margin:0;color:#e9edff}button{font:inherit;color:#e8edff;background:#2c3448;border:1px solid #536385;border-radius:7px;padding:5px 9px;cursor:pointer;flex:none}h3{font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:#aebcff;margin:16px 0 5px}.answer{font-size:15px;font-weight:650;color:#fff}.steps{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;color:#d3dcef}.answer-details{margin-top:14px;border-top:1px solid #333d53;padding-top:10px}.answer-details summary{cursor:pointer;color:#c7d2f2;font-size:12px}.answer-details p{margin:7px 0 0}.note{font-size:11px;color:#aab6ce;border-top:1px solid #333d53;padding-top:10px;margin:14px 0 0}button:focus-visible{outline:2px solid #b9c7ff;outline-offset:2px}</style><section role="dialog" aria-label="Guided answer walkthrough"><header><h2>Guided walkthrough</h2><button id="close" type="button" aria-label="Close walkthrough">Close</button></header><h3>Step-by-step</h3><p class="steps"></p><details class="answer-details"><summary>Reveal answer</summary><p class="answer"></p></details><p class="note">Nothing was entered or submitted. Review the steps, then answer the question yourself.</p></section>';
-  ui.querySelector('.answer').textContent=answer;ui.querySelector('.steps').textContent=explanation;
-  const close=()=>{host.remove();};ui.getElementById('close').onclick=close;ui.addEventListener('keydown',event=>{if(event.key==='Escape')close();});
-  document.body.append(host);ui.getElementById('close').focus();
+  const answer=Array.isArray(response.answer)?response.answer.join('\n'):JSON.stringify(response.answer??'No confident answer was returned.');
+  globalThis.StudyMonitor?.showPreview('Answer: '+answer+'\n\n'+String(response.explanation||'Review this question before entering an answer.'));
+  globalThis.StudyMonitor?.notice('Guided answer ready. Nothing was entered or submitted. Review the steps, then answer the question yourself.');
 }
 async function processChatGPTResponse(responseText) {
   if (handleTopicOverview()) {
@@ -1642,7 +1483,9 @@ async function processChatGPTResponse(responseText) {
 
   if (questionType === "matching") {
     await legacyPacer.beforeField(0,1,current);legacyPacer.check(current);
-    const applied = await applyMatchingAnswer(container, response.answer);
+    const matchingCurrent = () => current() && document.querySelector(".probe-container") === container;
+    const applied = await applyMatchingAnswer(container, response.answer, matchingCurrent);
+    if (!matchingCurrent()) return;
     if (!applied) {
       const questionSignature = getQuestionSignature(container);
       alert(
@@ -1739,98 +1582,10 @@ async function processChatGPTResponse(responseText) {
 }
 
 function addAssistantButton() {
-  waitForElement("awd-header .header__navigation").then((headerNav) => {
-    const buttonContainer = document.createElement("div");
-    buttonContainer.style.display = "flex";
-    buttonContainer.style.marginLeft = "10px";
-
-    chrome.storage.sync.get(["aiModel", "doubleCreditMode"], function (data) {
-      const aiModel = data.aiModel || "chatgpt";
-      doubleCreditMode = data.doubleCreditMode || false;
-      let modelName = "ChatGPT";
-
-      if (aiModel === "gemini") {
-        modelName = "Gemini";
-      } else if (aiModel === "deepseek") {
-        modelName = "DeepSeek";
-      }
-
-      const btn = document.createElement("button");
-      btn.textContent = `Ask ${modelName}${doubleCreditMode ? " (2x)" : ""}`;
-      btn.classList.add("btn", "btn-secondary", "automcgraw-btn");
-      btn.style.borderTopRightRadius = "0";
-      btn.style.borderBottomRightRadius = "0";
-      btn.addEventListener("click", () => {
-        if (isAutomating) {
-          isAutomating = false;
-  chrome.runtime.sendMessage({type:'mcgrawCancel'}).catch(()=>{});
-          waitingForDuplicateCompletion = false;
-          clearMatchingPauseWatcher();
-          chrome.runtime.sendMessage({ type: "resetTabTracking" });
-          updateButtonState();
-        } else {
-          const modeText = doubleCreditMode
-            ? " Double credit mode is enabled."
-            : "";
-          const proceed = confirm(
-            `Start automated answering?${modeText} Click OK to begin, or Cancel to stop.`
-          );
-          if (proceed) {
-            isAutomating = true;
-            clearMatchingPauseWatcher();
-            btn.textContent = "Stop Automation";
-            checkForNextStep();
-          }
-        }
-      });
-
-      const settingsBtn = document.createElement("button");
-      settingsBtn.classList.add("btn", "btn-secondary");
-      settingsBtn.style.borderTopLeftRadius = "0";
-      settingsBtn.style.borderBottomLeftRadius = "0";
-      settingsBtn.style.borderLeft = "1px solid rgba(0,0,0,0.2)";
-      settingsBtn.style.padding = "6px 10px";
-      settingsBtn.title = "Study Assistant Settings";
-      settingsBtn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
-      `;
-      settingsBtn.addEventListener("click", () => {
-        chrome.runtime.sendMessage({ type: "openSettings" });
-      });
-
-      buttonContainer.appendChild(btn);
-      buttonContainer.appendChild(settingsBtn);
-      legacyPacer.attach(buttonContainer);
-      headerNav.appendChild(buttonContainer);
-
-      chrome.storage.onChanged.addListener((changes) => {
-        if ((changes.aiModel || changes.doubleCreditMode) && !isAutomating) {
-          chrome.storage.sync.get(
-            ["aiModel", "doubleCreditMode"],
-            function (data) {
-              const newModel = data.aiModel || "chatgpt";
-              const doubleMode = data.doubleCreditMode || false;
-              doubleCreditMode = doubleMode;
-              let newModelName = "ChatGPT";
-
-              if (newModel === "gemini") {
-                newModelName = "Gemini";
-              } else if (newModel === "deepseek") {
-                newModelName = "DeepSeek";
-              }
-
-              btn.textContent = `Ask ${newModelName}${
-                doubleMode ? " (2x)" : ""
-              }`;
-            }
-          );
-        }
-      });
-    });
-  });
+    legacyPacer.attach(document.body);
+    const start=()=>{if(isAutomating)return;isAutomating=true;globalThis.StudyMonitor?.clearNotice(); clearMatchingPauseWatcher();checkForNextStep();};
+    const stop=()=>{isAutomating=false;waitingForDuplicateCompletion=false;clearMatchingPauseWatcher();chrome.runtime.sendMessage({type:"resetTabTracking"}).catch(()=>{});updateUnifiedStopped(); globalThis.StudyMonitor?.notice('Auto stopped.');};
+    globalThis.StudyMonitor?.register({platform:'mcgraw',read:()=>({status:isAutomating?'Waiting for the chatbot or the next question…':'Ready. Choose Start Auto or Ask AI.',controls:{start:!isAutomating,ask:!isAutomating,stop:isAutomating}}),actions:{start,ask:start,stop}});
 }
 
 function parseQuestion() {

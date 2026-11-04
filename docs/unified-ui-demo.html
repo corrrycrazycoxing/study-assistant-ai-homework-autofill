@@ -1,0 +1,41 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Shared assignment UI regression</title><style>body{font:16px system-ui;background:#edf1f7;color:#1b2842;margin:30px;max-width:900px}button{padding:8px;margin:5px}pre{white-space:pre-wrap;background:white;padding:20px;border-radius:10px}.native-header{display:flex;justify-content:flex-end;position:fixed;top:0;right:0;background:#cee6f2}#result{font-weight:700;color:#176333}</style><h1>Shared assignment UI</h1><p>Local presentation test. No questions, AI requests, grading, or website saves.</p><div class="native-header"><button>Native Save</button><button>Native Exit</button></div><button id="test">Run UI checks</button><button id="course-demo">Show Course Auto</button><button id="stale-demo">Test stale connection</button><p id="result">Ready</p><pre id="log"></pre>
+<script src="../shared/build.js"></script><script src="../shared/config.js"></script><script src="../shared/review.js"></script><script src="../shared/assignment-ui.js"></script>
+<script>
+let currentPlatform='mcgraw',observation={received:true,owner:true},connect,listener,registration=null;const calls=[];
+const event=()=>({addListener(fn){this.listener=fn;},removeListener(){}});
+window.chrome={runtime:{id:'fixture',getURL:p=>'https://extension.test/'+p,onConnect:event(),onMessage:event(),async sendMessage(message){calls.push(message);if(message.type==='studyPageReport')return observation;return {received:true};}},storage:{sync:{get:async()=>({platformMode:'auto'})},local:{get:async()=>({studyOnboarding:{version:StudyConfig.onboardingVersion,acknowledged:true,completed:true}})},onChanged:event()}};
+StudyConfig.detect=()=>currentPlatform;
+</script><script src="../shared/pacing.js"></script><script src="../shared/monitor.js"></script>
+<script>
+const pause=()=>new Promise(r=>setTimeout(r,30));
+const assert=(condition,text)=>{if(!condition)throw Error(text);document.getElementById('log').textContent+='PASS '+text+'\n';};
+const current=()=>document.getElementById('study-assignment-ui');const shared=id=>current().shadowRoot.getElementById(id);
+function adapter(id,platform){
+ document.querySelectorAll('[data-mock-adapter]').forEach(host=>host.remove());StudyMonitor.register(null);currentPlatform=platform;
+ const host=document.createElement('div');host.id=id;host.dataset.mockAdapter='true';const root=host.attachShadow({mode:'open'});
+ root.innerHTML='<div id="assignment-controls"><button id="start" data-start>Start</button><button id="ask" data-ask>Ask AI</button><button id="fill" data-fill disabled>Fill</button><button id="apply" disabled>Fill</button><button id="resume" data-resume hidden>Resume</button><button id="stop" data-stop disabled>Stop</button><button id="cancel" disabled>Cancel</button><button id="run-assignment" hidden>Run all questions</button><p id="status" data-status>Ready.</p><pre id="preview" data-preview></pre></div>';
+ root.getElementById('start').onclick=()=>{root.getElementById('start').disabled=true;root.getElementById('stop').disabled=false;root.getElementById('status').textContent='Waiting for AI';};
+ root.getElementById('stop').onclick=()=>{root.getElementById('start').disabled=false;root.getElementById('stop').disabled=true;root.getElementById('status').textContent='Auto stopped.';StudyMonitor.setCourse(null);};document.body.append(host);return {host,root};
+}
+async function report(){await pause();await StudyMonitor.report();await pause();}
+document.getElementById('test').onclick=async()=>{
+ try{
+ document.getElementById('log').textContent='';observation={received:true,owner:true};
+ for(const [id,p] of [['study-connect-assistant','mcgraw'],['mylab-assistant-panel','pearson'],['canvas-assistant-panel','canvas'],['mindtap-assistant-panel','mindtap']]){
+  const a=adapter(id,p);await report();assert(a.host.style.display==='none',p+' original popup is inert');assert(document.querySelectorAll('#study-assignment-ui').length===1,p+' has one shared panel');
+  shared('start').click();await report();assert(shared('body').hidden===false,p+' Auto opens shared panel');assert(!shared('stop').hidden,p+' exposes Stop');shared('stop').click();await report();
+ }
+ const a=adapter('mindtap-assistant-panel','mindtap');a.root.getElementById('start').hidden=true;a.root.getElementById('run-assignment').hidden=false;let overview=0;a.root.getElementById('run-assignment').onclick=()=>overview++;await report();shared('start').click();assert(overview===1,'MindTap overview routes to Run All Questions');
+ const port={name:'study-sidepanel-lease',sender:{id:'fixture',url:chrome.runtime.getURL('sidepanel/panel.html')},onDisconnect:event(),disconnect(){this.onDisconnect.listener?.();}};
+ chrome.runtime.onConnect.listener(port);assert(current().hidden,'side-panel lease hides popup');port.disconnect();await report();assert(!current().hidden,'closing side panel restores shared panel');
+ observation={received:true,owner:false};await report();assert(current().hidden,'non-owner iframe hides popup');observation={received:true,owner:true};await report();assert(!current().hidden,'owner iframe restores popup');
+ let started=0,active=false;StudyMonitor.register({platform:'mcgraw',read:()=>({status:'Legacy engine',controls:{start:!active,stop:active}}),actions:{start(){started++;active=true;},stop(){active=false;}}});await report();shared('start').click();await report();assert(started===1&&!shared('stop').hidden,'legacy engine starts directly without hidden button');
+ StudyMonitor.register(null);adapter('study-connect-assistant','mcgraw');await report();
+ document.getElementById('result').textContent='ALL CHECKS PASSED';
+ }catch(error){document.getElementById('result').textContent='FAILED: '+error.message;}
+};
+document.getElementById('course-demo').onclick=async()=>{const a=adapter('study-connect-assistant','mcgraw');a.root.getElementById('start').click();a.root.getElementById('status').textContent='Checking work before the next question…';StudyMonitor.setCourse({label:'Assignment 2 of 8 · Sample homework',total:8,done:1});await report();};
+document.getElementById('stale-demo').onclick=async()=>{observation={received:false,stale:true};await report();assert([...document.querySelectorAll('.study-pace-controls')].every(host=>host.hidden),'stale toolbar retires');assert(shared('body').hidden===false&&/Refresh/.test(shared('status').textContent),'stale connection shows recovery');document.getElementById('result').textContent='ALL CHECKS + STALE RECOVERY PASSED';};
+adapter('study-connect-assistant','mcgraw');
+const settings={...StudyConfig.defaults.mcgraw};const pacer=StudyPacing.create(()=>settings,()=>{},'mcgraw');pacer.attach(document.body);
+</script></html>

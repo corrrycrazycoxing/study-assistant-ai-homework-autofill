@@ -63,7 +63,7 @@ async function mindtapCourseMessage(message,sender){
   if(message.type==='mindtapCourseState'){
     if(!host||sender.frameId!==0||run?.tab!==sender.tab.id)return {received:true,phase:'idle',eligible:0};
     if(Date.now()-run.time>4*60*60*1000){await chrome.storage.session.remove('mindtapCourse');return {received:true,phase:'idle',eligible:0};}
-    return {received:true,phase:run.phase,index:run.index,total:run.assignments.length,title:run.assignments[run.index]?.title||'',done:run.done.length,skipped:run.skipped.length,skippedItems:run.skipped,skipReviewPause:run.skipReviewPause};
+    return {received:true,phase:run.phase,index:run.index,total:run.assignments.length,title:run.assignments[run.index]?.title||'',done:run.done.length,skipped:run.skipped.length,skippedItems:run.skipped,reason:run.skipped.findLast(item=>item.id===run.assignments[run.index]?.id)?.reason||'',skipReviewPause:run.skipReviewPause};
   }
   if(message.type==='mindtapCourseStop'){
     if((!host||sender.frameId!==0)&&!player||run?.tab!==sender.tab.id)return {received:false};
@@ -73,8 +73,26 @@ async function mindtapCourseMessage(message,sender){
   if(!run||sender.tab.id!==run.tab||Date.now()-run.time>4*60*60*1000)return {received:false};
   if(message.type==='mindtapCourseReady'){
     if(!player||run.phase!=='opening'&&run.phase!=='running')return {received:false};
+    const item=run.assignments[run.index];
+    if(item?.requiresStartVerification){
+      let outer;try{outer=new URL(sender.tab.url);}catch{}
+      const course=new URL(run.courseUrl);
+      const matchingActivity=outer?.origin===course.origin&&outer.pathname===course.pathname&&outer.searchParams.get('deploymentId')===course.searchParams.get('deploymentId')&&outer.searchParams.get('id')===item.id;
+      if(!matchingActivity||!url.searchParams.get('ctx'))return {received:false,error:'Open the matching assignment overview so Course Mode can verify its attempts before answering.'};
+    }
+    if(item?.requiresStartVerification&&!run.startVerified){
+      if(!assignmentOverview||message.overviewReadable!==true)return {received:false,error:'Open the matching assignment overview so Course Mode can verify its attempts before answering.'};
+      if(message.untouched!==true&&!run.includeInProgress){
+        const reason='MindTap showed Due soon, but its overview did not confirm every attempt was unstarted. Enable in-progress work explicitly or review this assignment manually.';
+        run.skipped.push({id:item.id,title:item.title,category:item.category,reason});run.phase='review';await save(run);
+        await chrome.tabs.sendMessage(run.tab,{type:'mindtapCourseReview',title:item.title,index:run.index,total:run.assignments.length,completed:run.done.length,skipped:run.skipped.length,reason},{frameId:0}).catch(()=>{});
+        return {received:true,start:false,error:reason};
+      }
+      run.startVerified=true;run.verifiedContext=url.searchParams.get('ctx');run.verifiedFrame=sender.frameId;
+    }
+    if(item?.requiresStartVerification&&(sender.frameId!==run.verifiedFrame||url.searchParams.get('ctx')!==run.verifiedContext))return {received:false};
     run.phase='running';run.time=Date.now();await save(run);
-    return {received:true,start:true,skipReviewPause:run.skipReviewPause,title:run.assignments[run.index]?.title||''};
+    return {received:true,start:true,skipReviewPause:run.skipReviewPause,title:item?.title||''};
   }
   if(message.type==='mindtapCourseFinished'||message.type==='mindtapCourseBlocked'){
     if(!player||run.phase!=='running')return {received:false};
@@ -84,12 +102,12 @@ async function mindtapCourseMessage(message,sender){
       run.skipped.push({id:run.assignments[run.index]?.id||'',title:run.assignments[run.index]?.title||'Assignment',category:run.assignments[run.index]?.category||'',reason});
     }
     run.phase='review';run.time=Date.now();await save(run);
-    await chrome.tabs.sendMessage(run.tab,{type:'mindtapCourseReview',title:run.assignments[run.index]?.title||'',index:run.index,total:run.assignments.length,completed:run.done.length,skipped:run.skipped.length,reason:message.reason||''},{frameId:0}).catch(()=>{});
+    await chrome.tabs.sendMessage(run.tab,{type:'mindtapCourseReview',blocked:message.type==='mindtapCourseBlocked',title:run.assignments[run.index]?.title||'',index:run.index,total:run.assignments.length,completed:run.done.length,skipped:run.skipped.length,reason:message.reason||''},{frameId:0}).catch(()=>{});
     return {received:true,phase:'review'};
   }
   if(message.type==='mindtapCourseContinue'){
     if(!host||sender.frameId!==0||run.phase!=='review')return {received:false};
-    run.index++;run.time=Date.now();
+    run.index++;run.time=Date.now();delete run.startVerified;delete run.verifiedContext;delete run.verifiedFrame;
     if(run.index>=run.assignments.length){run.phase='done';await save(run);await chrome.tabs.sendMessage(run.tab,{type:'mindtapCourseReview',index:run.index,total:run.assignments.length,completed:run.done.length,skipped:run.skipped.length,skippedItems:run.skipped,done:true},{frameId:0}).catch(()=>{});return {received:true,phase:'done'};}
     run.phase='opening';await save(run);
     await chrome.tabs.sendMessage(run.tab,{type:'mindtapCourseOpen',item:run.assignments[run.index],index:run.index,total:run.assignments.length},{frameId:0}).catch(()=>{});

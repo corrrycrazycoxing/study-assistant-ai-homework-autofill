@@ -1,9 +1,9 @@
-Study Assistant 2.7.4
+Study Assistant 2.8.0
 
-Pearson Course Auto now opens verified unfinished homework, starts automatically, clicks the native Save button and returns to the course list. A closed tab alone cannot count as a save. The course launcher offers speed selection and optional started work; the active panel shows course/question progress and Stop Course Auto. Unsupported questions are saved to the final review report while the queue continues. Existing answers are preserved, and final assignment submission remains manual.
+Select courses from the Canvas dashboard or Courses page to queue eligible McGraw homework. You can also load a Canvas quiz’s reading before starting, use a matching NotebookLM source, and send long quizzes in batches.
 
-Disconnected idle chatbot tabs can reconnect automatically before a new question is sent. “Tab reloading…” appears during recovery. Unsent drafts and running responses are protected, and accepted questions are not replayed. This update also includes NotebookLM response/citation handoff fixes, Pearson dropdown/math labels and missing-data feedback, Connect video and check-result handling, and MindTap Aplia question traversal.
+The side panel and on-page controls share progress and recovery actions. This release expands support for SmartBook matching, Connect worksheets, Pearson linked data and MindTap graphs. Review answers before submitting.
 
-Verification: the full repository regression suite, diff checks and package checks pass. Native Chrome observation confirmed the last Pearson homework completing at 35/35 (100%), followed by automatic return to the course list, the final review report and 8 of 8 assignments processed. Processed does not mean every assignment was answered. Known limitation: the review report can include already-correct questions as “No editable answer fields” entries. Full live completion across every supported platform is not claimed.
+The repository regression suite and package checks passed. The SmartBook matching selectors were verified against the live page. Automatic drops still need live verification.
 
-Install: extract `study-assistant-2.7.4.zip`, open `chrome://extensions`, enable Developer mode and load the extracted **Study-Assistant-2.7.4** folder containing `manifest.json`. For an existing unpacked install, replace its files or load the new folder, click **Reload**, then reload assignment, Pearson course-list and chatbot tabs. GitHub cannot replace local unpacked files automatically.
+Extract `study-assistant-2.8.0.zip` and load **Study-Assistant-2.8.0** as an unpacked extension in Chrome. After updating, reopen assignment pages so they load the new adapter.

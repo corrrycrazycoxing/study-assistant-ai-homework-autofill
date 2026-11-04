@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const source=fs.readFileSync('background/background.js','utf8');
 function slice(a,b){const start=source.indexOf(a),end=source.indexOf(b,start);assert(start>=0&&end>start);return source.slice(start,end);}
 const recovery=fs.readFileSync('background/ai-recovery.js','utf8');
-async function scenario({reason='Disconnected',safe=true,pending,discarded=false,cancel=false,neverReady=false,notebook=false,fallback=false}={}){
+async function scenario({reason='Disconnected',safe=true,pending,discarded=false,cancel=false,neverReady=false,notebook=false,fallback=false,noFormatter=false}={}){
   const values={...(pending?{pending}:{} )},events=[],sender={tab:{id:1},frameId:0,documentId:'assignment-doc',id:'extension'};
   let reloads=0,sends=0;
   const ai={id:2,url:'https://gemini.google.com/app/example',status:'complete',discarded};
@@ -13,7 +13,7 @@ async function scenario({reason='Disconnected',safe=true,pending,discarded=false
     config:async()=>({}),activeRun:async()=>null,StudyConfig:{preferences:()=>({aiModel:'gemini',preferNotebook:notebook})},StudyPacing:{options:()=>({mode:'normal'})},
     focusTab:async()=>{},panelSender:s=>!s.tab,cancel:async()=>{delete values.pending;},
     chrome:{runtime:{id:'extension'},storage:{session:storage},scripting:{executeScript:async()=>[{result:{safe,reason:reason==='Disconnected'?'Unsent draft':reason}}]},tabs:{
-      query:async({url})=>url==='gemini'?[ai]:url==='chatgpt'&&fallback?[{id:4,url:'https://chatgpt.com/',status:'complete'}]:Array.isArray(url)&&notebook?[book]:[],
+      query:async({url})=>url==='gemini'&&!noFormatter?[ai]:url==='chatgpt'&&fallback?[{id:4,url:'https://chatgpt.com/',status:'complete'}]:Array.isArray(url)&&notebook?[book]:[],
       get:async id=>id===3?book:ai,
       reload:async id=>{reloads++;ai.discarded=false;assert(values.aiTabRecovery,'progress is set before reload');assert(!values.pending,'questions are not dispatched before reconnection');if(cancel)context.cancelAiPreparation({type:'mcgrawMapCancel'},sender);},
       sendMessage:async(id,m)=>{
@@ -25,7 +25,7 @@ async function scenario({reason='Disconnected',safe=true,pending,discarded=false
       },
     }},
   };
-  vm.createContext(context);vm.runInContext(recovery+slice('async function regularTab(','async function deliver(')+slice('async function request(','async function handle('),context);
+  vm.createContext(context);vm.runInContext(fs.readFileSync('background/notebooks.js','utf8')+recovery+slice('async function regularTab(','async function deliver(')+slice('async function request(','async function handle('),context);
   if(neverReady)vm.runInContext("probeAiTab=async()=>({ready:false,reason:'Unsent draft'})",context);
   let result,error;
   try{result=await context.request({id:'req-1',type:'mcgrawMapQuestion',prompt:'Synthetic question',snapshotHash:'1234abcd'},sender,'mcgraw');}catch(e){error=e;}
@@ -33,7 +33,8 @@ async function scenario({reason='Disconnected',safe=true,pending,discarded=false
 }
 (async()=>{
   const ok=await scenario();assert.equal(ok.result.received,true);assert.equal(ok.reloads,1);assert.equal(ok.sends,1,'the question is sent exactly once after recovery');assert.equal(ok.values.aiTabRecovery,undefined);assert.equal(ok.values.pending.id,'req-1');assert.equal(ok.events[0].tab,1,'reload progress belongs to the assignment');
-  const book=await scenario({notebook:true});assert.equal(book.reloads,1);assert.equal(book.sends,1);assert.equal(book.events[0].model,'notebook');assert.equal(book.events[1].send,'receiveSourceQuestion');
+  const directBook=await scenario({notebook:true,noFormatter:true});assert.equal(directBook.result.received,true,'a ready NotebookLM does not require a regular chatbot');assert.equal(directBook.values.pending.formatter,undefined);
+ const book=await scenario({notebook:true});assert.equal(book.reloads,1);assert.equal(book.sends,1);assert.equal(book.events[0].model,'notebook');assert.equal(book.events[1].send,'receiveSourceQuestion');
   const alternate=await scenario({fallback:true});assert.equal(alternate.reloads,0,'a ready alternate avoids a needless reload');assert.equal(alternate.sends,1);
   for(const reason of ['Generating answer','Unsent draft','Sending prompt','Uploading picture','Sign in or reload']){const blocked=await scenario({reason});assert.equal(blocked.reloads,0,reason+' is never automatically reloaded');assert.equal(blocked.sends,0);}
   const draft=await scenario({safe:false});assert.equal(draft.reloads,0,'a disconnected tab with a draft is left untouched');

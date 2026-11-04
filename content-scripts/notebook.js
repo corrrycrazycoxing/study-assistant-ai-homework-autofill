@@ -35,13 +35,14 @@
     if(editor.value.trim())throw Error('NotebookLM has an unsent draft. Send or clear it first.');
     if(!sourceCount())throw Error('Select notebook sources before asking for an answer.');
     if(typeof message.id!=='string'||typeof message.prompt!=='string')throw Error('Invalid notebook request.');
+    const max=Number(editor.getAttribute('maxlength'));if(Number.isFinite(max)&&max>0&&message.prompt.length>max)throw Error('This request exceeds NotebookLM’s '+max+' character limit. Reduce the batch or answer the oversized question manually.');
     const request={id:message.id,prompt:clean(message.prompt),path:location.pathname,sources:sourceFingerprint(),baseline:new Set(messages()),started:Date.now(),last:'',stableAt:0,timer:null};active=request;
     try{
       editor.focus();Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(editor,message.prompt);editor.dispatchEvent(new Event('input',{bubbles:true}));
       await new Promise(resolve=>setTimeout(resolve,350));
       if(active!==request)throw Error('Cancelled.');
       const button=[...document.querySelectorAll('query-box button[aria-label="Submit"],query-box button[aria-label="Send"]')].find(visible);
-      if(!button)throw Error('NotebookLM’s Send control is not available yet. Check the prompt and try again after the notebook finishes loading.');
+      if(!button){if(editor.value===message.prompt){Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(editor,'');editor.dispatchEvent(new Event('input',{bubbles:true}));}throw Error('NotebookLM could not send this request. The generated draft was cleared if unchanged; retry with a smaller batch.');}
       button.click();
       const requestSeen=()=>[...document.querySelectorAll('.from-user-message-inner-content')].some(n=>StudySecurity.notebookRequestSeen(textOf(n),request.id))||messages().some(n=>!request.baseline.has(n)&&StudySecurity.notebookRequestSeen(textOf(n),request.id));
       const accepted=()=>busy()||requestSeen();
@@ -79,7 +80,10 @@
           settling=true;try{const reply=await chrome.runtime.sendMessage({type:'studyDelay',ms:600});if(!reply?.waited)await new Promise(r=>setTimeout(r,600));}catch{await new Promise(r=>setTimeout(r,600));}
           settling=false;if(active===request)schedule();return;
         }
-        if(!StudySecurity.hasSourceCitation(text,Boolean(latest.querySelector('.citation-marker')))&&!/SOURCE_NOT_FOUND/i.test(text))return fail(request,'NotebookLM did not provide a source citation. Review the readings and answer manually.');
+        // A selected source is required before sending. NotebookLM can answer
+        // from it without adding citation markers, especially on repeated
+        // questions. Preserve citations when present; their absence is not a
+        // missing-source signal. The background still rejects SOURCE_NOT_FOUND.
         clear();await chrome.runtime.sendMessage({type:'notebookResponse',id:request.id,response:text}).catch(()=>{});
       }
       function schedule(){if(!scheduled){scheduled=true;queueMicrotask(scan);}}
@@ -89,7 +93,7 @@
     }catch(error){if(active===request)clear();throw error;}
   }
   chrome.runtime.onMessage.addListener((message,sender,reply)=>{
-    if(message.type==='notebookReady'){const editor=input();const sources=sourceCount();const reason=!/\/notebook\/[^/]+/.test(location.pathname)?'Open a readings notebook':!editor?'Notebook chat is loading':active||busy()?'Generating source answer':!sources?'Select notebook sources':editor.value.trim()?'Unsent draft':'Ready';reply({ready:reason==='Ready',reason,sources});return;}
+    if(message.type==='notebookReady'){const editor=input();const sources=sourceCount();const reason=!/\/notebook\/[^/]+/.test(location.pathname)?'Open a readings notebook':!editor?'Notebook chat is loading':active||busy()?'Generating source answer':!sources?'Select notebook sources':editor.value.trim()?'Unsent draft':'Ready';reply({buildId:globalThis.StudyBuild?.id,ready:reason==='Ready',reason,sources});return;}
     if(message.type==='cancelQuestion'){if(active?.id===message.id)clear();reply({received:true});return;}
     if(message.type==='receiveSourceQuestion'){send(message).then(reply,error=>reply({received:false,error:error.message}));return true;}
   });

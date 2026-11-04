@@ -5,11 +5,11 @@ async function scenario({failure='answer',cancel=false}={}){
   let question=1;const skipped=[],filled=[],calls=[];
   const context={running:false,preparePlayerStartup:async()=>{},settingsReady:Promise.resolve(),settings:{pacingMode:'normal',pauseBeforeSubmit:false},guided:false,loopGeneration:0,courseRun:true,runId:null,runCount:0,correction:null,responseWaiter:null,
     startButton:{},stopButton:{},ask:{},clean:value=>value.trim(),document:{querySelector:()=>({textContent:'Question '+question})},
-    snapshot:()=>{if(question===1&&failure==='unreadable')throw Error('Pearson choices cannot be identified uniquely.');return ({text:'Question '+question,problemKey:'q'+question,signature:'q'+question,fields:question===1&&failure==='no-fields'?[]:[{el:{isConnected:true}}],incomplete:question===1&&failure==='incomplete',missingSource:question===1&&failure==='source',hasDiagram:question===1&&failure==='image'});},
+    snapshot:()=>{if(question===1&&failure==='unreadable')throw Error('Pearson choices cannot be identified uniquely.');return ({text:'Question '+question,problemKey:'q'+question,signature:'q'+question,fields:question===1&&['no-fields','continue','correct'].includes(failure)?[]:[{el:{isConnected:true}}],incomplete:question===1&&failure==='incomplete',missingSource:question===1&&failure==='source',hasDiagram:question===1&&failure==='image'});},
     chrome:{runtime:{sendMessage:async message=>{calls.push(message);return {running:true,runId:'run'};}}},
     request:async()=>{if(question===1){if(cancel){context.running=false;context.loopGeneration++;}if(failure==='request')throw Error('Required linked source did not open.');context.responseWaiter.reject(Error('AI could not determine the requested value.'));context.responseWaiter=null;}else{context.responseWaiter.resolve([]);context.responseWaiter=null;}},
-    fill:async()=>{filled.push(question);return [{}];},playerState:async()=>({mode:'test'}),pacer:{afterQuestion:async()=>{}},say:()=>{},
-    skipCourseQuestion:async reason=>{skipped.push({question,reason});question++;return true;},advance:async()=>{context.running=false;return false;},
+    currentQuestionIsCorrect:()=>question===1&&failure==='correct',partContinueButton:()=>question===1&&failure==='continue'?{}:null,fill:async()=>{filled.push(question);return [{}];},playerState:async()=>({mode:'test'}),pacer:{afterQuestion:async()=>{}},say:()=>{},
+    skipCourseQuestion:async reason=>{skipped.push({question,reason});question++;return true;},advance:async()=>{if(question===1&&['continue','correct'].includes(failure)){question++;return true;}context.running=false;return false;},
     stop:async message=>{calls.push({type:'stop',message});context.running=false;}
   };
   vm.createContext(context);vm.runInContext(code,context);await context.startAuto();return {skipped,filled,calls};
@@ -18,6 +18,8 @@ async function scenario({failure='answer',cancel=false}={}){
   for(const failure of ['answer','request','no-fields','incomplete','source','image','unreadable']){
     const result=await scenario({failure});assert.equal(result.skipped.length,1,failure+' must be banked');assert.equal(result.skipped[0].question,1);assert.deepEqual(result.filled,[2],failure+' must continue to the next question without filling the failed one');assert(!result.calls.some(item=>item.type==='pearsonCoursePlayerBlocked'),failure+' must not block the course queue');
   }
+  const continued=await scenario({failure:'continue'});assert.equal(continued.skipped.length,0,'a checked part with Continue is not a manual issue');assert.deepEqual(continued.filled,[2],'Auto reveals and answers the next part');
+  const correct=await scenario({failure:'correct'});assert.equal(correct.skipped.length,0,'already-correct questions must not be logged as unsupported');assert.deepEqual(correct.filled,[2]);
   const cancelled=await scenario({cancel:true});assert.equal(cancelled.skipped.length,0,'user Stop must not skip or advance');assert.equal(cancelled.filled.length,0);
   // Use production advance: a new question without recognized fields must reach
   // the loop's bank-and-skip path rather than timing out and ending the assignment.

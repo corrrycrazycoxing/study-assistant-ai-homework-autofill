@@ -1,11 +1,11 @@
 (() => {
   const $=id=>document.getElementById(id);
-  document.querySelector('.version').textContent=chrome.runtime.getManifest().version;
+  document.querySelector('.version').textContent=chrome.runtime.getManifest().version+' · Build '+(globalThis.StudyBuild?.id||'unknown');
   const hosts={chatgpt:'https://chatgpt.com/*',gemini:'https://gemini.google.com/*',deepseek:'https://chat.deepseek.com/*'};
   const urls={chatgpt:'https://chatgpt.com/',gemini:'https://gemini.google.com/app',deepseek:'https://chat.deepseek.com/'};
   const names={chatgpt:'ChatGPT',gemini:'Gemini',deepseek:'DeepSeek'};
-  const notes={mcgraw:'SmartBook, older Connect and the newer Connect MAP player. Journal worksheets and native choice/text fields are supported. Confidence and duplicate options apply only to SmartBook.',pearson:'Pearson MyLab numeric editor, choices and automatic checking/navigation.',canvas:'Canvas Classic quizzes; New Quizzes support is experimental. NotebookLM is preferred by default.',mindtap:'MindTap Aplia only. Save & Continue; optional grading before advancing.'};
-  const keys=['preferNotebook','autoFill','pauseBeforeSubmit','showExplanation','gradeBeforeAdvance','checkMapWork','randomConfidence','doubleCreditMode','replaceExisting','smoothScroll','includePictures'];
+  const notes={mcgraw:'SmartBook, older Connect and the newer Connect MAP player. Journal worksheets and native choice/text fields are supported. Confidence and duplicate options apply only to SmartBook.',pearson:'Pearson MyLab numeric editor, choices and automatic checking/navigation.',canvas:'Canvas Classic quizzes; New Quizzes support is experimental. NotebookLM is preferred by default.',mindtap:'MindTap Aplia only. Auto grades and checks each problem, retrying incorrect attempts when another version is available.'};
+  const keys=['preferNotebook','pauseBeforeSubmit','showExplanation','randomConfidence','doubleCreditMode','replaceExisting','smoothScroll','includePictures'];
   let state={watchAutomation:false,platformMode:'auto',aiModel:'gemini',platformSettings:{},canvasOrigins:[]},editing='mcgraw',saveQueue=Promise.resolve(),revision=0,bookRevision=0;
   const prefs=()=>StudyConfig.preferences(state,editing);
   async function save(values){
@@ -20,6 +20,7 @@
   }
   async function pacingSave(values){await save({pacingSettings:{...StudyConfig.pacingDefaults,...state.pacingSettings,...values}});}
   function render(){
+    $('canvas-reading-setup').hidden=editing!=='canvas';
     $('platform-mode').value=state.platformMode;$('watchAutomation').checked=state.watchAutomation===true;
     for(const button of document.querySelectorAll('[data-model]')){const selected=button.dataset.model===state.aiModel;button.classList.toggle('selected',selected);button.setAttribute('aria-checked',String(selected));}
     for(const button of document.querySelectorAll('[data-platform]'))button.setAttribute('aria-selected',String(button.dataset.platform===editing));
@@ -31,8 +32,8 @@
     $('pacing-options').hidden=['normal','human','review'].includes(prefs().pacingMode);
     $('human-options').hidden=prefs().pacingMode!=='human';$('humanSpeed').value=prefs().humanSpeed;for(const key of ['humanMinSeconds','humanMaxSeconds'])$(key).value=prefs()[key];
     $('pacing-description').textContent=prefs().pacingMode==='normal'?'Instant Auto still waits for the AI answer and the website to save. It adds no review countdown.':prefs().pacingMode==='slow'?'Timed Auto is fully automatic: review during the countdown, then it enters the answer and continues on its own.':prefs().pacingMode==='human'?'Human pace asks AI for the time a person would need to read, work, enter and check this question. Each field gets its own share; calculation questions usually take minutes.':'Guided Answers shows the AI answer and explanation for the current question. You enter it yourself; no fields, checks or navigation are automated.';
-    $('platform-extra-note').hidden=editing!=='pearson';$('check-map-feature').hidden=editing!=='mcgraw';$('grade-feature').hidden=editing!=='mindtap';$('confidence-feature').hidden=editing!=='mcgraw';$('double-feature').hidden=editing!=='mcgraw';$('canvas-site').hidden=editing!=='canvas';
-    $('autoFill-feature').hidden=prefs().pacingMode==='review';$('pause-feature').hidden=prefs().pacingMode==='review';$('showExplanation-feature').hidden=false;$('replace-feature').hidden=editing!=='mcgraw';
+    $('platform-extra-note').hidden=editing!=='pearson';$('check-map-feature').hidden=editing!=='mcgraw';$('grade-feature').hidden=editing!=='mindtap';$('smartbook-options').hidden=editing!=='mcgraw';$('confidence-feature').hidden=editing!=='mcgraw';$('double-feature').hidden=editing!=='mcgraw';$('canvas-site').hidden=editing!=='canvas';
+    $('pause-feature').hidden=prefs().pacingMode==='review';$('showExplanation-feature').hidden=false;$('replace-feature').hidden=editing!=='mcgraw';
     $('pause-label').textContent=editing==='mcgraw'?'Pause Before Submit':'Pause After Fill';
     $('pause-description').textContent=editing==='mcgraw'?'SmartBook: choose confidence manually. New Connect: review filled entries, then Resume Auto records and continues. Older Connect: Continue now resumes after filling.':'Pause before checking, saving or advancing. Resume Auto continues.';
   }
@@ -52,14 +53,16 @@
     const rev=++bookRevision,settings=prefs();
     const tabs=(await chrome.tabs.query({url:['https://notebook.google.com/*','https://notebooklm.google.com/*']})).filter(t=>{try{return /^\/notebook\/[^/]+\/?$/.test(new URL(t.url).pathname);}catch{return false;}});
     if(rev!==bookRevision)return;
-    $('notebook-choice').replaceChildren(new Option('Auto: use the only open notebook',''));
+    $('notebook-choice').replaceChildren(new Option('Auto: use the only source-ready notebook',''));
     for(const tab of tabs)$('notebook-choice').append(new Option(tab.title||'Notebook',tab.url.split('?')[0]));
     if(settings.notebookUrl&&!tabs.some(t=>t.url.split('?')[0]===settings.notebookUrl))$('notebook-choice').append(new Option('Selected notebook (not open)',settings.notebookUrl));
     $('notebook-choice').value=settings.notebookUrl;
-    const selected=settings.notebookUrl?tabs.filter(t=>t.url.split('?')[0]===settings.notebookUrl):tabs;
-    let ready=0;for(const tab of selected){try{if((await chrome.tabs.sendMessage(tab.id,{type:'notebookReady'}))?.ready)ready++;}catch{}}
+    const exact=settings.notebookUrl?tabs.filter(t=>t.url.split('?')[0]===settings.notebookUrl):[];
+    const selected=exact.length?exact:tabs,readyBooks=new Set();
+    for(const tab of selected){try{if((await chrome.tabs.sendMessage(tab.id,{type:'notebookReady'}))?.ready)readyBooks.add(tab.url.split('?')[0]);}catch{}}
+    const ready=readyBooks.size;
     if(rev!==bookRevision)return;
-    $('notebook-status').textContent=!settings.preferNotebook?'Notebook preference is off for this platform.':selected.length>1&&!settings.notebookUrl?'Choose a single readings notebook above.':ready?'NotebookLM is ready with selected sources.':selected.length?'Reload the notebook, select sources and clear its prompt.':settings.notebookUrl&&tabs.length?'The selected notebook is not open. Choose or open it.':'No notebook is open; uses a regular chatbot.';
+    $('notebook-status').textContent=!settings.preferNotebook?'Notebook preference is off for this platform.':ready>1?'Choose a single source-ready notebook above.':ready?'NotebookLM is ready with selected sources. Automatic source finding is optional.':selected.length?'Open the notebook, select sources and clear its prompt.':'No notebook is open; uses a regular chatbot.';
   }
   for(const button of document.querySelectorAll('[data-model]'))button.onclick=async()=>{await save({aiModel:button.dataset.model});render();availability();};
   for(const button of document.querySelectorAll('[data-platform]'))button.onclick=()=>{editing=button.dataset.platform;render();notebooks();};
@@ -111,7 +114,7 @@
       if(!builtIn){
         const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
         if(!tab?.id||new URL(tab.url).origin!==u.origin)throw Error('Open the HTTPS Canvas page in the active tab, then enable it again.');
-        await chrome.scripting.executeScript({target:{tabId:tab.id,allFrames:true},files:['shared/config.js','shared/security.js','shared/platform.js','shared/monitor.js','shared/pacing.js','shared/media.js','shared/capture-frame.js','content-scripts/canvas.js']});
+        await chrome.scripting.executeScript({target:{tabId:tab.id,allFrames:true},files:['shared/build.js','shared/config.js','shared/security.js','shared/platform.js','shared/review.js','shared/assignment-ui.js','shared/monitor.js','shared/pacing.js','shared/media.js','shared/capture-frame.js','shared/canvas-mcgraw-course.js','content-scripts/canvas-mcgraw-course.js','shared/canvas-batch.js','content-scripts/canvas.js']});
       }
       await save({canvasOrigins:[...new Set([...state.canvasOrigins,u.origin])]});
       $('domain-status').textContent='Enabled for this active tab: '+u.hostname+'. Enable again after a reload or origin change.';

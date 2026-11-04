@@ -17,29 +17,39 @@
     const header=queryAll('[id*="ActivityFrameHeader"],[class*="ActivityFrameHeader"]',doc).find(element=>/ActivityFrameHeader/i.test(`${element.id||''} ${element.className||''}`)&&active(element));
     return active(frame)||active(header);
   }
+  function outlineTab(doc=document){
+    return queryAll('[role="tab"],button,[role="button"]',doc).find(element=>{
+      const label=clean(element.getAttribute?.('aria-label')||element.getAttribute?.('title')||element.innerText||element.textContent);
+      return /^Outline View$/i.test(label)&&element.getClientRects().length>0&&!element.disabled&&!element.closest('[hidden],[aria-hidden="true"]');
+    })||null;
+  }
   function hasOutline(doc=document){
     if(hasActiveAssignment(doc))return false;
     const buttons=queryAll('button[id^="activity-heading-"],[role="button"][id^="activity-heading-"]',doc);
     const expandAll=queryAll('button,[role="button"]',doc).some(button=>/Expand All(?: Folders)?/i.test(clean(button.innerText||button.textContent||button.getAttribute('aria-label'))));
-    return buttons.some(button=>button.getClientRects().length>0&&!button.closest('[hidden],[aria-hidden="true"]'))||byId('outlineViewPane',doc)?.getAttribute('aria-selected')==='true'||expandAll;
+    return !!outlineTab(doc)||buttons.some(button=>button.getClientRects().length>0&&!button.closest('[hidden],[aria-hidden="true"]'))||byId('outlineViewPane',doc)?.getAttribute('aria-selected')==='true'||expandAll;
   }
   function scan(doc=document){
     return queryAll('button[id^="activity-heading-"],[role="button"][id^="activity-heading-"]',doc).map(button=>{
       const id=button.id.slice('activity-heading-'.length),row=button.closest('.activity-activityType-2')||button.closest('li')||button.parentElement?.parentElement;
       const status=clean(byId('activity-status-'+id,doc)?.textContent||row?.querySelector('[id^="activity-status-"]')?.textContent);
       const gradeText=clean(byId('activity-gradable-'+id,doc)?.textContent||row?.querySelector('[id^="activity-gradable-"]')?.textContent||row?.textContent);
-      const title=clean(button.innerText||button.textContent),sectionText=clean(row?.closest('.topic-level-3')?.innerText||''),section=/^(Apply It|Study It|Learn It)\b/i.exec(sectionText)?.[1]||'Other',category=section.toLowerCase().startsWith('apply')?'apply':section.toLowerCase().startsWith('study')?'study':section.toLowerCase().startsWith('learn')?'learn':'other';
+      const title=clean(button.innerText||button.textContent),sectionText=clean(row?.closest('.topic-level-3')?.innerText||row?.closest('.topic-level-3')?.textContent||''),section=/^(Apply It|Study It|Learn It)\b/i.exec(sectionText)?.[1]||'Other',category=section.toLowerCase().startsWith('apply')?'apply':section.toLowerCase().startsWith('study')?'study':section.toLowerCase().startsWith('learn')?'learn':'other';
       const visible=button.getClientRects().length>0&&!button.disabled&&!button.closest('[hidden],[aria-hidden="true"]');
       const gradeable=/COUNTS\s+TOWARDS\s+GRADE/i.test(gradeText),practice=/^PRACTICE$/i.test(gradeText);
-      return {button,id,title,status,gradeable,practice,category,visible,assessment:!!row?.classList?.contains('activity-activityType-2'),excluded:excludedTitle.test(title)||/\b(?:reading|media)\b/i.test(`${sectionText} ${gradeText}`)};
+      const unscored=/(?:--|—)\s*\/\s*\d+(?:\.\d+)?\s*points?\b/i.test(clean(row?.textContent));
+      const requiresStartVerification=/^(?:due soon(?: and (?:not started|in progress))?|in progress)$/i.test(status)&&unscored||/^due soon and in progress$/i.test(status);
+      return {button,id,title,status,gradeable,practice,category,visible,unscored,requiresStartVerification,assessment:!!row?.classList?.contains('activity-activityType-2'),excluded:excludedTitle.test(title)||/\b(?:reading|media)\b/i.test(`${sectionText} ${gradeText}`)};
     });
   }
   function eligible(item,selected=['apply'],options={}){
     if(!item||!Array.isArray(selected)||!selected.length||selected.some(key=>!categoryKeys.includes(key)))return false;
     const key=String(item.category||'').toLowerCase();
     const status=String(item.status||'').trim();
-    const statusAllowed=/^not started$/i.test(status)||(options.includeInProgress===true&&/^in progress$/i.test(status));
+    // Opening an activity can set In progress before any attempt is touched.
+    // Unscored rows may be inspected, but the overview must authorize answering.
+    const statusAllowed=/^not started$/i.test(status)||(/^(?:due soon(?: and (?:not started|in progress))?|in progress)$/i.test(status)&&item.unscored===true&&item.requiresStartVerification===true)||(options.includeInProgress===true&&(/^in progress$/i.test(status)||/^due soon and in progress$/i.test(status)&&item.requiresStartVerification===true));
     return /^\d{1,16}$/.test(String(item.id||''))&&typeof item.title==='string'&&item.title.trim().length>0&&item.title.length<=180&&statusAllowed&&item.visible!==false&&item.assessment!==false&&!item.excluded&&!excludedTitle.test(item.title)&&selected.includes(key)&&(key==='apply'?item.gradeable===true:item.gradeable===true||item.practice===true);
   }
-  globalThis.StudyMindTapCourse={eligible,scan,hasOutline,hasActiveAssignment,categoryKeys,queryAll,byId};
+  globalThis.StudyMindTapCourse={eligible,scan,hasOutline,hasActiveAssignment,outlineTab,categoryKeys,queryAll,byId};
 })();

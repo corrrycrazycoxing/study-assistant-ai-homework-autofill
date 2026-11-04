@@ -14,7 +14,7 @@ function classify({text='Chapter 6 Framework Video',video=true,controls=[],check
     StudyConfig:{assignLabels(){}},StudySecurity:{snapshot:()=>({})},window:{top:null},
   };
   vm.createContext(context);
-  vm.runInContext(block('  function informationPage(','  async function snapshot('),context);
+  vm.runInContext(block('  function trueFalseState(','  async function snapshot('),context);
   return ()=>context.ordinarySnapshot({key:'intro',question:text});
 }
 assert.equal(classify()().type,'information','observed field-free framework video can be traversed');
@@ -31,7 +31,7 @@ const askCode=block('  async function ask(){','  function validateNative(');
 const advanceCode=block('  async function advanceQuestion(','  async function resume(');
 function information(id,progress){return {key:id,text:'Information '+id,type:'information',progress,fields:[],root:{id},inputs:[]};}
 function question(id,progress){return {key:id,text:'Question '+id,type:'native',progress,fields:[{id:'f0'}],securitySnapshot:{snapshotHash:id},root:{id},inputs:[{id:id+'-field'}]};}
-async function flow(pages,{stall=false,cancel=false}={}){
+async function flow(pages,{stall=false,cancel=false,scored=false}={}){
   let index=0,clicks=0,polls=0;
   const messages=[],statuses=[],stops=[];
   const context={busy:false,request:null,result:null,run:{runId:'run-1'},epoch:1,count:0,completed:new Set(),informationVisited:new Set(),paused:null,
@@ -40,7 +40,7 @@ async function flow(pages,{stall=false,cancel=false}={}){
     snapshot:async()=>({...pages[index]}),guard:(snap,token)=>{if(token!==context.epoch||snap.key!==pages[index].key)throw Error('changed');},
     S:{text:value=>String(value||'')},$:()=>({textContent:pages[index].progress}),
     visible:e=>!e.hidden,enabled:e=>!e.disabled,inputVisible:()=>true,
-    all:selector=>selector==='.footer__link--next'?[{hidden:true,click(){throw Error('hidden Next clicked');}},{click(){clicks++;if(!stall)index=(index+1)%pages.length;}}]:pages[index].inputs,
+    all:selector=>selector.startsWith('[data-question-status]')?(scored?[{textContent:'scored',getAttribute:()=>null}]:[]):selector==='button'?[]:selector==='.footer__link--next'?[{hidden:true,click(){throw Error('hidden Next clicked');}},{click(){clicks++;if(!stall)index=(index+1)%pages.length;}}]:pages[index].inputs,
     message:async(type,data)=>{messages.push({type,data});return {received:true};},
     crypto:{randomUUID:()=> 'request-1'},prompt:()=> 'answerable question',StudyMedia:{graphics:()=>[],videos:()=>[]},
     current:()=>true,
@@ -68,6 +68,7 @@ async function flow(pages,{stall=false,cancel=false}={}){
   assert.match(stalled.stops[0],/did not finish loading/);assert.equal(stalled.clicks,1,'a failed Next is not replayed');
   const cancelled=await flow([information('start','Question 1 of 2'),question('next','Question 2 of 2')],{cancel:true});
   assert.equal(cancelled.messages.filter(m=>m.type==='Question').length,0,'Stop during navigation prevents the next AI request');
+  const scoredRun=await flow([question('graded','Question 1 of 2')],{scored:true});assert.match(scoredRun.stops[0],/already scored/);assert.equal(scoredRun.messages.filter(m=>m.type==='Question').length,0,'scored question is not sent to AI');assert.equal(scoredRun.clicks,0);
   const manual=await flow([information('manual','Question 1 of 1')]);
   manual.context.run=null;manual.context.epoch++;manual.context.busy=false;manual.context.stops=[];
   await manual.context.ask();assert.match(manual.statuses.at(-1),/Start Auto continues/,'Ask AI on information gives instructions without navigating');

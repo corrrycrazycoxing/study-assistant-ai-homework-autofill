@@ -103,7 +103,7 @@ const call=(message,sender)=>context.mindtapCourseMessage(message,sender);
  assert.match(ui,/host\.hidden=!outline&&!review;const card=ui\?\.querySelector\('\.card'\);if\(card\)card\.hidden=!outline/,'solo assignment pages hide the course-mode card while active course reviews retain their review dialog');
  assert.match(ui,/new MutationObserver\(\(\)=>\{/,'Course Mode reevaluates visibility as MindTap navigates between assignment and outline views');
  assert.match(ui,/type="checkbox" id="include-in-progress"/,'in-progress activity inclusion is opt-in');
- assert.match(ui,/window\.confirm\(`Include \$\{inProgressCount\} in-progress assignment/,'in-progress activity inclusion requires a confirmation prompt before the queue starts');
+ assert.doesNotMatch(ui,/window\.confirm\(`Include /,'the explicit in-progress checkbox is sufficient without a repeated confirmation');
  assert.match(ui,/includeInProgress,skipReviewPause/,'the explicit in-progress choice is sent to the queue validator');
  assert.match(ui,/role="note" aria-label="Course mode warning"/,'Course Mode shows a prominent in-panel warning when opened');
  assert.match(ui,/<div id="body" hidden><aside id="notice" class="notice"[\s\S]*?<button id="ack-notice" class="secondary">Got it<\/button><\/aside>/,'the Course Mode warning stays inside the expandable card and can be dismissed');

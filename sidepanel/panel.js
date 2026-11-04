@@ -5,6 +5,7 @@ const installedVersion=chrome.runtime.getManifest().version;
 const releaseApi='https://api.github.com/repos/corrrycrazycoxing/study-assistant-ai-homework-autofill/releases/latest';
 const releaseStatus=$('version-status');
 $('installed-version').textContent=installedVersion;
+$('build-status').textContent='Build '+(globalThis.StudyBuild?.id||'unknown');
 function versionParts(value){return /^\d+\.\d+\.\d+$/.test(value)?value.split('.').map(Number):null;}
 function newerVersion(latest,current){const a=versionParts(latest),b=versionParts(current);return !!a&&!!b&&a.some((part,index)=>part>b[index]&&a.slice(0,index).every((prior,i)=>prior===b[i]));}
 async function checkReleaseVersion(force=false){
@@ -19,13 +20,27 @@ async function checkReleaseVersion(force=false){
    await chrome.storage.local.set({releaseVersionCache:{version:latest,checkedAt:Date.now()}});
   }
   const available=newerVersion(latest,installedVersion);
-  releaseStatus.textContent=available?`Installed ${installedVersion} · Update ${latest} available`:`Installed ${installedVersion} · Latest release`;
+  releaseStatus.textContent=available?`Installed ${installedVersion} · Update ${latest} available`:`Installed ${installedVersion} · Release version current`;
   releaseStatus.parentElement.classList.toggle('update',available);
   $('github-update-help').hidden=!available;
   $('github-update-message').textContent=available?'The release is not installed automatically. Run the updater or install the ZIP, then reload Study Assistant in Chrome. Refresh your assignment and AI tabs afterward.':'';
  }catch{releaseStatus.textContent=`Installed ${installedVersion} · Could not check releases`;$('github-update-help').hidden=true;}
 }
-let actionError='';function error(text){actionError=text||'';$('error').textContent=actionError?'Action needs attention. See the recovery options below.':'';$('error').hidden=!actionError;if(snapshot)renderAttention(snapshot);}
+let actionError='';function error(text){actionError=text||'';$('error').textContent=actionError?'Action needs attention: '+actionError:'';$('error').hidden=!actionError;if(snapshot)renderAttention(snapshot);}
+let coursePickerKey='',coursePicks=new Set();
+function renderCoursePicker(course){
+ $('canvas-course-picker').hidden=!course.hub;if(!course.hub)return;
+ const choices=course.courses||[],key=JSON.stringify([course.tab,choices,course.selected||[]]);
+ if(key!==coursePickerKey){coursePickerKey=key;coursePicks=new Set(course.selected||[]);
+  $('canvas-course-list').replaceChildren(...choices.map(c=>{const row=document.createElement('label'),box=document.createElement('input');box.type='checkbox';box.value=c.url;box.checked=coursePicks.has(c.url);box.onchange=()=>{if(box.checked)coursePicks.add(c.url);else coursePicks.delete(c.url);renderCoursePicker(course);};row.append(box,document.createTextNode(' '+c.title));return row;}));
+ }
+ const count=choices.filter(c=>coursePicks.has(c.url)).length;
+ $('canvas-course-all').checked=choices.length>0&&count===choices.length;$('canvas-course-all').indeterminate=count>0&&count<choices.length;$('canvas-course-all').disabled=!choices.length;
+ $('canvas-course-note').textContent=count+' of '+choices.length+' courses selected. Past enrollments are excluded.';
+ $('canvas-course-start').textContent='Start selected courses';$('canvas-course-start').disabled=busy||course.unavailable===true||!count;
+}
+let courseLease=null,courseLeaseTab=null;
+function connectCourseLease(course){const tab=course?.tab??null;if(tab===courseLeaseTab&&courseLease)return;courseLease?.disconnect();courseLease=null;courseLeaseTab=null;if(tab===null)return;try{const port=chrome.tabs.connect(tab,{name:'study-canvas-course-lease',frameId:0});courseLease=port;courseLeaseTab=tab;port.onDisconnect.addListener(()=>{void chrome.runtime.lastError;if(courseLease===port){courseLease=null;courseLeaseTab=null;}});}catch{}}
 let previewText=null,panelWindow=null,lease=null,leaseTarget=null,seenSettingsIntent=null,savedScroll=0,helpReturn='assistant',draftState=null,events=[],eventTarget=null,eventSignature=null;
 function connectLease(page){
  const target=page?JSON.stringify([page.tab,page.frame,page.documentId,page.pageId]):null;if(target===leaseTarget&&lease)return;
@@ -39,7 +54,7 @@ function settingsView(open,platform=snapshot?.page?.platform){
 }
 function featureGuide(fromSettings=false){helpReturn=fromSettings?'settings':'assistant';if(!fromSettings)savedScroll=window.scrollY;$('assistant-view').hidden=true;$('settings-view').hidden=true;$('help-view').hidden=false;$('back-from-help').textContent=fromSettings?'← Back to settings':'← Back to assistant';window.scrollTo(0,0);}
 window.addEventListener('message',event=>{if(event.origin===location.origin&&event.source===$('settings-frame').contentWindow&&event.data?.type==='studyOpenFeatureGuide')featureGuide(true);});
-window.addEventListener('pagehide',()=>{lease?.disconnect();lease=null;leaseTarget=null;});
+window.addEventListener('pagehide',()=>{courseLease?.disconnect();lease?.disconnect();lease=null;leaseTarget=null;});
 function node(tag,text,className){const el=document.createElement(tag);if(text!=null)el.textContent=text;if(className)el.className=className;return el;}
 function renderPreview(raw){
  if(raw===previewText)return;previewText=raw;const data=StudyPreview.parse(raw),container=$('preview');container.replaceChildren();
@@ -60,6 +75,10 @@ function renderPreview(raw){
 }
 function nerdMode(){const enabled=$('nerd-mode').checked;$('preview').hidden=enabled;$('raw-preview').hidden=!enabled;}
 function renderActivity(s){
+ const course=s.page?.course;
+ $('course-progress-view').hidden=!course;
+ if(course){$('course-progress-label').textContent=course.label;$('course-progress-bar').max=course.total;$('course-progress-bar').value=course.done;}
+ const stop=document.querySelector('[data-action="stop"]');if(stop)stop.textContent=course?'Stop Course Auto':'Stop run';
  const current=StudyReview.activity(s),target=s.page?JSON.stringify([s.page.tab,s.page.pageId]):null;
  if(target!==eventTarget){events=[];eventSignature=null;eventTarget=target;}
  for(const [index,el] of [...$('activity').querySelectorAll('li')].entries()){el.classList.toggle('active',index===current.stage);if(index===current.stage)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');}
@@ -81,6 +100,7 @@ function renderAttention(s){
   b.onclick=()=>kind==='refresh'?refresh():kind==='ai'||kind==='notebook'?action('studyOpenService',{service:kind==='notebook'?'notebook':s.preferences.aiModel||'gemini'}):kind==='manual'?action('studyFocusAssignment'):action('studyPanelCommand',{action:'ask'});buttons.push(b);
  }
  $('attention-actions').replaceChildren(...buttons);
+ if(advice.kind==='connection'&&s.canvasCourse){$('attention').hidden=true;return;}
  if(advice.kind!=='connection'||s.page)$('status').textContent='Needs attention — follow the steps below.';
 }
 function closeEditor(){draftState=null;$('answer-editor').hidden=true;$('edit-fields').replaceChildren();$('edit-error').hidden=true;if(snapshot)render(snapshot);}
@@ -114,16 +134,19 @@ $('edit-form').onsubmit=async e=>{
 };
 function render(s){
  if(draftState&&(!s.page||s.page.pageId!==draftState.target.pageId||s.page.tab!==draftState.target.tab||!s.page.controls?.edit||s.phase||s.run)){draftState=null;$('answer-editor').hidden=true;$('edit-fields').replaceChildren();error('The prepared answer is no longer editable. Reopen it after asking AI.');}
- snapshot=s;StudyOnboarding.update(s);const page=s.page;connectLease(page);selected=page?{tab:page.tab,pageId:page.pageId}:null;
- const options=s.pages.map(p=>({value:JSON.stringify({tab:p.tab,pageId:p.pageId}),text:StudyConfig.names[p.platform]+' · '+p.title}));
+ snapshot=s;StudyOnboarding.update(s);const course=s.canvasCourse;connectCourseLease(course);$('canvas-course').hidden=!course;if(course){const active=!['idle','done'].includes(course.phase);$('canvas-course-setup').hidden=active||!course.canStart;$('canvas-course-start').disabled=busy||course.unavailable===true;$('canvas-course-start').textContent='Scan and start';$('canvas-course-stop').hidden=!active;$('canvas-course-continue').hidden=!['review','attention'].includes(course.phase);$('canvas-course-retry').hidden=course.phase!=='attention';$('canvas-course-continue').textContent=course.phase==='attention'?'Skip this assignment · Continue':'I reviewed and saved · Continue';$('canvas-course-status').textContent=course.phase==='idle'?(course.unavailable?'Reload this Canvas page to connect Course Auto.':course.status||'Ready to scan this assignments list.'):course.phase==='done'?'Course run finished.':course.phase==='attention'?'Needs attention: '+(course.issues.at(-1)?.reason||'Review the assignment.'):course.phase==='review'?'Review and save the assignment before continuing.':course.phase==='scanning'?'Scanning '+course.courseTitle+' · '+course.scanIndex+' of '+course.courseTotal+' courses':course.phase==='opening'?'Checking Canvas score and due date…':course.phase==='launching'?'Waiting for the assignment provider to launch…':course.phase==='training'?(course.trainingStatus||'Working through the training…'):course.phase==='returning'?'Returning to assignments…':'Working on '+course.title;$('canvas-course-progress').max=course.phase==='scanning'?course.courseTotal:course.total||1;$('canvas-course-progress').value=course.phase==='scanning'?course.scanIndex:course.index;$('canvas-course-summary').textContent=course.phase==='scanning'?course.scanIndex+' of '+course.courseTotal+' courses scanned':course.index+' of '+course.total+' assignments processed'+(course.courseTitle?' · '+course.courseTitle:'');$('canvas-course-issues').hidden=!course.issues.length;$('canvas-course-issue-list').replaceChildren(...course.issues.map(issue=>node('li',issue.title+' · '+issue.reason)));renderCoursePicker(course);}
+const page=s.page;connectLease(page);selected=page?{tab:page.tab,pageId:page.pageId}:null;
+ const options=s.pages.map(p=>({value:JSON.stringify({tab:p.tab,pageId:p.pageId}),text:StudyConfig.names[p.platform]+' · '+p.title+(p.frame?' · Embedded player':'')}));
  const select=$('assignment'),value=selected?JSON.stringify(selected):'';
  if(JSON.stringify(options)!==select.dataset.options){select.replaceChildren(...(options.length?options.map(o=>Object.assign(document.createElement('option'),{value:o.value,textContent:o.text})):[Object.assign(document.createElement('option'),{value:'',textContent:'Waiting for an assignment…'})]));select.dataset.options=JSON.stringify(options);}
  select.value=value;select.disabled=!options.length||busy||!!draftState;
- $('platform').textContent=page?StudyConfig.names[page.platform]: 'No assignment connected';
+ if(course&&globalThis.StudyCourseUI)$('canvas-course-issue-list').replaceChildren(...course.issues.map(issue=>{const li=document.createElement('li');li.append(StudyCourseUI.titleLink(issue),document.createTextNode(' · '+issue.reason));return li;}));
+ $('platform').textContent=page?StudyConfig.names[page.platform]:course?'Canvas Course Auto':'No assignment connected';
  $('count').textContent=(s.run&&page&&s.run.tab===page.tab?s.run.count:s.checkpoint?.count||0)+' confirmed';
  const phases={reloading:'Tab reloading…',vision:'Reading the picture',grounding:'Checking NotebookLM readings',formatting:'Formatting the source answer',answer:'Waiting for AI'};
- $('phase').textContent=s.phase?phases[s.phase]||s.phase:page?.timer?'Review countdown':s.run&&page&&s.run.tab===page.tab?'Auto in progress':page?'Assignment connected':'Open a supported assignment';
- $('status').textContent=page?.status||'Reload a supported assignment after loading this version. Its page controls remain available when this panel is closed.';
+ $('phase').textContent=s.phase?phases[s.phase]||s.phase:page?.timer?'Review countdown':s.run&&page&&s.run.tab===page.tab?'Auto in progress':page?'Assignment connected':course?'Canvas Course Auto':'Open a supported assignment';
+ $('build-status').textContent='Build '+(globalThis.StudyBuild?.id||'unknown')+(page?' · Page '+(page.buildId||'unknown')+(page.frame?' · Embedded player':''):'');
+ $('status').textContent=page?.status||(course?'Course progress and controls are shown above.':'Reload a supported assignment after loading this version. Its page controls remain available when this panel is closed.');
  const update=s.updateAvailable;
  $('update-banner').hidden=!update;
  $('update-message').textContent=update?`Version ${update.version} is ready.`:'';
@@ -144,7 +167,7 @@ function render(s){
  $('continuation-hint').textContent=p.pacingMode==='review'?'You enter answers yourself':p.pauseBeforeSubmit?'Review, then resume':p.pacingMode==='human'?'AI-estimated working time':'Automatic continuation';
  renderPreview(page?.preview||'');nerdMode();renderActivity(s);renderAttention(s);
  $('edit-answer').hidden=!page?.controls?.edit;$('edit-answer').disabled=busy||!!draftState||!!s.phase||!!s.run;
- $('edit-hint').textContent=draftState?'Editing · run controls are paused here':page?.controls?.edit?'Save edits before filling':page?.preview?'Ask AI with Auto Fill off to edit a supported prepared answer.':'';
+ $('edit-hint').textContent=draftState?'Editing · run controls are paused here':page?.controls?.edit?'Save edits before filling':page?.preview?'Ask AI to edit a supported prepared answer.':'';
  if(s.settingsIntent&&s.settingsIntent.id!==seenSettingsIntent){seenSettingsIntent=s.settingsIntent.id;settingsView(true,s.settingsIntent.platform);send({type:'studyConsumeSettingsIntent',windowId:panelWindow,id:seenSettingsIntent}).catch(()=>{});}
  lastTarget=selected;
 }
@@ -152,6 +175,7 @@ async function refresh(){if(polling||busy)return;polling=true;try{const s=await 
 async function action(type,extra={}){if(busy||(draftState||StudyOnboarding.required()||StudyTour.active())&&!['studyStopAll'].includes(type))return;busy=true;error('');if(snapshot)render(snapshot);try{const r=await send({type,...selected,...extra});if(!r?.received)throw Error(r?.error||'Action was not accepted.');}catch(e){error(e.message);}finally{busy=false;await refresh();}}
 for(const b of document.querySelectorAll('[data-action]'))b.onclick=()=>action('studyPanelCommand',{action:b.dataset.action});
 $('assignment').onchange=()=>{selected=$('assignment').value?JSON.parse($('assignment').value):null;refresh();};
+$('canvas-course-start').onclick=()=>action('studyCanvasCourseControl',{tab:snapshot?.canvasCourse?.tab,action:'start',options:{pace:$('canvas-course-pace').value,speed:$('canvas-course-speed').value,started:$('canvas-course-started').checked,skipPastDue:$('canvas-course-overdue').checked,courses:[...coursePicks]}});$('canvas-course-stop').onclick=()=>action('studyCanvasCourseControl',{tab:snapshot?.canvasCourse?.tab,action:'stop'});$('canvas-course-retry').onclick=()=>action('studyCanvasCourseControl',{tab:snapshot?.canvasCourse?.tab,action:'retry'});$('canvas-course-continue').onclick=()=>action('studyCanvasCourseControl',{tab:snapshot?.canvasCourse?.tab,action:'reviewed'});
 $('help').onclick=()=>featureGuide();$('back-from-help').onclick=()=>{if(helpReturn==='settings'){ $('help-view').hidden=true;$('settings-view').hidden=false;window.scrollTo(0,0);}else settingsView(false);};$('settings').onclick=()=>settingsView(true);$('back-to-assistant').onclick=()=>{settingsView(false);refresh();};$('refresh').onclick=()=>{refresh();checkReleaseVersion(true);};$('stop-all').onclick=()=>action('studyStopAll');$('forget').onclick=()=>action('studyForgetCheckpoint');
 function openUpdaterGuide(){featureGuide();$('help-frame').contentWindow.location.hash='updating';}
 $('updater-help').onclick=openUpdaterGuide;$('update-instructions').onclick=openUpdaterGuide;
@@ -165,3 +189,6 @@ chrome.storage.local.get('panelNerdMode').then(data=>{$('nerd-mode').checked=dat
 
 StudyTour.bind({openSettings:()=>settingsView(true),closeSettings:()=>settingsView(false),openHelp:()=>featureGuide(),closeHelp:()=>{if(!$('help-view').hidden){$('help-view').hidden=true;if(helpReturn==='settings')$('settings-view').hidden=false;else{$('assistant-view').hidden=false;window.scrollTo(0,savedScroll);}}},canStart:()=>!StudyOnboarding.required()&&!busy&&!draftState&&!snapshot?.run&&!snapshot?.phase});
 $('start-walkthrough').onclick=()=>{if(!StudyTour.start())error('Stop the current run and finish any answer edit before opening the walkthrough.');};
+
+$('canvas-course-all').onchange=()=>{const course=snapshot?.canvasCourse;if(!course)return;coursePicks=new Set($('canvas-course-all').checked?(course.courses||[]).map(c=>c.url):[]);for(const box of $('canvas-course-list').querySelectorAll('input'))box.checked=coursePicks.has(box.value);renderCoursePicker(course);};
+$('canvas-course-load').onclick=()=>action('studyCanvasCourseControl',{tab:snapshot?.canvasCourse?.tab,action:'courses'});

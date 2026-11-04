@@ -18,7 +18,7 @@
     return clean(value)!=='';
   }
   function requiresManualGraph({hasDiagram=false,text=''}={}){
-    return Boolean(hasDiagram)&&/\b(?:plot|drag)\b/i.test(String(text));
+    return Boolean(hasDiagram)&&/\b(?:plot|drag)\b|\b(?:adjust|shift|move)\s+(?:the\s+)?(?:appropriate\s+)?(?:graph|curves?|supply|demand)\b/i.test(String(text));
   }
   globalThis.StudyMindTapFields={hasAnswer,requiresManualGraph};
 })();

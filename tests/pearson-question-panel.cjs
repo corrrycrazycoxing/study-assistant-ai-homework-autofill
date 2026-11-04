@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('content-scripts/pearson.js','utf8');
+const helper=source.slice(source.indexOf('  function syncQuestionPanel(){'),source.indexOf('  function mount() {'));
+let heading='Question 3',clears=0,messages=[],status='Reached the last question.',missing=false;
+const scope={panelQuestionIdentity:'',running:false,pending:null,filling:false,answer:{f0:'old'},explanation:'old',timer:null,clearTimeout,preview:{textContent:'old'},apply:{disabled:false},cancel:{disabled:false},clean:value=>String(value||'').trim(),document:{querySelector:()=>({textContent:heading})},shadow:{getElementById:()=>({replaceChildren:()=>clears++})},chrome:{runtime:{sendMessage:async message=>messages.push(message)}},snapshot:()=>({missingSource:missing,fields:[{}]}),say:text=>{status=text;}};
+vm.createContext(scope);vm.runInContext(helper,scope);
+scope.syncQuestionPanel();assert.equal(clears,0,'initial mount does not erase existing diagnostics');
+heading='';scope.syncQuestionPanel();assert.equal(clears,0,'transient empty headings do not invalidate the panel');
+heading='Question 1';missing=true;scope.pending={id:'old-request'};scope.syncQuestionPanel();assert.equal(clears,1);assert.equal(scope.preview.textContent,'');assert.equal(scope.answer,null);assert.equal(scope.pending,null);assert.equal(scope.apply.disabled,true);assert.match(status,/referenced lesson/);assert.equal(messages[0].type,'pearsonCancel');assert.equal(messages[0].id,'old-request');
+scope.syncQuestionPanel();assert.equal(clears,1,'panel text mutations cannot retrigger clearing');
+heading='Question 2';missing=false;scope.syncQuestionPanel();assert.match(status,/Ready for Question 2/);assert.equal(clears,2);
+scope.running=true;heading='Question 3';scope.syncQuestionPanel();assert.equal(clears,3,'running question transitions clear the old visible preview');
+scope.running=false;scope.filling=true;heading='Question 4';scope.syncQuestionPanel();assert.equal(clears,3,'a fill is not interrupted by the panel observer');
+assert.match(source,/mount\(\);syncQuestionPanel\(\);startCourseWhenReady\(\)/,'the live observer invokes the production panel reset');
+assert.match(source,/observe\(document.documentElement,\{childList:true,subtree:true,characterData:true\}\)/,'Pearson text-node heading changes also invalidate old previews');
+console.log('PASS Pearson question-switch panel reset, pending cancellation, missing-source status and active-work protection');

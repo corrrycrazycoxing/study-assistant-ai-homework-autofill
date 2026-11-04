@@ -17,7 +17,7 @@
     if(!td?.matches('td.responseCell')||td.classList.contains('td-readOnly')||!td.closest('#jQuerySheet')||!td.getClientRects().length)throw Error('The response cell is unavailable.');
     const transaction=document.querySelector('.control_buttons input.active')?.getAttribute('ref');
     if(message.mode==='worksheet'){
-      if(transaction||document.querySelector('.control_buttons input[ref]')||!td.classList.contains('isN')||td.classList.contains('dropDownList')||td.hasAttribute('formula'))throw Error('This is not an editable numeric worksheet cell.');
+      if(transaction||document.querySelector('.control_buttons input[ref]')||!td.classList.contains('isN')&&!td.classList.contains('dropDownList')||td.hasAttribute('formula'))throw Error('This is not an editable worksheet cell.');
     }else if(transaction!==message.transaction)throw Error('The worksheet transaction changed.');
     const jq=window.jQuery;
     const instances=(jq?.sheet?.instance||[]).filter(s=>s&&typeof s.cellEdit==='function'&&s.obj?.sheet?.()?.[0]?.contains(td));

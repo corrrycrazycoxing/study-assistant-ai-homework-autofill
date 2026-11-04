@@ -1,5 +1,17 @@
 // Keep only navigation/review metadata, never answers or source material.
 function pearsonCourseReportKey(url){const parsed=new URL(url);return parsed.origin+parsed.pathname.toLowerCase().replace(/\/$/,'')+'|'+(parsed.searchParams.get('courseId')||parsed.searchParams.get('courseID')||'');}
+const pearsonCourseScanRevision='3-described-followup';
+const pearsonCourseBankKey=(url,id)=>pearsonCourseReportKey(url)+'|'+id;
+async function rememberPearsonCourseScan(run,message){
+  const assignment=run.assignments[run.index],id=run.assignmentId;if(!assignment||!id)return;
+  const issues=(run.skippedQuestions||[]).filter(item=>item.assignmentId===id);
+  const manual=issues.length>0||message.mediaPending===true;
+  const score=typeof message.score==='number'&&Number.isFinite(message.score)&&message.score>=0&&message.score<=100?message.score:assignment.score??null;
+  const {pearsonCourseBank={}}=await chrome.storage.local.get('pearsonCourseBank');
+  const entry={assignmentId:id,title:assignment.title,score,time:Date.now(),revision:pearsonCourseScanRevision,status:manual?'manual':'complete',issues,mediaPending:message.mediaPending===true};
+  const entries=Object.entries({...pearsonCourseBank,[pearsonCourseBankKey(run.listUrl,id)]:entry}).sort((a,b)=>b[1].time-a[1].time).slice(0,500);
+  await chrome.storage.local.set({pearsonCourseBank:Object.fromEntries(entries)});
+}
 async function savePearsonCourseReport(run,stopped=false){
   const {pearsonCourseReports={}}=await chrome.storage.local.get('pearsonCourseReports');
   const key=pearsonCourseReportKey(run.listUrl),existing=pearsonCourseReports[key];
@@ -33,6 +45,13 @@ async function pearsonCourseMessage(message,sender){
   const isListPath=pathname=>listPaths.some(path=>pathname.toLowerCase()===path.toLowerCase())||/^\/courses\/\d+\/assignments\/?$/i.test(pathname);
   const read=async()=>((await chrome.storage.session.get('pearsonCourse')).pearsonCourse||null);
   const save=async run=>chrome.storage.session.set({pearsonCourse:run});
+  if(message.type==='pearsonCourseForgetHistory'){
+    if(!isListPath(url.pathname))return {received:false};
+    const active=await read();if(active&&active.phase!=='done')throw Error('Stop Course Auto before clearing its saved history.');
+    const {pearsonCourseBank={}}=await chrome.storage.local.get('pearsonCourseBank'),prefix=pearsonCourseReportKey(url.href)+'|';
+    await chrome.storage.local.set({pearsonCourseBank:Object.fromEntries(Object.entries(pearsonCourseBank).filter(([key])=>!key.startsWith(prefix)))});
+    return {received:true};
+  }
   if(message.type==='pearsonCourseReport'||message.type==='pearsonCourseReportDismiss'){
     if(!isListPath(url.pathname))return {received:false};
     const run=await read(),key=pearsonCourseReportKey(url.href);
@@ -54,9 +73,21 @@ async function pearsonCourseMessage(message,sender){
     // Returning directly to the iframe URL loses the shell and changes frame IDs.
     let returnUrl=url.href;
     try{const outer=new URL(sender.tab.url);if(outer.origin==='https://mylabmastering.pearson.com'&&/^\/courses\/\d+\/menu\//i.test(outer.pathname))returnUrl=outer.href;}catch{}
-    const run={tab:sender.tab.id,frame:sender.frameId,listUrl:url.href,returnUrl,pace,includeStarted:message.includeStarted===true,assignments:message.assignments.map(a=>({title:a.title,key:a.key})),index:0,phase:message.assignments.length?'list':'done',assignmentId:'',skipped:skippedAssignments.length,skippedAssignments,skippedQuestions:[],pendingMediaAssignments:[],skipReviewPause:message.skipReviewPause===true,time:Date.now(),reportId:crypto.randomUUID()};
+    const {pearsonCourseBank={}}=await chrome.storage.local.get('pearsonCourseBank'),assignments=[],bankedQuestions=[];
+    for(const item of message.assignments){
+      const id=item.key.match(/^javascript:doHomework\((\d+),/i)?.[1],cached=pearsonCourseBank[pearsonCourseBankKey(url.href,id)];
+      const score=typeof item.score==='number'&&Number.isFinite(item.score)&&item.score>=0&&item.score<=100?item.score:null;
+      const unchanged=cached&&cached.title===item.title&&(score===null||cached.score===null||score===cached.score);
+      const fresh=cached&&Date.now()-cached.time<(cached.status==='manual'?7:30)*86400000;
+      const compatible=cached?.status==='complete'||cached?.revision===pearsonCourseScanRevision;
+      if(message.useSavedHistory===true&&unchanged&&fresh&&compatible){
+        skippedAssignments.push({title:item.title,assignmentId:id,reason:cached.status==='manual'?'Saved scan: manual work remains. Use Retry saved issues to revisit.':'Saved scan: no supported work remained.'});
+        bankedQuestions.push(...(cached.issues||[]));
+      }else assignments.push({title:item.title,key:item.key,score});
+    }
+    const run={tab:sender.tab.id,frame:sender.frameId,listUrl:url.href,returnUrl,pace,includeStarted:message.includeStarted===true,assignments,index:0,phase:assignments.length?'list':'done',assignmentId:'',skipped:skippedAssignments.length,skippedAssignments,skippedQuestions:bankedQuestions,pendingMediaAssignments:[],skipReviewPause:message.skipReviewPause===true,time:Date.now(),reportId:crypto.randomUUID()};
     await save(run);if(run.phase==='done')await savePearsonCourseReport(run);
-    return {received:true,title:message.assignments[0]?.title||''};
+    return {received:true,title:assignments[0]?.title||'',banked:message.assignments.length-assignments.length};
   }
   const run=await read();
   if(run&&!run.reportId){run.reportId=crypto.randomUUID();await save(run);}
@@ -72,7 +103,7 @@ async function pearsonCourseMessage(message,sender){
   }
   if(!run||Date.now()-run.time>4*60*60*1000)return {received:false};
   const recordPendingMedia=(id)=>{run.pendingMediaAssignments??=[];if(!run.pendingMediaAssignments.some(item=>item.assignmentId===id))run.pendingMediaAssignments.push({title:run.assignments[run.index]?.title||'Assignment',assignmentId:id,reason:'Pearson may update credit after the media route returns, even if its tab is blank. Verify its status.'});};
-  const advance=async()=>{const fromAssignmentId=run.assignmentId||run.assignments[run.index]?.key.match(/^javascript:doHomework\((\d+),/i)?.[1]||'';run.index++;run.listReturn={fromAssignmentId,index:run.index,sourceFrame:sender.tab.id===run.tab?sender.frameId:run.frame};run.assignmentId='';for(const key of ['playerTab','playerFrame','playerDocumentId','openedQuestionId','launchQuestionIds','questionRoutes','saveClicked','playerClosed'])delete run[key];run.phase=run.index<run.assignments.length?'list':'done';await save(run);if(run.phase==='done')await savePearsonCourseReport(run);return {received:true,action:run.phase==='done'?'done':'list',listUrl:run.listUrl,index:run.index,total:run.assignments.length,skipped:run.skipped,skippedAssignments:run.skippedAssignments||[],skippedQuestions:run.skippedQuestions||[],pendingMediaAssignments:run.pendingMediaAssignments||[]};};
+  const advance=async()=>{const fromAssignmentId=run.assignmentId||run.assignments[run.index]?.key.match(/^javascript:doHomework\((\d+),/i)?.[1]||'';run.index++;run.listReturn={fromAssignmentId,index:run.index,sourceFrame:sender.tab.id===run.tab?sender.frameId:run.frame};run.assignmentId='';for(const key of ['playerTab','playerFrame','playerDocumentId','openedQuestionId','launchQuestionIds','questionRoutes','saveClicked','playerClosed','mediaRoutes','mediaAttempted','mediaLaunch'])delete run[key];run.phase=run.index<run.assignments.length?'list':'done';await save(run);if(run.phase==='done')await savePearsonCourseReport(run);return {received:true,action:run.phase==='done'?'done':'list',listUrl:run.listUrl,index:run.index,total:run.assignments.length,skipped:run.skipped,skippedAssignments:run.skippedAssignments||[],skippedQuestions:run.skippedQuestions||[],pendingMediaAssignments:run.pendingMediaAssignments||[]};};
   if(message.type==='pearsonCourseList'){
     if(sender.tab.id!==run.tab||!isListPath(url.pathname)||pearsonCourseReportKey(url.href)!==pearsonCourseReportKey(run.listUrl))return {received:false};
     if(sender.frameId!==run.frame){if(!['list','done'].includes(run.phase))return {received:false};run.frame=sender.frameId;await save(run);}
@@ -88,12 +119,39 @@ async function pearsonCourseMessage(message,sender){
     if(run.includeStarted||message.canStart===true){run.assignmentId=id;run.phase='resume-overview';await save(run);return {received:true,action:'overview',url:url.origin+overview+'?homeworkId='+id};}
     run.skipped++;run.skippedAssignments??=[];run.skippedAssignments.push({title:run.assignments[run.index]?.title||'Assignment',assignmentId:id,reason:'Already started or unavailable'});return advance();
   }
+  if(message.type==='pearsonCourseOpenMedia'||message.type==='pearsonCourseMediaReturn'){
+    const id=url.searchParams.get('homeworkId');
+    if(sender.tab.id!==run.tab||sender.frameId!==run.frame||url.pathname!==overview||id!==run.assignmentId||!['overview','media'].includes(run.phase))return {received:false};
+    if(message.type==='pearsonCourseOpenMedia'){
+      const mediaId=String(message.mediaId||'');
+      if(!run.mediaRoutes?.includes(mediaId))return {received:false,error:'This video link is not part of the verified assignment.'};
+      if(run.mediaLaunch)return {received:true,token:run.mediaLaunch.token};
+      if(run.mediaAttempted?.includes(mediaId))return {received:false,error:'This video link was already opened during this assignment.'};
+      // Use Pearson's own assigned-media URL, preserving its normal viewing route.
+      const destination=new URL('/Student/MediaPopup.aspx',url.origin);
+      for(const [key,value]of Object.entries({type:'assignedmedia',assignmentId:id,loc:mediaId,flush:'yes',record:'1',OnOpenerViewed:'doMedia_onViewed'}))destination.searchParams.set(key,value);
+      const existing=(await chrome.tabs.query({url:'https://mylab.pearson.com/*'})).find(tab=>{try{const target=new URL(tab.url||tab.pendingUrl||'');return target.origin===url.origin&&target.pathname.toLowerCase()==='/student/mediapopup.aspx'&&target.searchParams.get('type')==='assignedmedia'&&target.searchParams.get('assignmentId')===id&&target.searchParams.get('loc')===mediaId;}catch{return false;}});
+      const tab=existing||await chrome.tabs.create({url:destination.href,openerTabId:run.tab,active:true});
+      run.mediaAttempted??=[];run.mediaAttempted.push(mediaId);
+      run.mediaLaunch={id:mediaId,tab:tab.id,token:crypto.randomUUID(),time:Date.now()};run.phase='media';await save(run);
+      return {received:true,token:run.mediaLaunch.token};
+    }
+    if(!run.mediaLaunch||message.token!==run.mediaLaunch.token)return {received:false};
+    const tab=await chrome.tabs.get(run.mediaLaunch.tab).catch(()=>null);
+    if(tab?.status==='loading'&&Date.now()-run.mediaLaunch.time<12000)return {received:true,waiting:true};
+    // Leave the media tab open. Focus the exact course owner, even with Watch off.
+    const owner=await chrome.tabs.update(run.tab,{active:true});
+    if(owner?.windowId!==undefined)await chrome.windows.update(owner.windowId,{focused:true});
+    delete run.mediaLaunch;run.phase='overview';await save(run);
+    return {received:true,waiting:false,closed:!tab};
+  }
   if(message.type==='pearsonCourseQuestionSkipped'){
     if(sender.tab.id!==run.playerTab||sender.frameId!==run.playerFrame||run.playerDocumentId&&sender.documentId!==run.playerDocumentId||run.phase!=='player')return {received:false};
     // The actual question lives in a nested Player frame whose own URL contains
     // no assignment/question IDs. The outer URL can stay on the launch question
     // after Next, so resolve the displayed number through the verified overview.
     const route=new URL(sender.tab.url||sender.url),questionId=message.questionNumber!==undefined?run.questionRoutes?.find(item=>item.number===String(message.questionNumber))?.id:route.searchParams.get('questionId');
+    if(message.questionNumber!==undefined&&!questionId)return {received:false,error:'Pearson’s verified overview has no route for Question '+String(message.questionNumber).slice(0,12)+'. Save and reopen this assignment to refresh its question list.'};
     if(route.origin!=='https://mylab.pearson.com'||route.pathname.toLowerCase()!=='/student/playerhomework.aspx'||route.searchParams.get('homeworkId')!==run.assignmentId||!/^\d{1,12}$/.test(questionId||'')||message.questionId!==undefined&&String(message.questionId)!==questionId||typeof message.label!=='string'||!message.label.trim()||message.label.length>240||typeof message.reason!=='string'||!message.reason.trim()||message.reason.length>300)return {received:false};
     run.skippedQuestions??=[];
     if(!run.skippedQuestions.some(item=>item.assignmentId===run.assignmentId&&item.questionId===questionId))run.skippedQuestions.push({assignmentId:run.assignmentId,title:run.assignments[run.index]?.title||'Assignment',questionId,label:message.label.trim(),reason:message.reason.trim()});
@@ -126,12 +184,17 @@ async function pearsonCourseMessage(message,sender){
       if(autoRun?.platform==='pearson'&&autoRun.tab===run.playerTab){await saveCheckpoint(autoRun);await chrome.storage.session.remove('autoRun');}
       if(pending?.platform==='pearson'&&pending.tab===run.playerTab)await cancel(pending);
     }
+    if(message.mediaPending===false)run.pendingMediaAssignments=(run.pendingMediaAssignments||[]).filter(item=>item.assignmentId!==id);
+    if(run.phase==='media'&&run.mediaLaunch)return {received:true,action:'media-wait',token:run.mediaLaunch.token};
     if(run.phase==='verify'){
       const pendingIds=Array.isArray(message.pendingQuestionIds)?message.pendingQuestionIds.filter(id=>typeof id==='string'&&/^\d+$/.test(id)):[];
       const skippedIds=new Set((run.skippedQuestions||[]).filter(item=>item.assignmentId===id).map(item=>item.questionId));
       const unaccounted=pendingIds.some(questionId=>!skippedIds.has(questionId));
       if(message.mediaPending)recordPendingMedia(id);
-      if(unaccounted||(message.questionsPending&&!pendingIds.length)){run.phase='attention';await save(run);if(savedPlayer)await chrome.tabs.sendMessage(run.tab,{type:'pearsonCourseAttention'},{frameId:run.frame}).catch(()=>{});return {received:true,action:'attention'};}
+      if(message.questionsLocked===true){
+        run.skipped++;run.skippedAssignments??=[];run.skippedAssignments.push({title:run.assignments[run.index]?.title||'Assignment',assignmentId:id,reason:'Questions remain locked behind required media. Review the open video tabs.'});
+      }else if(unaccounted||(message.questionsPending&&!pendingIds.length)){run.phase='attention';await save(run);if(savedPlayer)await chrome.tabs.sendMessage(run.tab,{type:'pearsonCourseAttention'},{frameId:run.frame}).catch(()=>{});return {received:true,action:'attention'};}
+      if(message.questionsLocked!==true)await rememberPearsonCourseScan(run,message);
       const returnToList=savedPlayer||run.returnAfterSave;delete run.returnAfterSave;
       const next=await advance();
       if(returnToList&&sender.tab.id!==run.tab&&['list','done'].includes(next.action)){
@@ -141,13 +204,25 @@ async function pearsonCourseMessage(message,sender){
       return next;
     }
     if(!['list','launching','resume-overview','overview','media','attention'].includes(run.phase))return {received:true,action:'attention'};
-    if(['list','launching','resume-overview'].includes(run.phase)&&message.notStarted!==true&&!(run.includeStarted&&message.canResume===true)){run.skipped++;run.skippedAssignments??=[];run.skippedAssignments.push({title:run.assignments[run.index]?.title||'Assignment',assignmentId:id,reason:'Already completed, started without permission, or unavailable'});return advance();}
+    if(['list','launching','resume-overview'].includes(run.phase)&&message.notStarted!==true&&!(run.includeStarted&&message.canResume===true)){
+      if(message.questionsPending===false&&message.mediaPending===false)await rememberPearsonCourseScan({...run,assignmentId:id},message);
+      run.skipped++;run.skippedAssignments??=[];run.skippedAssignments.push({title:run.assignments[run.index]?.title||'Assignment',assignmentId:id,reason:'Already completed, started without permission, or unavailable'});return advance();
+    }
     if(message.mediaPending)recordPendingMedia(id);
+    else run.pendingMediaAssignments=(run.pendingMediaAssignments||[]).filter(item=>item.assignmentId!==id);
     run.assignmentId=id;
     const routes=Array.isArray(message.questionRoutes)?message.questionRoutes:[];
     run.questionRoutes=routes.length<=1000&&routes.every(item=>/^\d{1,12}$/.test(String(item?.number||''))&&/^\d{1,12}$/.test(String(item?.id||'')))&&new Set(routes.map(item=>String(item.number))).size===routes.length&&new Set(routes.map(item=>String(item.id))).size===routes.length?routes.map(item=>({number:String(item.number),id:String(item.id)})):[];
     run.launchQuestionIds=Array.isArray(message.pendingQuestionIds)?[...new Set(message.pendingQuestionIds.filter(id=>typeof id==='string'&&/^\d{1,12}$/.test(id)))].slice(0,1000):[];
+    const mediaIds=Array.isArray(message.pendingMediaIds)?message.pendingMediaIds:[];
+    run.mediaRoutes=mediaIds.length<=100&&mediaIds.every(value=>typeof value==='string'&&/^\d{1,12}$/.test(value))?[...new Set(mediaIds)]:[];
+    const mediaId=run.mediaRoutes.find(value=>!run.mediaAttempted?.includes(value));
     run.phase='overview';await save(run);
+    if(mediaId)return {received:true,action:'media',mediaId,index:run.index,total:run.assignments.length};
+    if(message.questionsLocked===true&&!run.launchQuestionIds.length){
+      run.skipped++;run.skippedAssignments??=[];run.skippedAssignments.push({title:run.assignments[run.index]?.title||'Assignment',assignmentId:id,reason:'Required lesson media has not unlocked the questions. Video tabs were left open for review.'});
+      return advance();
+    }
     return {received:true,action:message.questionsPending?'question':'complete',index:run.index,total:run.assignments.length};
   }
   if(message.type==='pearsonCourseOpenQuestion'){
@@ -170,11 +245,19 @@ async function pearsonCourseMessage(message,sender){
   if(message.type==='pearsonCoursePlayerReady'){
     // Nested Player documents omit homeworkId. Chrome can also omit the outer
     // URL during navigation, so the exact tab we created keeps its verified ID.
-    const id=url.searchParams.get('homeworkId')||new URL(sender.tab.url||url.href).searchParams.get('homeworkId')||(sender.tab.id===run.playerTab&&run.openedQuestionId?run.assignmentId:null);
     const playerUrl=url.origin==='https://tdx.acs.pearson.com'&&/^\/Player\//i.test(url.pathname)||url.origin==='https://mylab.pearson.com'&&/^\/Student\/PlayerHomework\.aspx$/i.test(url.pathname);
     if(!playerUrl||sender.tab.id!==run.tab&&sender.tab.id!==run.playerTab&&sender.tab.openerTabId!==run.tab)return {received:false};
+    // Nested frames can report the previous outer URL during navigation.
+    // Prefer Chrome's current tab identity; never replace an explicit frame ID.
+    const claim={reportId:run.reportId,index:run.index,assignmentId:run.assignmentId,phase:run.phase};
+    const currentTab=await chrome.tabs.get?.(sender.tab.id).catch(()=>null);
+    const latest=await read();
+    if(!latest||Object.entries(claim).some(([key,value])=>latest[key]!==value))return {received:false};
+    const outerUrl=new URL(currentTab?.url||sender.tab.url||url.href);
+    if(currentTab?.url&&(outerUrl.origin!=='https://mylab.pearson.com'||!/^\/Student\/PlayerHomework\.aspx$/i.test(outerUrl.pathname)))return {received:false};
+    const id=url.searchParams.get('homeworkId')||outerUrl.searchParams.get('homeworkId')||(sender.tab.id===run.playerTab&&run.openedQuestionId?run.assignmentId:null);
     if(!id)return {received:false,retry:true,error:'Waiting for Pearson to identify this assignment.'};
-    if(id!==run.assignmentId)return {received:false,error:'This player does not match the assignment authorized by Course Mode.'};
+    if(id!==run.assignmentId)return {received:false,error:'This player does not match the assignment authorized by Course Mode. Return to '+(run.assignments[run.index]?.title||'the active assignment')+' or stop the course run before using this assignment.'};
     if(!['overview','launching'].includes(run.phase))return {received:false,error:run.phase==='player'?'Course Mode already handed this assignment to a player. Stop the course run and resume from its overview.':'Course Mode is '+run.phase+'. Resume it from the assignment overview.'};
     run.phase='player';run.playerTab=sender.tab.id;run.playerFrame=sender.frameId;run.playerDocumentId=sender.documentId;await save(run);
     const course={index:run.index,total:run.assignments.length,title:run.assignments[run.index]?.title||'Assignment'};

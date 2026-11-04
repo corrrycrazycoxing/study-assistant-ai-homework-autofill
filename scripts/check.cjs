@@ -14,5 +14,6 @@ for(const [name,fragment] of [
  ['CHANGELOG.md',`## ${version}`],
  ['RELEASE-NOTES.md',`Study Assistant ${version}`]
 ])if(!read(name).includes(fragment))throw Error(`${name} is missing current release text: ${fragment}`);
+execFileSync('python3',[path.join(root,'scripts','build-id.py'),'--check'],{cwd:root,stdio:'inherit'});
 execFileSync('python3',[path.join(root,'tests','update-unpacked.py')],{cwd:root,stdio:'inherit'});
 console.log('PASS syntax and repository regression tests');

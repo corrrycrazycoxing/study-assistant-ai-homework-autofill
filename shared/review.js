@@ -29,7 +29,7 @@
     return null;
   }
   function draft(model){
-    if(!model||typeof model.token!=='string'||model.token.length>160||!Array.isArray(model.fields)||!model.fields.length||model.fields.length>200)throw Error('No supported prepared answer to edit. Ask AI with Auto Fill off.');
+    if(!model||typeof model.token!=='string'||model.token.length>160||!Array.isArray(model.fields)||!model.fields.length||model.fields.length>200)throw Error('No supported prepared answer to edit. Ask AI.');
     const keys=new Set();
     for(const f of model.fields){
       if(typeof f.key!=='string'||!f.key||f.key.length>120||keys.has(f.key)||!['text','single','multiple'].includes(f.type))throw Error('This answer needs manual review.');keys.add(f.key);

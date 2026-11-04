@@ -2,22 +2,21 @@
    directly; commands use the existing, guarded adapter controls. */
 (() => {
   if(globalThis.StudyMonitor)return;
-  const pageId=crypto.randomUUID();let platform=null,recover=null,replaceStart=null,editor=null,lastPresence=0,stoppedNotice='',bound=false,commandBusy=false,retired=false,heartbeat=null,messageListener=null;
-  const hidden=new Map(),leases=new Set();let connectListener=null,acknowledged=false,welcomeHost=null,storageListener=null;
+  const pageId=crypto.randomUUID();let platform=null,recover=null,replaceStart=null,editor=null,lastPresence=0,stoppedNotice='',bound=false,commandBusy=false,retired=false,heartbeat=null,messageListener=null,registration=null,presentation=null,observation={},course=null,courseStop=null,previewNotice='',reporting=false;
+  const leases=new Set();let connectListener=null,acknowledged=false,welcomeHost=null,storageListener=null;
   const definitions=[
     ['study-connect-assistant','mcgraw',{start:'[data-start]',ask:'[data-ask]',fill:'[data-fill]',resume:'[data-resume]',stop:'[data-stop]'},'[data-status]','[data-preview]'],
     ['mylab-assistant-panel','pearson',{start:'#start',ask:'#ask',fill:'#apply',resume:'#resume',stop:'#assignment-controls:not([hidden]) #stop,#course-auto-view:not([hidden]) #stop-course-auto'},'#status','#preview'],
-    ['canvas-assistant-panel','canvas',{start:'#start',ask:'#ask',fill:'#fill',resume:'#resume',stop:'#stop'},'#status','#preview'],
-    ['mindtap-assistant-panel','mindtap',{start:'#start',ask:'#ask',fill:'#fill',resume:'#resume',stop:'#stop'},'#status','#preview']
+    ['canvas-assistant-panel','canvas',{start:'#start',ask:'#ask',fill:'#fill',resume:'#resume',stop:'#stop',cancel:'#cancel'},'#status','#preview'],
+    ['mindtap-assistant-panel','mindtap',{start:'#run-assignment:not([hidden]),#start:not([hidden])',ask:'#ask',fill:'#fill',resume:'#resume',stop:'#stop',cancel:'#cancel'},'#status','#preview']
   ];
   const trim=(s,n=3000)=>String(s||'').trim().slice(0,n);
   const reloadNotice='Extension updated or reloaded. Refresh this assignment and your AI tabs to reconnect.';
   function contextAlive(){try{return !!chrome.runtime.id;}catch{return false;}}
   function invalidContext(error){return !contextAlive()||/extension context invalidated/i.test(error?.message||'');}
   function view(){
+    if(registration)return {host:document.body,root:document,platform:registration.platform,buttons:{},modern:false,registered:true};
     for(const [id,p,buttons,status,preview] of definitions){const host=document.getElementById(id);if(host?.shadowRoot)return {host,root:host.shadowRoot,platform:p,buttons,status,preview,modern:true};}
-    const button=document.querySelector('.automcgraw-btn,.header__automcgraw--main');
-    if(button)return {host:button,root:document,platform:'mcgraw',buttons:{},legacy:button,modern:false};
     return null;
   }
   const available=button=>!!button&&!button.disabled&&!button.hidden&&!button.closest('[hidden]');
@@ -29,8 +28,12 @@
     if(commandBusy){controls.start=false;controls.ask=false;controls.fill=false;}
     controls.replaceStart=!!replaceStart&&!commandBusy&&/Existing (?:worksheet )?answers differ/.test(v.root.querySelector(v.status)?.textContent||'');
     try{controls.edit=!!editor&&!commandBusy&&editor.canEdit()===true;}catch{controls.edit=false;}
-    if(v.legacy){const active=/Stop/.test(v.legacy.textContent);Object.assign(controls,{start:!active,ask:!active,fill:false,resume:false,stop:active});}
-    return {pageId,platform:v.platform,kind:v.modern?'modern':'legacy',status:stoppedNotice||trim(v.modern?v.root.querySelector(v.status)?.textContent:v.legacy.textContent),preview:v.modern?trim(v.root.querySelector(v.preview)?.textContent,12000):'',controls,
+    const registered=v.registered?registration.read():null;if(registered)Object.assign(controls,registered.controls);
+    const replace=v.modern?v.root.querySelector('[data-replace],#replace'):null;
+    const courseView=v.modern?v.root.getElementById('course-auto-view'):null;
+    const nativeCourse=courseView&&!courseView.hidden?{label:trim(v.root.getElementById('course-current-assignment')?.textContent),total:Number(v.root.getElementById('course-total-progress')?.max||1),done:Number(v.root.getElementById('course-total-progress')?.value||0)}:null;
+    if(course&&courseStop&&!retired)controls.stop=true;
+    return {pageId,buildId:globalThis.StudyBuild?.id,course:nativeCourse||course||observation.course||null,replace:replace?{checked:replace.checked}:null,platform:v.platform,kind:v.modern?'modern':'legacy',status:stoppedNotice||trim(v.modern?v.root.querySelector(v.status)?.textContent:registered?.status),preview:v.modern?trim(v.root.querySelector(v.preview)?.textContent,12000):trim(registered?.preview||previewNotice,12000),controls,
       timer:t?{label:trim(t.getElementById('label')?.textContent,500),note:trim(t.getElementById('note')?.textContent,500),pauseLabel:trim(t.getElementById('pause')?.textContent,80),progress:Number(t.getElementById('progress')?.value||0)}:null,recoverable:!retired&&!!recover};
   }
   function welcome(){
@@ -46,28 +49,22 @@
     welcomeHost.style.display=leases.size?'none':'';
   }
   function compactOverlay(){
-    const v=view();if(!v?.modern||v.root.getElementById('study-compact-style'))return;
-    const style=document.createElement('style');style.id='study-compact-style';
-    style.textContent=':host{max-width:300px!important}details,section{max-width:300px!important}#preview,#answer-display,[data-preview]{max-height:180px!important;overflow:auto!important}#status,[data-status]{max-height:100px!important;overflow:auto!important}';
-    v.root.append(style);
-    const button=document.createElement('button');button.id='study-open-panel';button.type='button';button.textContent='Open side panel ↗';
-    button.style.cssText='font:12px system-ui;padding:6px 9px;margin:7px 0;border:1px solid #8295d6;border-radius:7px;background:#273453;color:white;cursor:pointer';
-    button.onclick=()=>{try{chrome.runtime.sendMessage({type:'studyOpenPanel'}).catch(()=>{});}catch{}};
-    const card=v.root.querySelector('details,section')||v.root.querySelector('div');card?.after(button);
-  }
-  function updatePanelLink(){
-    const v=view(),button=v?.root.getElementById('study-open-panel');if(!button)return;
-    const status=stoppedNotice||v.root.querySelector(v.status)?.textContent||'';
-    const attention=/\b(?:auto stopped|could not|did not|unsupported|needs attention|failed|unavailable)\b/i.test(status);
-    button.textContent=attention?'Needs attention · Open panel ↗':'Open side panel ↗';
-    button.style.borderColor=attention?'#e1b760':'#8295d6';
-    button.style.background=attention?'#4a3821':'#273453';
-    button.setAttribute('aria-label',attention?'Needs attention. Open the side panel for details.':'Open the Study Assistant side panel.');
+    const v=view();if(!v)return;
+    if(!globalThis.StudyAssignmentUI)return;
+    if(v.modern)v.host.style.display='none';
+    if(!presentation?.host?.isConnected)presentation=StudyAssignmentUI.create({command,openPanel:()=>chrome.runtime.sendMessage({type:'studyOpenPanel'}).catch(()=>{}),replace:value=>{const input=view()?.root.querySelector('[data-replace],#replace');if(input&&input.checked!==value)input.click();}});
+    for(const timer of [v.root.querySelector('.study-pacing'),document.querySelector('body > .study-pacing')].filter(Boolean))timer.style.display='none';
+    const state=read();if(state)presentation.render(state,observation);
+    presentation.visibility(acknowledged&&leases.size===0&&!lastPresence&&observation.owner!==false);
+    for(const toolbar of document.querySelectorAll('.study-pace-controls')){toolbar.hidden=retired||observation.owner===false;const start=toolbar.shadowRoot?.getElementById('quick-start');if(start)start.disabled=retired||!state?.controls.start;}
   }
   function presence(on){
     if(!retired&&!acknowledged)on=true;
-    if(on){lastPresence=Date.now();const v=view();for(const el of [v?.host,v?.root.querySelector('.study-pacing'),document.querySelector('body > .study-pacing')].filter(Boolean)){if(!hidden.has(el))hidden.set(el,el.style.display);el.style.display='none';}}
-    else {lastPresence=0;for(const [el,display] of hidden){el.style.display=display;}hidden.clear();}
+    lastPresence=on?Date.now():0;
+    presentation?.visibility(!on&&observation.owner!==false);
+    const v=view();if(v?.modern)v.host.style.display='none';
+    // Countdown lives in the shared panel while the old adapter DOM is inert.
+    for(const timer of [v?.root.querySelector('.study-pacing'),document.querySelector('body > .study-pacing')].filter(Boolean))timer.style.display='none';
   }
   function retire(){
     if(retired)return;retired=true;stoppedNotice=reloadNotice;recover=null;
@@ -79,13 +76,14 @@
     // visibility only to explain the reload; do not offer obsolete actions.
     const v=view();if(!v)return;
     if(v.modern){const status=v.root.querySelector(v.status);if(status)status.textContent=reloadNotice;for(const selector of Object.values(v.buttons)){const button=v.root.querySelector(selector);if(button)button.disabled=true;}}
-    else {v.legacy.disabled=true;v.legacy.textContent=reloadNotice;}
+    for(const toolbar of document.querySelectorAll('.study-pace-controls'))toolbar.hidden=true;
+    presentation?.retire({...read(),status:reloadNotice,controls:{}});
     for(const timer of [v.root.querySelector('.study-pacing'),document.querySelector('body > .study-pacing')].filter(Boolean))timer.hidden=true;
   }
   async function command(action){
     if(retired||!contextAlive()){retire();throw Error(reloadNotice);}
     if(!acknowledged&&!['stop','timerStop'].includes(action))throw Error(StudyConfig.onboardingMessage);
-    if(commandBusy&&!['stop','timerStop'].includes(action))throw Error('Recovery is in progress. Use Stop all to cancel.');stoppedNotice='';const v=view();if(!v)throw Error('The assignment controls are not loaded. Reload the assignment.');
+    if(commandBusy&&!['stop','timerStop'].includes(action))throw Error('Recovery is in progress. Use Stop all to cancel.');stoppedNotice='';if(['start','ask'].includes(action))previewNotice='';const v=view();if(!v)throw Error('The assignment controls are not loaded. Reload the assignment.');
     if(action==='recover'){if(!recover)throw Error('This adapter cannot restore saved progress. Start from the current question.');commandBusy=true;try{return await recover();}finally{commandBusy=false;}}
     if(action==='replaceStart'){if(!read().controls.replaceStart)throw Error('There is no answer conflict to replace.');commandBusy=true;try{return await replaceStart();}finally{commandBusy=false;}}
     if(action==='timerPause'||action==='timerContinue'||action==='timerStop'){
@@ -93,14 +91,17 @@
       if(!timer||timer.hidden)throw Error('There is no active countdown.');
       timer.shadowRoot.getElementById({timerPause:'pause',timerContinue:'continue',timerStop:'stop'}[action]).click();return;
     }
-    let button=v.legacy?['start','ask','stop'].includes(action)?v.legacy:null:v.root.querySelector(v.buttons[action]||'__missing__');
+    if(action==='stop'&&course&&courseStop)return courseStop();
+    if(action==='stop'&&observation.course)await chrome.runtime.sendMessage({type:'canvasCoursePlayerStop'}).catch(()=>{});
+    if(v.registered){if(!read().controls[action]||!registration.actions[action])throw Error('That action is unavailable in the current assignment state.');return registration.actions[action]();}
+    const button=v.root.querySelector(v.buttons[action]||'__missing__');
     if(!read().controls[action]||!button)throw Error('That action is unavailable in the current assignment state.');
     button.click();
   }
   async function report(){
-    if(retired)return;
-    try{if(!contextAlive()){retire();return;}compactOverlay();updatePanelLink();welcome();if(!acknowledged)presence(true);const state=read();if(state)await chrome.runtime.sendMessage({type:'studyPageReport',state});}
-    catch(error){if(invalidContext(error))retire();}
+    if(retired||reporting)return;reporting=true;
+    try{if(!contextAlive()){retire();return;}compactOverlay();welcome();if(!acknowledged)presence(true);const state=read();if(state){const result=await chrome.runtime.sendMessage({type:'studyPageReport',state});if(result?.stale){retire();return;}if(result?.received)observation=result;compactOverlay();}}
+    catch(error){if(invalidContext(error))retire();}finally{reporting=false;}
   }
   function listen(){if(bound)return;messageListener=(m,sender,reply)=>{
     if(!['studyPageProbe','studyPageCommand','studyPageRelease','studyPageDraft'].includes(m.type))return;
@@ -112,7 +113,7 @@
     if(m.type==='studyPageDraft'){
       (async()=>{
         if(!acknowledged)throw Error(StudyConfig.onboardingMessage);
-        if(!editor||commandBusy||!editor.canEdit())throw Error('Ask AI with Auto Fill off before editing. A running or filled question cannot be edited here.');
+        if(!editor||commandBusy||!editor.canEdit())throw Error('Ask AI before editing. A running or filled question cannot be edited here.');
         if(m.operation==='read')return {received:true,draft:await editor.read()};
         if(m.operation!=='save')throw Error('Unknown answer editor action.');
         const draft=await editor.read();
@@ -136,7 +137,7 @@
     };
     chrome.runtime.onConnect.addListener(connectListener);
   }
-  globalThis.StudyMonitor={setEditor(value){if(!retired)editor=value;},setRecovery(fn){if(!retired)recover=fn;},setReplacement(fn){if(!retired)replaceStart=fn;},notice(text){if(!retired){stoppedNotice=trim(text);report();}},clearNotice(){if(!retired)stoppedNotice='';},report};
+  globalThis.StudyMonitor={showPreview(text){if(!retired){previewNotice=trim(text,12000);report();}},register(value){registration=value;report();},setCourse(value,onStop){course=value;courseStop=value&&typeof onStop==='function'?onStop:null;report();},setEditor(value){if(!retired)editor=value;},setRecovery(fn){if(!retired)recover=fn;},setReplacement(fn){if(!retired)replaceStart=fn;},notice(text){if(!retired){stoppedNotice=trim(text);report();}},clearNotice(){if(!retired)stoppedNotice='';},report};
   (async()=>{
     try{
       if(!contextAlive()){retire();return;}

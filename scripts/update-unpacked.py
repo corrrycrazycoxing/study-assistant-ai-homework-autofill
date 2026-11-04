@@ -16,7 +16,7 @@ REPO = 'corrrycrazycoxing/study-assistant-ai-homework-autofill'
 API = f'https://api.github.com/repos/{REPO}/releases/latest'
 HEADERS = {'Accept': 'application/vnd.github+json', 'User-Agent': 'study-assistant-updater'}
 PACKAGE_ROOTS = {'assets', 'background', 'content-scripts', 'popup', 'shared', 'sidepanel'}
-PACKAGE_FILES = {'manifest.json', 'LICENSE', 'PRIVACY.md', 'TERMS.md', 'README.md', 'CHANGELOG.md'}
+PACKAGE_FILES = {'manifest.json', 'LICENSE', 'PRIVACY.md', 'TERMS.md', 'README.md', 'CHANGELOG.md', 'VERSIONING.md'}
 
 
 def fetch(url):

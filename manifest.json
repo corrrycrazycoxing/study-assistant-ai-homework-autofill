@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Study Assistant — AI Homework Autofill",
-  "version": "2.7.4",
+  "name": "Study Assistant \u2014 AI Homework Autofill",
+  "version": "2.8.0",
   "description": "Autofill supported homework fields on McGraw Connect, Pearson MyLab, Canvas and MindTap using ChatGPT, Gemini or DeepSeek.",
   "permissions": [
     "tabs",
@@ -25,7 +25,12 @@
     "https://chat.deepseek.com/*",
     "https://notebooklm.google.com/*",
     "https://notebook.google.com/*",
-    "https://api.github.com/*"
+    "https://api.github.com/*",
+    "https://connect.router.integration.prod.mheducation.com/*",
+    "https://csuchico.prevent.zone/*"
+  ],
+  "optional_host_permissions": [
+    "https://docs.google.com/*"
   ],
   "background": {
     "service_worker": "background/background.js"
@@ -51,19 +56,47 @@
   "minimum_chrome_version": "116",
   "content_scripts": [
     {
-      "matches": ["https://mylab.pearson.com/Student/DoAssignments.aspx*", "https://mylab.pearson.com/courses/*/assignments*", "https://mylab.pearson.com/Student/DoHomework.aspx*", "https://mylab.pearson.com/Student/OverviewHomework.aspx*"],
-      "js": ["shared/pearson-course-ui.js", "content-scripts/pearson-course.js"],
+      "matches": [
+        "https://mylab.pearson.com/Student/DoAssignments.aspx*",
+        "https://mylab.pearson.com/courses/*/assignments*",
+        "https://mylab.pearson.com/Student/DoHomework.aspx*",
+        "https://mylab.pearson.com/Student/OverviewHomework.aspx*"
+      ],
+      "js": [
+        "shared/build.js",
+        "shared/config.js",
+        "shared/pearson-course-ui.js",
+        "shared/course-ui.js",
+        "content-scripts/pearson-course.js"
+      ],
       "all_frames": true,
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://mylabmastering.pearson.com/courses/*/menu/*"],
-      "js": ["shared/pearson-course-ui.js", "content-scripts/pearson-course-shell.js"],
+      "matches": [
+        "https://mylabmastering.pearson.com/courses/*/menu/*"
+      ],
+      "js": [
+        "shared/build.js",
+        "shared/config.js",
+        "shared/pearson-course-ui.js",
+        "shared/course-ui.js",
+        "content-scripts/pearson-course-shell.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://ng.cengage.com/static/nb/ui/evo/index.html*"],
-      "js": ["shared/config.js", "shared/pacing.js", "shared/mindtap-course.js", "content-scripts/mindtap-course.js"],
+      "matches": [
+        "https://ng.cengage.com/static/nb/ui/evo/index.html*"
+      ],
+      "js": [
+        "shared/build.js",
+        "shared/config.js",
+        "shared/pacing.js",
+        "shared/mindtap-course.js",
+        "shared/course-ui.js",
+        "content-scripts/mindtap-course.js"
+      ],
       "run_at": "document_idle"
     },
     {
@@ -79,6 +112,7 @@
         "https://aplia.apps.ng.cengage.com/*"
       ],
       "js": [
+        "shared/build.js",
         "shared/capture-frame.js"
       ],
       "all_frames": true,
@@ -114,9 +148,12 @@
         "https://learning.mheducation.com/static/awd/*"
       ],
       "js": [
+        "shared/build.js",
         "shared/config.js",
         "shared/security.js",
         "shared/platform.js",
+        "shared/review.js",
+        "shared/assignment-ui.js",
         "shared/monitor.js",
         "shared/pacing.js",
         "shared/media.js",
@@ -130,9 +167,12 @@
         "https://ezto.mheducation.com/*"
       ],
       "js": [
+        "shared/build.js",
         "shared/config.js",
         "shared/security.js",
         "shared/platform.js",
+        "shared/review.js",
+        "shared/assignment-ui.js",
         "shared/monitor.js",
         "shared/pacing.js",
         "shared/media.js",
@@ -149,14 +189,16 @@
         "https://mylab.pearson.com/*"
       ],
       "js": [
+        "shared/build.js",
         "shared/config.js",
         "shared/security.js",
         "shared/platform.js",
+        "shared/review.js",
+        "shared/assignment-ui.js",
         "shared/monitor.js",
         "shared/pacing.js",
         "shared/media.js",
         "shared/pearson-labels.js",
-        "shared/review.js",
         "shared/pearson-course-ui.js",
         "content-scripts/pearson.js"
       ],
@@ -169,12 +211,16 @@
         "https://canvas.csuchico.edu/*"
       ],
       "js": [
+        "shared/build.js",
         "shared/config.js",
         "shared/security.js",
         "shared/platform.js",
+        "shared/review.js",
+        "shared/assignment-ui.js",
         "shared/monitor.js",
         "shared/pacing.js",
         "shared/media.js",
+        "shared/canvas-batch.js",
         "content-scripts/canvas.js"
       ],
       "all_frames": true,
@@ -185,9 +231,12 @@
         "https://aplia.apps.ng.cengage.com/*"
       ],
       "js": [
+        "shared/build.js",
         "shared/config.js",
         "shared/security.js",
         "shared/platform.js",
+        "shared/review.js",
+        "shared/assignment-ui.js",
         "shared/monitor.js",
         "shared/pacing.js",
         "shared/media.js",
@@ -205,6 +254,7 @@
         "https://chat.deepseek.com/*"
       ],
       "js": [
+        "shared/build.js",
         "content-scripts/image-upload.js",
         "content-scripts/assistant.js"
       ]
@@ -215,9 +265,71 @@
         "https://notebook.google.com/*"
       ],
       "js": [
+        "shared/build.js",
         "shared/security.js",
+        "shared/readings.js",
+        "content-scripts/notebook-cleanup.js",
+        "content-scripts/notebook-setup.js",
         "content-scripts/notebook.js"
       ]
+    },
+    {
+      "matches": [
+        "https://*.instructure.com/*",
+        "https://canvas.csuchico.edu/*"
+      ],
+      "js": [
+        "shared/build.js",
+        "shared/canvas-mcgraw-course.js",
+        "shared/course-ui.js",
+        "content-scripts/canvas-mcgraw-course.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://connect.router.integration.prod.mheducation.com/*"
+      ],
+      "js": [
+        "shared/build.js",
+        "shared/canvas-mcgraw-course.js",
+        "content-scripts/canvas-mcgraw-router.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://ezto.mheducation.com/ext/map/*"
+      ],
+      "js": [
+        "shared/build.js",
+        "content-scripts/canvas-mcgraw-gate.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://learning.mheducation.com/static/awd/*"
+      ],
+      "js": [
+        "shared/build.js",
+        "content-scripts/canvas-smartbook-welcome.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://csuchico.prevent.zone/courses/*"
+      ],
+      "js": [
+        "shared/build.js",
+        "shared/security.js",
+        "shared/prevent-zone.js",
+        "content-scripts/prevent-zone.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
     }
   ],
   "side_panel": {

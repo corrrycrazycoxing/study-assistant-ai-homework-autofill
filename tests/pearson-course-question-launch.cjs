@@ -1,8 +1,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const stored={},created=[];
 const session={get:async key=>({[key]:stored[key]}),set:async data=>Object.assign(stored,data),remove:async key=>delete stored[key]};
-let activeTab=false;
-const chrome={storage:{session,local:session,sync:{get:async()=>({watchAutomation:activeTab})}},tabs:{create:async options=>{created.push(options);return {id:20};},get:async()=>({id:20}),sendMessage:async()=>({received:true})}};
+let activeTab=false,currentTabUrl,readHook;
+const chrome={storage:{session,local:session,sync:{get:async()=>({watchAutomation:activeTab})}},tabs:{create:async options=>{created.push(options);return {id:20};},get:async()=>{if(readHook)await readHook();return {id:20,...currentTabUrl?{url:currentTabUrl}:{}};},sendMessage:async()=>({received:true})}};
 const context={chrome,URL,Date,Error,crypto:require('node:crypto').webcrypto};vm.createContext(context);vm.runInContext(fs.readFileSync('background/pearson-course.js','utf8'),context);
 const list={url:'https://mylab.pearson.com/courses/123/assignments',tab:{id:10},frameId:2};
 const overview={...list,url:'https://mylab.pearson.com/Student/OverviewHomework.aspx?homeworkId=456'};
@@ -19,6 +19,16 @@ const call=(type,fields={},sender=overview)=>context.pearsonCourseMessage({type,
   const player={url:'https://tdx.acs.pearson.com/Player/Player.aspx',tab:{id:20,url:created[0].url},frameId:7,documentId:'child-player'};
   assert.equal((await call('pearsonCoursePlayerReady',{}, {...player,tab:{id:99}})).start,undefined,'missing metadata cannot authorize an unrelated player tab');
   assert.equal((await call('pearsonCoursePlayerReady',{}, {...player,tab:{id:20,url:created[0].url.replace('456','999')}})).start,undefined,'an explicit different assignment ID overrides the recorded tab identity');
+  currentTabUrl=created[0].url;
+  const verified=structuredClone(stored.pearsonCourse);
+  assert.equal((await call('pearsonCoursePlayerReady',{}, {...player,tab:{id:20,url:created[0].url.replace('456','999')}})).start,true,'current tab URL overrides stale sender metadata');
+  stored.pearsonCourse=structuredClone(verified);currentTabUrl=created[0].url.replace('456','999');
+  assert.equal((await call('pearsonCoursePlayerReady',{}, {...player,tab:{id:20,url:created[0].url}})).start,undefined,'a fresh different assignment is still rejected');
+  currentTabUrl='https://mylab.pearson.com/Student/DoAssignments.aspx';
+  assert.equal((await call('pearsonCoursePlayerReady',{},player)).start,undefined,'a navigated-away tab cannot claim the old player');
+  currentTabUrl=created[0].url;readHook=async()=>{delete stored.pearsonCourse;};
+  assert.equal((await call('pearsonCoursePlayerReady',{},player)).start,undefined,'Stop during tab lookup cannot revive a course run');
+  stored.pearsonCourse=structuredClone(verified);readHook=null;currentTabUrl=undefined;
   assert.equal((await call('pearsonCoursePlayerReady',{}, {...player,tab:{id:20}})).start,true,'the exact created player keeps its verified assignment ID while outer tab metadata is unavailable');
   assert.equal((await call('pearsonCourseOpenQuestion',{questionId:'2'})).received,false,'a running player cannot launch another question');
   const ui=fs.readFileSync('content-scripts/pearson-course.js','utf8');assert.match(ui,/if\(embeddedCourse\)host\.style\.display='none'/,'all embedded overview/start/list cards stay hidden');assert.match(ui,/if\(embeddedCourse\)window\.top\.postMessage/,'the single outer UI receives status from embedded overviews');assert.match(ui,/if\(embeddedCourse\)window\.addEventListener\('message'/,'the outer Stop works on overview pages as well as the list');

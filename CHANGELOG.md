@@ -2,6 +2,19 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.8.0 — November 3, 2026
+
+### Added
+- Choose Canvas courses from the dashboard or course list and queue eligible McGraw homework with options for started and overdue assignments.
+- Load a Canvas quiz reading before starting, prepare matching sources in NotebookLM, and split long quizzes into batches that fit the chat input.
+- Use consistent assignment controls and progress across supported platforms. Course review reports link to known assignments.
+
+### Fixed
+- Improve handling of SmartBook matching cards, Connect journals, Pearson linked references, and MindTap graphs and question transitions.
+
+### Verification
+- Repository regressions and ZIP validation passed. SmartBook selectors were checked on the live page. Automatic drops still need live verification.
+
 ## 2.7.4 — October 20, 2026
 
 ### Changed

@@ -1,12 +1,17 @@
 """Build an installable archive from an explicit runtime allowlist."""
 from pathlib import Path
-import json, zipfile, sys
+import json, zipfile, sys, subprocess, argparse
 root=Path(__file__).resolve().parent.parent
+subprocess.run([sys.executable,str(root/'scripts/build-id.py'),'--check'],check=True)
 manifest=json.loads((root/'manifest.json').read_text())
 version=manifest['version']
-if len(sys.argv)>1 and sys.argv[1] != 'v'+version:
+parser=argparse.ArgumentParser()
+parser.add_argument('tag',nargs='?')
+parser.add_argument('--output',type=Path)
+args=parser.parse_args()
+if args.tag and args.tag != 'v'+version:
     raise SystemExit('Tag must match manifest version')
-output=root/'dist'/f'study-assistant-{version}.zip'
+output=args.output or root/'dist'/f'study-assistant-{version}.zip'
 folder=f'Study-Assistant-{version}'
 output.parent.mkdir(exist_ok=True)
 files=[root/'manifest.json']

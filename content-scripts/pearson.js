@@ -27,17 +27,26 @@ StudyConfig.boot('pearson', (chrome) => {
   }
   const numeric = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
   let pending=null,answer=null,explanation='',timer=null,panel,shadow,status,preview,apply,ask,cancel;
-  let settings={...StudyConfig.defaults.pearson,autoFill:false,showExplanation:true};
+  let settings={...StudyConfig.defaults.pearson,showExplanation:true};
   let loopGeneration=0,courseSaveWaiter=null;
   let running=false,guided=false,runId=null,runCount=0,responseWaiter=null,pauseWaiter=null,correction=null,courseRun=false,originalPause=null,coursePaceOriginal=null,courseContext=null,coursePanel=null,courseRecovery=false;
-  let startButton,stopButton,resumeButton;
+  let startButton,stopButton,resumeButton,panelQuestionIdentity='';
   const settingsReady=
   chrome.storage.sync.get(settings).then(values=>Object.assign(settings,values));
   chrome.storage.onChanged.addListener((changes,area)=>{if(area==='sync')for(const key of Object.keys(settings))if(changes[key]){settings[key]=changes[key].newValue;if(coursePaceOriginal&&Object.hasOwn(coursePaceOriginal,key))coursePaceOriginal[key]=changes[key].newValue;}});
   const sourceLabel=/\b(?:view|open|show)\b.{0,60}\b(?:data|table|printout|analysis|document|figure|graph)\b/i;
+  function sourceTitle(el){
+    return [el.getAttribute?.('aria-label'),el.title,el.textContent,el.value,...[...el.querySelectorAll?.('img[alt]')||[]].map(image=>image.getAttribute('alt'))].map(clean).find(Boolean)||'';
+  }
   function sourceTriggers(roots){
-    return roots.flatMap(root=>[...root.querySelectorAll('a,button,[role="button"],input[type="button"]')])
-      .filter(el=>{const label=clean(el.textContent||el.value||el.getAttribute?.('aria-label')||el.title);return usable(el)&&(sourceLabel.test(label)||(el.getAttribute?.('aria-haspopup')==='true'&&/\b(?:data|table|printout|analysis|figure|graph)\b/i.test(label)));});
+    const candidates=roots.flatMap(root=>[...root.querySelectorAll('a,button,[role="button"],input[type="button"],[aria-haspopup]')]);
+    const sources=candidates.filter(el=>{
+      const label=sourceTitle(el),popup=el.getAttribute?.('aria-haspopup');
+      if(!usable(el)||el.closest?.('.xlMultipleChoice,.xlFillin,.eqEditor'))return false;
+      const namedIcon=popup&&popup!=='false'&&label&&(el.matches?.('.xlPopupIcon')||el.querySelector?.('img,[role="img"]'))&&roots.some(root=>root.contains(el)&&/click the icon to view/i.test(clean(root.textContent)));
+      return sourceLabel.test(label)||/^(?:sample data|data table|table of data)$/i.test(label)||(popup&&popup!=='false'&&/\b(?:data|table|printout|analysis|figure|graph)\b/i.test(label))||!!namedIcon;
+    });
+    return sources.filter(el=>!sources.some(other=>other!==el&&el.contains?.(other)));
   }
   function hasInlineSourceTable(roots,text){
     const expected=Number(text.match(/\bsample of\s+(\d+)\b/i)?.[1])||4;
@@ -49,9 +58,18 @@ StudyConfig.boot('pearson', (chrome) => {
   }
   function missingRequiredSource(roots,text){
     if(/\bcourse packet\b/i.test(text))return true;
+    // A lesson can refer back to an example whose values live only in its media.
+    // A confidence percentage and empty bounds do not supply that example's data.
+    const previousExample=/\bconsider again (?:the )?[^.!?]{1,100}\bexample\b/i.test(text)&&/\b(?:confident|confidence interval)\b/i.test(text)&&/\[f\d+\]/.test(text);
+    const exampleValues=text.replace(/\[f\d+\]|\bPart\s+\d+\b/gi,'').match(/[+-]?(?:\d+(?:\.\d*)?|\.\d+)/g)||[];
+    if(previousExample&&exampleValues.length<3&&!sourceTriggers(roots).length&&!hasInlineSourceTable(roots,text))return true;
     const referenced=/\b(?:accompanying (?:data|table|printout|analysis)|refer to (?:the )?(?:data|table|printout|analysis))\b/i.test(text);
     const tableReference=/\b(?:accompanying (?:data|table)|refer to (?:the )?(?:data|table))\b/i.test(text);
     return referenced&&!sourceTriggers(roots).length&&!(tableReference&&hasInlineSourceTable(roots,text));
+  }
+  function sourceDialogText(dialog){
+    const tables=[...dialog.querySelectorAll('table,[role="table"]')].filter(usable).map(table=>[...table.querySelectorAll('tr,[role="row"]')].map(row=>[...row.querySelectorAll('th,td,[role="columnheader"],[role="rowheader"],[role="cell"]')].filter(cell=>!cell.querySelector('th,td,[role="cell"]')).map(cell=>StudyPearsonLabels.text(cell)).join(' | ')).join('\n'));
+    return [StudyPearsonLabels.text(dialog).replace(/\b(?:Print|Done|Cancel)\b\s*$/g,'').trim(),...tables.map(table=>'Table rows (columns separated by |):\n'+table)].join('\n\n');
   }
   async function captureLinkedSources(snap){
     const roots=[...document.querySelectorAll('.contentPanel .contentHolder')].filter(usable);
@@ -60,7 +78,7 @@ StudyConfig.boot('pearson', (chrome) => {
     const sources=[];
     for(const trigger of triggers){
       if(snapshot().signature!==snap.signature)throw Error('The question changed while opening its source. Ask AI again.');
-      const title=clean(trigger.textContent||trigger.value||trigger.getAttribute('aria-label')||trigger.title);
+      const title=sourceTitle(trigger);
       const before=new Set([...document.querySelectorAll('[id^="xl_player_dialogs_ResizableDialog_"]')].filter(usable));
       trigger.click();
       let dialog;
@@ -70,7 +88,7 @@ StudyConfig.boot('pearson', (chrome) => {
         await new Promise(resolve=>setTimeout(resolve,100));
       }
       if(!dialog||!usable(dialog)||/\bLOADING\s*\.\.\./i.test(dialog.innerText))throw Error('Pearson did not load '+title+'. No answer was requested or entered.');
-      const body=clean(dialog.innerText).replace(/\b(?:Print|Done|Cancel)\b\s*$/g,'').trim();
+      const body=sourceDialogText(dialog);
       if(body.length<20||body.length>18000)throw Error('Could not safely read '+title+'. No answer was requested or entered.');
       sources.push(title+'\n'+body);
       const done=[...dialog.querySelectorAll('button,[role="button"],input[type="button"]')].find(el=>/^(?:done|close)$/i.test(clean(el.textContent||el.value||el.getAttribute('aria-label'))));
@@ -81,6 +99,40 @@ StudyConfig.boot('pearson', (chrome) => {
     }
     if(snapshot().signature!==snap.signature)throw Error('The question changed while reading its source. Ask AI again.');
     return sources.join('\n\n');
+  }
+  function describedBoxplot(description){
+    if(!(description?.length>=100&&/\bbox\s*plots?\b/i.test(description)&&/\baxis\b/i.test(description)))return false;
+    const count=text=>(text?.match(/\d+(?:\.\d+)?/g)||[]).length;
+    const summary=description.match(/\bfive[ -]number summary:\s*([\s\S]+?)(?:\.\s*(?:All|Edit|$)|$)/i)?.[1];
+    const box=description.match(/vertical line segments are drawn at the following values:\s*([\s\S]+?)\.\s*A box/i)?.[1];
+    const whiskers=description.match(/plotted points at\s*([\s\S]+?)\.\s*All values/i)?.[1];
+    const paired=description.match(/\b(?:bottom|top) boxplot[\s\S]*?(?=\b(?:bottom|top) boxplot|Edit coordinates|$)/gi)||[];
+    const completePair=paired.length>=2&&paired.slice(0,2).every(plot=>count(plot.match(/vertical line segments(?: drawn)? at\s*([\s\S]+?)\.\s*A box/i)?.[1])===3&&count(plot.match(/horizontal line segments extend[\s\S]+?\bto\s+([\s\S]+?)\.(?:\s|$)/i)?.[1])===2)&&/bottom boxplot/i.test(paired[0])&&/top boxplot/i.test(paired[1]);
+    return count(summary)===5||count(box)===3&&count(whiskers)===2||completePair;
+  }
+  function retainBoxplotDescriptions(copy){
+    for(const control of copy.querySelectorAll('input[type=radio][aria-label],input[type=checkbox][aria-label]')){
+      const description=control.getAttribute('aria-label');
+      if(describedBoxplot(description))control.after(document.createTextNode(' '+description+' '));
+    }
+  }
+  function needsDiagramCapture(roots,fields){
+    return roots.some(root=>[...root.querySelectorAll('canvas,svg[role="img"],img')].some(graphic=>{
+      if(!graphic.getClientRects().length||graphic.closest('[hidden],.hidden'))return false;
+      if(graphic.tagName==='IMG'&&!(graphic.width>80&&graphic.height>80))return false;
+      // Pearson provides full accessible descriptions for some graph choices.
+      // They are already included verbatim in the exact radio option text.
+      // Only exempt that described choice's own artwork, never another figure.
+      const choice=graphic.closest('.xlMultipleChoice-child');
+      // Completed graph choices remain reference material for later parts.
+      // Their exact accessible descriptions are also retained in question text.
+      if(choice&&[...choice.querySelectorAll('input[type=radio][aria-label],input[type=checkbox][aria-label]')].some(control=>describedBoxplot(control.getAttribute('aria-label'))))return false;
+      return !fields.some(field=>['radio','checkbox'].includes(field.kind)&&field.controls.some((control,index)=>{
+        const choice=control.closest('.xlMultipleChoice-child')||control.parentElement;
+        const description=field.options[index];
+        return choice?.contains(graphic)&&describedBoxplot(description);
+      }));
+    }));
   }
   function snapshot() {
     const roots=[...document.querySelectorAll('.contentPanel .contentHolder')].filter(e=>e.getClientRects().length);
@@ -113,6 +165,7 @@ StudyConfig.boot('pearson', (chrome) => {
     }
     function textOf(root) {
       const copy=root.cloneNode(true);
+      retainBoxplotDescriptions(copy);
       for(const math of copy.querySelectorAll('.eqLabel[aria-label]'))math.replaceWith(document.createTextNode(math.getAttribute('aria-label')));
       copy.querySelectorAll('.sr-only,.offScreen,.eqDocument,script,style').forEach(e=>e.remove());
       for (const f of fields) {
@@ -140,7 +193,7 @@ StudyConfig.boot('pearson', (chrome) => {
     }
     const identity=clean(document.querySelector('.playerViewer h3')?.textContent);
     const signature=JSON.stringify([identity,text,fields.map(f=>[f.kind,f.el.id||f.hit?.id,f.options])]);
-    const hasDiagram=roots.some(root=>Boolean(root.querySelector('canvas,svg[role="img"]'))||[...root.querySelectorAll('img')].some(img=>img.width>80&&img.height>80));
+    const hasDiagram=needsDiagramCapture(roots,fields);
     const rendered=roots.flatMap(root=>[...root.querySelectorAll('.xlMultipleChoice,.xlFillin,.eqEditor,input[type=text],input[type=number],textarea,select')].filter(activeAnswerControl));
     const represented=el=>fields.some(f=>f.el===el||f.el?.contains(el)||el.contains(f.el)||f.controls?.includes(el));
     const incomplete=rendered.some(el=>!represented(el));
@@ -217,7 +270,7 @@ StudyConfig.boot('pearson', (chrome) => {
       guided=settings.pacingMode==='review';
       const snap=snapshot();
       if(snap.incomplete)throw Error('The page shows an answer control that was not captured. Review it manually before asking AI.');
-      if(snap.missingSource)throw Error('This question depends on a linked table, printout, or course packet that was not captured. Open the source and review this question yourself; no answer was requested or entered.');
+      if(snap.missingSource)throw Error('This question needs referenced lesson/example data, a linked table, printout, or course packet that was not captured. Open that material before trying again; no answer was requested or entered.');
       ask.disabled=true;say('Reading linked Pearson material…');
       const linkedSources=await captureLinkedSources(snap);
       pending={...snap,id:crypto.randomUUID(),started:Date.now()};answer=null;preview.textContent='';shadow.getElementById('answer-display').replaceChildren();apply.disabled=true;cancel.disabled=false;
@@ -441,11 +494,25 @@ StudyConfig.boot('pearson', (chrome) => {
     }
     return candidates.find(e=>usable(e)&&feedbackKind(e.textContent)==='correct');
   }
+  function currentQuestionIsCorrect(){
+    const number=clean(document.querySelector('.playerViewer h3')?.textContent).match(/^Question\s+(\d+)\b/i)?.[1];
+    if(!number)return false;
+    return [...document.querySelectorAll('.playerViewer a')].some(link=>{
+      const labels=[link.getAttribute('aria-label'),link.getAttribute('title'),link.textContent,...[...link.querySelectorAll('img[alt],[aria-label],[title]')].flatMap(el=>['alt','aria-label','title'].map(name=>el.getAttribute(name)))].map(clean);
+      return labels.some(label=>new RegExp('^Question\\s+'+number+'(?:\\s|,|$)','i').test(label))&&labels.some(label=>/\bcorrect\b/i.test(label))&&!labels.some(label=>/\b(?:incorrect|not correct|partial|partially)\b/i.test(label));
+    });
+  }
+  function partContinueButton(){
+    const buttons=[...document.querySelectorAll('.controlPanel button,.controlPanel [role="button"],.controlPanel input[type="button"]')].filter(e=>usable(e)&&!e.matches('.btnSubmit,[data-dojo-attach-point="btnSubmit"],[type="submit"]')&&/^Continue$/i.test(clean(e.getAttribute('aria-label')||e.getAttribute('title')||e.value||e.textContent)));
+    if(buttons.length>1)throw Error('Pearson showed more than one part Continue button. Review this question before continuing.');
+    return buttons[0]||null;
+  }
   function nextButton() {
     const dialog=resultDialog();
     const resultNext=dialog&&[...dialog.querySelectorAll('button,[role="button"],input[type="button"]')].find(e=>usable(e)&&/^(?:Next question|Next)$/i.test(clean(e.getAttribute('aria-label')||e.getAttribute('title')||e.value||e.textContent)));
     if(resultNext)return resultNext;
     if(dialog)return null;
+    const partNext=partContinueButton();if(partNext)return partNext;
     const legacy=[...document.querySelectorAll('.feedbackDialog [data-dojo-attach-point="btnNextQuestion"]')].find(usable);
     if(legacy)return legacy;
     return [...document.querySelectorAll('.controlPanel .btnNext,.playerViewer .btnNext,.controlPanel button,.playerViewer button[aria-label="Next question"],button,[role="button"],input[type="button"]')].filter(usable).find(e=>!e.matches('.btnSubmit,[data-dojo-attach-point="btnSubmit"],[type="submit"]')&&(e.matches('.btnNext')||['Next','Next question','Next Question','Continue'].includes(clean(e.getAttribute('aria-label')||e.getAttribute('title')||e.value||e.textContent))));
@@ -477,7 +544,13 @@ StudyConfig.boot('pearson', (chrome) => {
     if(!running)throw Error('Stopped.');
   }
   function handleUncheckedWarning(allowUnchecked){
-    const dialogs=[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],.dijitDialog,.modalDialog,.modal,.popup')].filter(el=>usable(el)&&/You will not receive any credit for this attempt until you have checked your answer\./i.test(clean(el.textContent))&&/Are you sure you want to continue without checking your answer\?/i.test(clean(el.textContent)));
+    const dialogs=[...document.querySelectorAll('[role="dialog"],[role="alertdialog"],[aria-modal="true"],[id^="xl_player_dialogs_ResizableDialog_"],.dijitDialog,.modalDialog,.modal,.popup')].filter(el=>{
+      if(!usable(el))return false;
+      const text=clean(el.textContent);
+      const unchecked=/You will not receive any credit for this attempt until you have checked your answer\./i.test(text)&&/Are you sure you want to continue without checking your answer\?/i.test(text);
+      const incomplete=/You have not completed this question;?\s*you will receive credit only for the work you[’']ve done\./i.test(text)&&/Are you sure (?:you )?want to leave this question\?/i.test(text);
+      return unchecked||incomplete;
+    });
     if(!dialogs.length)return false;
     // Nested modal containers can match the same warning. Use only the innermost.
     const inner=dialogs.filter(el=>!dialogs.some(other=>other!==el&&el.contains(other)));
@@ -486,7 +559,7 @@ StudyConfig.boot('pearson', (chrome) => {
     const buttons=[...inner[0].querySelectorAll('button,[role="button"],input[type="button"]')].filter(el=>usable(el)&&clean(el.getAttribute('aria-label')||el.value||el.textContent)===label);
     if(buttons.length!==1)throw Error('Pearson’s unchecked-answer warning could not be handled safely. Review it manually.');
     buttons[0].click();
-    if(!allowUnchecked)throw Error('Pearson says this answer has not been checked. Auto kept the question open for review.');
+    if(!allowUnchecked)throw Error('Pearson says this question is incomplete or its answer has not been checked. Auto kept the question open for review.');
     say('This skipped question is saved in the final review list. Continuing without checking it…');
     return true;
   }
@@ -525,7 +598,7 @@ StudyConfig.boot('pearson', (chrome) => {
     if(before.identity&&before.identity!==clean(document.querySelector('.playerViewer h3')?.textContent))throw Error('The Pearson question changed before its issue could be recorded. Course Auto stopped.');
     const label=[...document.querySelectorAll('h3,[role="heading"][aria-level="3"]')].map(el=>clean(el.textContent)).find(text=>/^Question\s+\d+\b/i.test(text))||'Current question';
     const logged=await chrome.runtime.sendMessage({type:'pearsonCourseQuestionSkipped',label,questionNumber:label.match(/^Question\s+(\d+)\b/i)?.[1],reason:String(reason).slice(0,280)}).catch(()=>null);
-    if(!logged?.received)throw Error('Could not record this skipped question. Review it manually before continuing.');
+    if(!logged?.received)throw Error(logged?.error||'Could not record this skipped question. Review it manually before continuing.');
     const pendingId=pending?.id;pending=null;answer=null;responseWaiter=null;clearTimeout(timer);apply.disabled=true;cancel.disabled=true;courseRecovery=false;
     if(pendingId)await chrome.runtime.sendMessage({type:'pearsonCancel',id:pendingId}).catch(()=>{});
     if(!running)return false;
@@ -542,11 +615,11 @@ StudyConfig.boot('pearson', (chrome) => {
     const generation=++loopGeneration;
     try {
       await settingsReady;
-      if(resumed?.running){running=true;runId=resumed.runId;runCount=resumed.count||0;await waitUntil(()=>{mount();try{return snapshot().fields.length?true:false;}catch{return false;}});running=false;}
+      if(resumed?.running){running=true;runId=resumed.runId;runCount=resumed.count||0;await waitUntil(()=>{mount();try{return snapshot().fields.length||partContinueButton()?true:false;}catch{return false;}});running=false;}
       let snap;try{snap=snapshot();}catch(error){if(!courseRun)throw error;snap={fields:[]};}
-      if(!snap.fields.length&&!courseRun)throw Error('No editable answers on this page. Completed review homework cannot be filled.');
-      if(snap.missingSource&&!courseRun)throw Error('This question needs a course packet or unavailable source. Auto stopped before asking AI or entering an answer.');
-      if(snap.hasDiagram&&!settings.includePictures&&!courseRun)throw Error('A diagram needs manual review. Auto cannot answer image-only questions.');
+      if(!snap.fields.length&&!courseRun&&!partContinueButton())throw Error('No editable answers on this page. Completed review homework cannot be filled.');
+      if(snap.fields.length&&snap.missingSource&&!courseRun)throw Error('This question needs its referenced lesson/example or source data. Auto stopped before asking AI or entering an answer.');
+      if(snap.fields.length&&snap.hasDiagram&&!settings.includePictures&&!courseRun)throw Error('A diagram needs manual review. Auto cannot answer image-only questions.');
       const state=resumed?.running?resumed:await chrome.runtime.sendMessage({type:'pearsonRunStart'});
       if(!state?.running)throw Error(state?.error||'Could not start Auto.');
       running=true;runId=state.runId;runCount=state.count||0;correction=null;
@@ -561,9 +634,10 @@ StudyConfig.boot('pearson', (chrome) => {
           continue;
         }
         const questionHeading=clean(document.querySelector('.playerViewer h3')?.textContent);
+        if(!before.fields.length&&(partContinueButton()||currentQuestionIsCorrect())){say('Pearson already marks this question correct. Continuing…');if(!await advance(before))break;continue;}
         if(!before.fields.length){if(courseRun){if(!await skipCourseQuestion('No editable answer fields were available.',before))break;continue;}throw Error('No editable answers remain. Auto stopped.');}
         if(before.incomplete){if(courseRun){if(!await skipCourseQuestion('Pearson showed an answer control the extension could not capture.',before))break;continue;}throw Error('The page shows an answer control that was not captured. Review it manually.');}
-        if(before.missingSource){if(courseRun){if(!await skipCourseQuestion('This question depends on a linked table, printout, or course packet that was not available.',before))break;continue;}throw Error('This question needs a course packet or unavailable source. Auto stopped before asking AI or entering an answer.');}
+        if(before.missingSource){if(courseRun){if(!await skipCourseQuestion('This question depends on lesson/example data, a linked table, printout, or course packet that was not available.',before))break;continue;}throw Error('This question needs its referenced lesson/example or source data. Auto stopped before asking AI or entering an answer.');}
         if(before.hasDiagram&&!settings.includePictures){if(courseRun){if(!await skipCourseQuestion('A question image needs manual review; image capture is off.',before))break;continue;}throw Error('A diagram needs manual entry. Auto stopped.');}
         if(before.problemKey!==lastQuestion){lastQuestion=before.problemKey;if(!similarRetryPending)retries=0;}
         similarRetryPending=false;
@@ -650,6 +724,20 @@ StudyConfig.boot('pearson', (chrome) => {
     } catch(error){if(generation===loopGeneration){if(courseRun)await chrome.runtime.sendMessage({type:'pearsonCoursePlayerBlocked'}).catch(()=>{});await stop(error.message);}}
   }
 
+  function syncQuestionPanel(){
+    const identity=clean(document.querySelector('.playerViewer h3')?.textContent);
+    if(!identity||identity===panelQuestionIdentity)return;
+    const previous=panelQuestionIdentity;panelQuestionIdentity=identity;
+    if(!previous||filling||!shadow)return;
+    preview.textContent='';shadow.getElementById('answer-display').replaceChildren();
+    // Active Auto owns request cancellation; only its stale visual is cleared here.
+    if(running)return;
+    const pendingId=pending?.id;pending=null;clearTimeout(timer);
+    if(pendingId)chrome.runtime.sendMessage({type:'pearsonCancel',id:pendingId}).catch(()=>{});
+    answer=null;explanation='';apply.disabled=true;cancel.disabled=true;
+    let current;try{current=snapshot();}catch{}
+    say(current?.missingSource?'This question needs data from its referenced lesson/example or source. Open that material before asking AI.':current?.fields.length?'Ready for '+identity+'. Ask AI or Start Auto for this question.':'Question changed. Review Pearson’s current page before continuing.');
+  }
   function mount() {
     if(panel?.isConnected||!document.querySelector('.contentPanel .contentHolder'))return;
     panel=document.createElement('div');panel.id='mylab-assistant-panel';
@@ -660,7 +748,8 @@ StudyConfig.boot('pearson', (chrome) => {
     ask=shadow.getElementById('ask');apply=shadow.getElementById('apply');cancel=shadow.getElementById('cancel');status=shadow.getElementById('status');preview=shadow.getElementById('preview');
     startButton=shadow.getElementById('start');stopButton=shadow.getElementById('stop');resumeButton=shadow.getElementById('resume');
     startButton.onclick=()=>startAuto();stopButton.onclick=()=>stop();resumeButton.onclick=()=>{resumeButton.hidden=true;const waiter=pauseWaiter;pauseWaiter=null;waiter?.resolve();};
-    ask.onclick=request;apply.onclick=()=>fill();cancel.onclick=()=>stop();startButton.disabled=running;stopButton.disabled=!running;ask.disabled=running;document.body.append(panel);pacer.attach(shadow);
+    ask.onclick=request;apply.onclick=()=>fill();cancel.onclick=()=>stop();startButton.disabled=running;stopButton.disabled=!running;ask.disabled=running;document.body.append(panel);if(globalThis.StudyAssignmentUI)panel.style.display='none';
+    pacer.attach(shadow);
     coursePanel=StudyPearsonCourseUI.player(shadow,{onStop:stopCourseAuto,read:()=>{const timer=shadow.querySelector('.study-pacing');return {status:status.textContent,running,pace:{pacingMode:settings.pacingMode,humanSpeed:settings.humanSpeed},question:clean(document.querySelector('.playerViewer h3')?.textContent),reloading:courseRecovery,controls:{fill:!apply.disabled,resume:!resumeButton.hidden},timer:timer&&!timer.hidden?{pauseLabel:timer.shadowRoot.getElementById('pause').textContent}:null};}});
     document.addEventListener('input',event=>{if(!guided&&!filling&&event.isTrusted&&!applyingChoice&&pending?.root.contains(event.target))stop('You edited an answer. Auto stopped; your changes remain.');},true);
   }
@@ -703,6 +792,6 @@ StudyConfig.boot('pearson', (chrome) => {
     }catch(error){courseChecked=true;say(error.message||'Course Auto could not start. Review the assignment overview.');}
     finally{courseStarting=false;}
   }
-  new MutationObserver(()=>{mount();startCourseWhenReady();}).observe(document.documentElement,{childList:true,subtree:true});mount();startCourseWhenReady();
+  new MutationObserver(()=>{mount();syncQuestionPanel();startCourseWhenReady();}).observe(document.documentElement,{childList:true,subtree:true,characterData:true});mount();syncQuestionPanel();startCourseWhenReady();
   globalThis.StudyMonitor?.setRecovery(async()=>{if(running||pending||filling)throw Error('Stop current work before recovering.');const snap=snapshot();if(snap.fields.some(f=>f.controls?f.controls.some(e=>e.checked):clean(f.input?.value||f.el.value)!==''))throw Error('Review and save entered answers manually, then move to an unanswered question before recovering.');const recoveryToken=loopGeneration;const state=await chrome.runtime.sendMessage({type:'pearsonRunStart',resumeCheckpoint:true});if(!state?.running)throw Error(state?.error||'No saved progress.');if(recoveryToken!==loopGeneration){await chrome.runtime.sendMessage({type:'pearsonRunStop',runId:state.runId});throw Error('Recovery cancelled.');}startAuto(state);});
 });

@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{font:15px system-ui}td{padding:10px;border:1px solid #aaa}.tab{display:inline-block;padding:10px;cursor:pointer}.active{border:2px solid blue}textarea{position:absolute;left:-9999px}</style></head><body class="test-mode">
+<ul role="tablist"><li id="tab-1" class="tab active" role="tab" aria-selected="true">Required 1</li><li id="tab-2" class="tab" role="tab" aria-selected="false">Required 2</li></ul>
+<div id="tabpanel-requirement" role="tabpanel" aria-labelledby="tab-1"><p id="instruction"></p><div id="jQuerySheet"><table id="jSheet_0_0" class="jSheet"><tbody></tbody></table><textarea id="formula"></textarea></div></div><pre id="model-result"></pre>
+<script>
+// Synthetic Required-tab editor; visible entered values only.
+let selected='tab-1',formula='';const states={'tab-1':['',''],'tab-2':['']},counts={commits:0,records:0},saved={};
+function update(){document.getElementById('model-result').textContent=JSON.stringify({states,counts,saved});}
+function render(){const body=document.querySelector('tbody');body.innerHTML='';const labels=selected==='tab-1'?['Social security','Medicare']:["Employer contribution"];
+ document.getElementById('instruction').textContent=selected==='tab-1'?'Compute employee withholding.':'Compute matching employer contribution.';
+ labels.forEach((label,r)=>{const tr=body.insertRow();tr.insertCell().textContent=label;const td=tr.insertCell();td.id='0_table0_cell_c1_r'+r;td.className='responseCell isN';td.textContent=states[selected][r];td.setAttribute('aria-label',label);});update();}
+for(const tab of document.querySelectorAll('[role=tab]'))tab.onclick=()=>{for(const t of document.querySelectorAll('[role=tab]')){t.classList.toggle('active',t===tab);t.setAttribute('aria-selected',String(t===tab));}selected=tab.id;document.querySelector('tbody').innerHTML='';document.getElementById('tabpanel-requirement').setAttribute('aria-labelledby',selected);setTimeout(render,160);};
+const wrap=e=>({0:e,length:e?1:0}),js={i:0,cellLast:{},obj:{sheet:()=>wrap(document.querySelector('table')),formula:()=>({val(v){if(arguments.length){formula=v;document.getElementById('formula').value=v;}return formula;}}),inPlaceEdit:()=>({length:0})},cellEdit(e){this.cellLast={td:e};},getTdLocation:e=>[e[0].parentElement.rowIndex,e[0].cellIndex],tableCellProviders:[{getCell(s,r,c){return {value:states[selected][r-1]};}}],evt:{cellEditDone(){const td=js.cellLast.td[0];states[selected][td.parentElement.rowIndex]=formula;td.textContent=formula;js.cellLast.isEdit=false;counts.commits++;saved[selected]=[...states[selected]];update();}}};
+window.jQuery=e=>wrap(e);jQuery.sheet={instance:[js]};render();
+</script><script src="../content-scripts/mcgraw-accounting-bridge.js"></script></body></html>

@@ -24,6 +24,7 @@ assert.equal(hasAnswer({kind:'dropdown',selectedValues:['Select an option']}),fa
 assert.equal(hasAnswer({kind:'dropdown',displayValue:'Choose an answer'}),false,'visible dropdown placeholder is not an answer');
 assert.equal(hasAnswer({kind:'dropdown',selectedValues:['$104']}),true,'selected dropdown answers are protected');
 assert.equal(requiresManualGraph({hasDiagram:true,text:'Use the points to plot values on the graph.'}),true,'a plotted graph paired with visible image content is treated as a manual interaction');
+assert.equal(requiresManualGraph({hasDiagram:true,text:'Adjust the graph to show the change in employment.'}),true,'adjustment instructions cannot bypass the required graph answer');
 assert.equal(requiresManualGraph({hasDiagram:false,text:'Plot the points on the graph.'}),false,'graph wording without captured graph content is not enough to classify a graph widget');
 assert.equal(requiresManualGraph({hasDiagram:true,text:'Which value is shown in this graph?'}),false,'ordinary questions about a figure remain eligible for supported field types');
 assert.equal(hasAnswer({kind:'graph',value:false}),false,'an untouched point plot remains unanswered');
@@ -103,7 +104,7 @@ assert.match(adapter,/snap\.unansweredFields\.length/,'Auto selects a partially 
 assert.match(adapter,/if\(snap\.unansweredFields\.length\)\{done\.delete\(snap\.key\);return snap;\}/,'a stale completed-question checkpoint cannot hide currently blank fields');
 assert.match(adapter,/Already answered fields to preserve/,'AI receives existing values only as preserve-only context');
 assert.match(adapter,/pending\.protectedFields/,'validation protects existing values while the blank fields are filled');
-assert.match(adapter,/if\(snap\.hasDiagram&&settings\.includePictures\)/,'MindTap captures a visible graph only when image capture is enabled');
+assert.match(adapter,/if\(snap\.needsPicture&&settings\.includePictures\)/,'MindTap captures unreadable graphics only when image capture is enabled');
 assert.match(adapter,/StudyMedia\.capture\(chrome,snap\.root/,'enabled image capture supplies the visible graph to the AI request');
 assert.match(adapter,/requiresManualGraph\(\{hasDiagram,text\}\)/,'plotting tasks are recognized as graph interactions');
 assert.match(adapter,/if\(snap\.manualGraph\)throw Error/,'unrecognized graph interactions stop before any part of a mixed question is sent or entered');

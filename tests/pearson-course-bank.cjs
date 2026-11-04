@@ -1,0 +1,24 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const values={},area={get:async key=>({[key]:values[key]}),set:async data=>Object.assign(values,structuredClone(data)),remove:async key=>delete values[key]};
+const ctx={URL,Date,Error,crypto:require('node:crypto').webcrypto,chrome:{storage:{local:area,session:area},tabs:{sendMessage:async()=>({received:true}),update:async()=>({})}}};
+vm.createContext(ctx);vm.runInContext(fs.readFileSync('background/pearson-course.js','utf8'),ctx);
+const listUrl='https://mylab.pearson.com/Student/DoAssignments.aspx?courseId=course-a';
+const sender={tab:{id:1,url:listUrl},frameId:0,url:listUrl};
+const item=(id,score=20)=>({title:'HW Section '+id,key:'javascript:doHomework('+id+',0)',score});
+const start=extra=>ctx.pearsonCourseMessage({type:'pearsonCourseStart',assignments:[item(101),item(102)],useSavedHistory:true,...extra},sender);
+(async()=>{
+ const scan={listUrl,assignmentId:'101',index:0,assignments:[item(101)],skippedQuestions:[{assignmentId:'101',questionId:'9',title:'HW Section 101',label:'Question 9',reason:'A course packet is missing.'}]};
+ await ctx.rememberPearsonCourseScan(scan,{score:20});
+ assert.equal((await start()).banked,1);assert.equal(values.pearsonCourse.assignments[0].title,'HW Section 102');assert.equal(values.pearsonCourse.skippedQuestions[0].questionId,'9','saved manual issues remain in the new review report');
+ assert.equal((await start({useSavedHistory:false})).banked,0,'explicit retry includes saved scans');
+ assert.equal((await start({assignments:[item(101,40)]})).banked,0,'changed scores invalidate the saved scan');
+ assert.equal((await start({assignments:[{...item(101),title:'HW Section revised'}]})).banked,0,'changed assignment names invalidate the saved scan');
+ const other={...sender,url:listUrl.replace('course-a','course-b')};assert.equal((await ctx.pearsonCourseMessage({type:'pearsonCourseStart',assignments:[item(101)],useSavedHistory:true},other)).banked,0,'history is course scoped');
+ const key=Object.keys(values.pearsonCourseBank)[0];values.pearsonCourseBank[key].revision='older-support';assert.equal((await start()).banked,0,'new adapter support retries prior manual issues');
+ values.pearsonCourseBank[key].revision='1-described-boxplots';values.pearsonCourseBank[key].time=Date.now()-8*86400000;assert.equal((await start()).banked,0,'manual scans expire after seven days');
+ await ctx.rememberPearsonCourseScan({...scan,skippedQuestions:[]},{score:100});assert.equal((await start({assignments:[item(101,100)]})).banked,1,'verified completed scans are remembered too');
+ await start();const before=Object.keys(values.pearsonCourseBank).length;await ctx.pearsonCourseMessage({type:'pearsonCourseStop'},sender);assert.equal(Object.keys(values.pearsonCourseBank).length,before,'Stop never banks an unverified partial run');
+ assert.equal((await ctx.pearsonCourseMessage({type:'pearsonCourseForgetHistory'}, {...sender,url:'https://mylab.pearson.com/Student/OverviewHomework.aspx?homeworkId=101'})).received,false);
+ await ctx.pearsonCourseMessage({type:'pearsonCourseForgetHistory'},sender);assert.equal(Object.keys(values.pearsonCourseBank).length,0,'Forget history restores a full scan without deleting answers');
+ console.log('PASS persistent Pearson course scans, saved manual issues, retry/forget, course/score/title/revision invalidation, expiry and Stop protection');
+})().catch(error=>{console.error(error);process.exitCode=1;});

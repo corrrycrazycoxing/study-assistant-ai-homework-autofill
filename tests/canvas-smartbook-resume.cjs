@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const session={},updates=[];const list='https://canvas.test/courses/1/assignments',title="SmartBook CH10 Stockholders' Equity";
+const ctx={URL,Date,StudyBuild:{id:'build'},StudyConfig:{allowed:()=>true},config:async()=>({platformMode:'auto'}),chrome:{runtime:{id:'ext'},windows:{update:async()=>{}},storage:{session:{get:async key=>({[key]:session[key]}),set:async values=>Object.assign(session,structuredClone(values))}},tabs:{query:async()=>[],update:async(id,values)=>{updates.push({id,...values});return {id,...values};},sendMessage:async()=>({received:true})}}};vm.createContext(ctx);for(const file of ['shared/canvas-mcgraw-course.js','background/canvas-mcgraw-course.js'])vm.runInContext(fs.readFileSync(file,'utf8'),ctx);
+const owner={id:'ext',frameId:0,url:list,tab:{id:1,windowId:9}},cover={id:'ext',frameId:0,url:'https://connect.router.integration.prod.mheducation.com/app/',tab:{id:2,openerTabId:1,windowId:9}},welcome={id:'ext',frameId:0,url:'https://learning.mheducation.com/static/awd/index.html',tab:{id:2}};
+async function setup(includeStarted){await ctx.canvasMcGrawCourse({type:'canvasCourseStart',items:[{title,url:list+'/4'}],includeStarted},owner);await ctx.canvasMcGrawCourse({type:'canvasCourseListReady'},owner);await ctx.canvasMcGrawCourse({type:'canvasCourseDetail',title,canvasStatus:'unfinished'},{...owner,url:list+'/4'});await ctx.canvasMcGrawCourse({type:'canvasCourseCover',title,smartbook:true,attempts:'SmartBook 2.0',action:'Begin'},cover);}
+(async()=>{
+ await setup(false);let result=await ctx.canvasMcGrawCourse({type:'canvasCourseSmartbookWelcome',title,action:'continue'},welcome);assert(result.skip);assert.equal(result.start,false);assert.equal(session.canvasMcGrawCourse.phase,'returning');assert.equal(updates.at(-1).url,list);assert.match(session.canvasMcGrawCourse.issues.at(-1).reason,/Continue Questions/);
+ await ctx.canvasMcGrawCourse({type:'canvasCourseStop'},owner);await setup(true);
+ assert.equal((await ctx.canvasMcGrawCourse({type:'canvasCourseSmartbookWelcome',title:'Wrong',action:'continue'},welcome)).received,false);
+ assert.equal((await ctx.canvasMcGrawCourse({type:'canvasCourseSmartbookWelcome',title,action:'continue'},{...welcome,tab:{id:99}})).received,false);
+ result=await ctx.canvasMcGrawCourse({type:'canvasCourseSmartbookWelcome',title,action:'continue'},{...welcome,tab:{id:3,openerTabId:2}});assert(result.start,'the known cover may open its matching SmartBook player in a child tab');assert.equal(session.canvasMcGrawCourse.playerTab,3);
+ await ctx.canvasMcGrawCourse({type:'canvasCourseSmartbookReady',title},{...welcome,tab:{id:3,openerTabId:2}});assert.equal(session.canvasMcGrawCourse.smartbookReady,true);
+ await ctx.canvasMcGrawCourse({type:'canvasCourseStop'},owner);
+ assert.equal((await ctx.canvasMcGrawCourse({type:'canvasCourseSmartbookWelcome',title,action:'continue'},welcome)).received,false,'Stop revokes welcome actions');
+ console.log('PASS SmartBook resumed-work gate, issue banking and Canvas return, allowed Continue, title/tab ownership, known child player and Stop');
+})().catch(error=>{console.error(error);process.exitCode=1;});

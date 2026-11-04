@@ -1,9 +1,10 @@
 // Keep the Pearson course launcher attached to the visible top-level page,
 // rather than the tall cross-origin assignment iframe.
-(() => {
+(async () => {
   if (window.top !== window || !/^\/courses\/\d+\/menu\//i.test(location.pathname)) return;
   if (document.getElementById('study-pearson-course-shell')) return;
 
+  if(globalThis.StudyCourseUI&&!await StudyCourseUI.enabled('pearson'))return;
   const childOrigin = 'https://mylab.pearson.com';
   const source = 'study-assistant-pearson-course';
   const host = document.createElement('div');
@@ -43,13 +44,14 @@
       <details id="review-notice" open><summary>Review notice</summary><div class="warning"><strong>Review required.</strong> Course Mode may enter answers only after Pearson confirms a homework or lesson is not started, or you opt into verified unfinished started work. It can miss work. Questions needing attention are saved in the final review list while Course Auto continues. Review every result in Pearson; you submit assignments yourself.</div><label><input id="ack-warning" type="checkbox"> I understand and will review the results before submitting.</label></details>
       ${StudyPearsonCourseUI.paceMarkup()}
       <label id="skip-pause-wrap"><input id="skip-pause" type="checkbox"> Continue without review pauses</label><label id="include-started-wrap"><input id="include-started" type="checkbox"> Include started homework &amp; lessons</label>
-      <div class="actions"><button id="go" disabled>Go through homework &amp; lessons</button><button id="stop" class="secondary" hidden>Stop</button><button id="review-report" class="secondary" hidden>Review last run</button></div>
-      <small>Hidden list scores are checked at the assignment start page. Completed or unclear work is not answered. Started work requires the option above. Required media remains pending for review. Course Mode uses Pearson Save between assignments.</small>
+      <label id="retry-saved-wrap"><input id="retry-saved" type="checkbox"> Retry saved issues &amp; completed scans</label><button id="forget-history" class="secondary">Forget course history</button><div class="actions"><button id="go" disabled>Go through homework &amp; lessons</button><button id="stop" class="secondary" hidden>Stop</button><button id="review-report" class="secondary" hidden>Review last run</button></div>
+      <small>Unchanged saved scans are skipped. Retry saved issues or Forget course history checks them again. Hidden list scores are checked at the assignment start page. Completed or unclear work is not answered. Started work requires the option above. Video links open in separate tabs, then Course Auto returns to unlocked questions. Unconfirmed media remains pending for review. Course Mode uses Pearson Save between assignments.</small>
     </div>
   </section>
   <div id="attention" class="attention" hidden><section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="attention-title"><h2 id="attention-title">Manual review needed</h2><p id="summary"></p><div id="items"></div><button id="close" class="secondary">Close</button></section></div>`;
   document.documentElement.append(host);
 
+  globalThis.StudyCourseUI?.decorate(root);
   const el=id=>root.getElementById(id);
   let count=0,ready=false;
   const canStart=()=>ready&&count>0&&el('ack-warning').checked&&StudyPearsonCourseUI.hasPace(root);
@@ -66,8 +68,9 @@
     const open=el('body').hidden;
     el('body').hidden=!open;el('toggle').textContent=open?'Close':'Open';el('toggle').setAttribute('aria-expanded',String(open));
   });
-  el('go').addEventListener('click',()=>{if(!canStart())return;send('go',{skipReviewPause:el('skip-pause').checked,pace:StudyPearsonCourseUI.readPace(root),includeStarted:el('include-started').checked});el('go').disabled=true;el('review-notice').open=false;});
+  el('go').addEventListener('click',()=>{if(!canStart())return;send('go',{skipReviewPause:el('skip-pause').checked,pace:StudyPearsonCourseUI.readPace(root),includeStarted:el('include-started').checked,retrySaved:el('retry-saved').checked});el('go').disabled=true;el('review-notice').open=false;});
   el('stop').addEventListener('click',()=>send('stop'));
+  el('forget-history').addEventListener('click',()=>send('forgetHistory'));
   el('review-report').addEventListener('click',()=>send('review'));
   el('close').addEventListener('click',()=>{el('attention').hidden=true;send('dismissReview');el('toggle').focus();});
   window.addEventListener('message',event=>{
@@ -101,6 +104,7 @@
         ['Media still to review',media,false,true]
       ])if(values.length){const h=document.createElement('h3');h.textContent=heading;items.append(h);const list=document.createElement(render?'ol':'ul');for(const item of values){const li=document.createElement('li');li.append(document.createTextNode(render?`${item.title} · ${item.label}`:`${item.title} · ${item.reason}`));if(render){const reason=document.createElement('span');reason.className='reason';reason.textContent=item.reason;li.append(reason);}if(openable&&/^\d{1,12}$/.test(String(item.assignmentId||''))){const button=document.createElement('button');button.className='secondary';button.textContent='Open assignment';button.addEventListener('click',()=>send('reviewAssignment',{id:String(item.assignmentId)}));li.append(button);}list.append(li);}items.append(list);}
       el('close').focus();
+      globalThis.StudyCourseUI?.linkReport(items);
     }
   });
   updateCount();

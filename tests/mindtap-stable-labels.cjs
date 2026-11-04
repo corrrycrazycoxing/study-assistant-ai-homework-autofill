@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('content-scripts/mindtap.js','utf8');
+const code=source.slice(source.indexOf('  function stableQuestionText('),source.indexOf('  function labelOf('));
+const text=value=>({nodeType:3,textContent:value});const element=(kind,children)=>({nodeType:1,childNodes:children,matches:selector=>selector.split(',').includes(kind)});
+const context={visible:()=>true};vm.createContext(context);vm.runInContext(code,context);
+const selection=element('.q4-select-container',[text('Select an answer')]);
+const rowLabel=element('td',[text('Private saving: '),selection,text(' plus taxes')]);
+const before=context.stableQuestionText(rowLabel);selection.childNodes=[text('Y - T - C')];
+assert.equal(context.stableQuestionText(rowLabel),before,'selecting a dropdown cannot change an adjacent numeric field label');
+rowLabel.childNodes[0]=text('Public saving: ');assert.notEqual(context.stableQuestionText(rowLabel),before,'actual question text remains protected');
+assert(source.includes('label:row?clean(stableQuestionText(row.cells[0]))'),'numeric row labels use static prompt content');
+console.log('PASS MindTap mixed dropdown/numeric row labels remain stable while real text changes remain detectable');

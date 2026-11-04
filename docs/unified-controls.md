@@ -1,0 +1,9 @@
+# Shared controls and build identity
+
+Assignment adapters report their available actions and status through `StudyMonitor`. `shared/assignment-ui.js` presents the same compact panel for McGraw, Pearson, Canvas, and MindTap. The side-panel lease hides that on-page panel while preserving the toolbar. Course queue setup and reports remain platform-specific; `shared/course-ui.js` gives the queue launchers a consistent presentation. Pearson and MindTap course context appears in the assignment panel when available.
+
+The original SmartBook and older Connect engines register functions directly with the monitor. Modern adapters still own internal controls and their field engines; those controls are not displayed and the monitor delegates actions to them. Do not remove them until each adapter has a direct command interface. Embedded player ownership is chosen per tab, with the active run preferred. The MindTap overview Start action maps to Run All Questions.
+
+`shared/build.js` is a deterministic hash of the manifest and packaged runtime files. After editing runtime files, run `python3 scripts/build-id.py`; `scripts/check.cjs` and the packager reject a stale identity. The panel shows the installed and assignment build identifiers. AI tabs with a different or missing identifier go through the existing guarded reconnection flow. Equal release versions alone do not prove file parity.
+
+For a local presentation check, serve the repository and open `docs/unified-ui-demo.html` in a browser. Use a hard refresh after edits to avoid cached scripts. The fixture uses simulated adapter controls and does not verify a real assignment, AI provider, grading, or submission. Run the repository checks and verify live players separately after reloading the unpacked extension and reopening assignments.
