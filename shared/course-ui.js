@@ -26,6 +26,56 @@
     const observer=new MutationObserver(update);const status=root.getElementById('state')||root.getElementById('status');if(status)observer.observe(status,{childList:true,subtree:true,characterData:true});
     const progress=root.getElementById('course-queue-progress');if(progress)observer.observe(progress,{subtree:true,attributes:true,attributeFilter:['hidden','value','max'],childList:true,characterData:true});update();
   }
+  function disclosure(toggle, body) {
+    const render = () => {
+      toggle.textContent = body.hidden ? 'Open' : 'Collapse';
+      toggle.setAttribute('aria-expanded', String(!body.hidden));
+    };
+    toggle.setAttribute('aria-controls', body.id);
+    toggle.onclick = () => { body.hidden = !body.hidden; render(); };
+    render();
+  }
+
+  function canvasIntroduction(container) {
+    const key = 'studyCanvasCourseIntro';
+    const version = 1;
+    let acknowledged = false;
+    container.innerHTML = '<details open><summary>Course Auto warning and walkthrough</summary><p><strong>Review required.</strong> Course Auto can open eligible McGraw homework and enter AI-suggested answers. It can make mistakes or skip work. Review the answers and submit assignments yourself.</p><ol><li>Choose courses, or open a course’s Assignments list.</li><li>Choose a speed and whether to include started or past-due work.</li><li>Start the run. Use Stop at any time and check the review report for skipped work.</li></ol><button type="button" class="secondary">I understand</button><p role="status" hidden></p></details>';
+    const details = container.querySelector('details');
+    const button = container.querySelector('button');
+    const status = container.querySelector('[role="status"]');
+    function update(value) {
+      const complete = value === version;
+      if (acknowledged !== complete) details.open = !complete;
+      acknowledged = complete;
+      button.hidden = complete;
+    }
+    const ready = chrome.storage.local.get(key).then(data => update(data[key])).catch(() => {});
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes[key]) update(changes[key].newValue);
+    });
+    button.onclick = async () => {
+      await ready;
+      button.disabled = true;
+      try {
+        await chrome.storage.local.set({[key]: version});
+        update(version);
+        status.hidden = true;
+      } catch {
+        status.hidden = false;
+        status.textContent = 'Could not save your acknowledgement. Try again.';
+      } finally {
+        button.disabled = false;
+      }
+    };
+    return async () => {
+      await ready;
+      if (acknowledged) return true;
+      details.open = true;
+      button.focus();
+      return false;
+    };
+  }
   async function enabled(platform){const data=await chrome.storage.sync.get('platformMode');return StudyConfig.allowed(platform,data.platformMode);}
   function titleLink(item,onOpen){
     let href='';try{const url=new URL(item.url);if(url.protocol==='https:'&&!url.username&&!url.password)href=url.href;}catch{}
@@ -40,5 +90,5 @@
       const link=titleLink({title},()=>button.click());first.replaceWith(link,document.createTextNode(text.slice(title.length)));
     }
   }
-  globalThis.StudyCourseUI={decorate,enabled,titleLink,linkReport};
+  globalThis.StudyCourseUI={decorate,disclosure,canvasIntroduction,enabled,titleLink,linkReport};
 })();

@@ -1,5 +1,9 @@
 # Start here when continuing in another chat
 
+## November 3, 2026 — Canvas Course Auto panel onboarding (2.8.1)
+
+The page card and Chrome side-panel section share first-open onboarding and collapse behavior. Both keep status, progress, and Stop visible during a run. The README usage sections and contributor rules describe the controls. The full regression suite and ZIP checks pass. Live rendering remains to be verified.
+
 ## November 3, 2026 — Release 2.8.0
 
 The production release contains Canvas course selection, NotebookLM reading preparation, shared controls and platform fixes. The release uses a separate worktree to preserve local experimental changes. SmartBook matching has fixture coverage and live selector verification. Live automatic drops are pending.

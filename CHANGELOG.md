@@ -2,6 +2,16 @@
 
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
+## 2.8.1 — November 3, 2026
+
+### Changed
+- Canvas Course Auto starts collapsed on the page and in the Chrome side panel. Status, progress, and Stop stay visible while collapsed.
+- The first-open warning and walkthrough require acknowledgement before Start. Both panels share the acknowledgement.
+- Update README instructions for shared controls, platform workflows, Canvas Course Auto, and NotebookLM. Document panel design requirements for contributors.
+
+### Verification
+- Repository regressions and package checks passed. Live Canvas rendering is pending.
+
 ## 2.8.0 — November 3, 2026
 
 ### Added

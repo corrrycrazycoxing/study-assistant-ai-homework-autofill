@@ -114,7 +114,7 @@
       if(!builtIn){
         const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
         if(!tab?.id||new URL(tab.url).origin!==u.origin)throw Error('Open the HTTPS Canvas page in the active tab, then enable it again.');
-        await chrome.scripting.executeScript({target:{tabId:tab.id,allFrames:true},files:['shared/build.js','shared/config.js','shared/security.js','shared/platform.js','shared/review.js','shared/assignment-ui.js','shared/monitor.js','shared/pacing.js','shared/media.js','shared/capture-frame.js','shared/canvas-mcgraw-course.js','content-scripts/canvas-mcgraw-course.js','shared/canvas-batch.js','content-scripts/canvas.js']});
+        await chrome.scripting.executeScript({target:{tabId:tab.id,allFrames:true},files:['shared/build.js','shared/config.js','shared/security.js','shared/platform.js','shared/review.js','shared/assignment-ui.js','shared/monitor.js','shared/pacing.js','shared/media.js','shared/capture-frame.js','shared/canvas-mcgraw-course.js','shared/course-ui.js','content-scripts/canvas-mcgraw-course.js','shared/canvas-batch.js','content-scripts/canvas.js']});
       }
       await save({canvasOrigins:[...new Set([...state.canvasOrigins,u.origin])]});
       $('domain-status').textContent='Enabled for this active tab: '+u.hostname+'. Enable again after a reload or origin change.';

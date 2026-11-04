@@ -1,9 +1,9 @@
-Study Assistant 2.8.0
+Study Assistant 2.8.1
 
-Select courses from the Canvas dashboard or Courses page to queue eligible McGraw homework. You can also load a Canvas quiz’s reading before starting, use a matching NotebookLM source, and send long quizzes in batches.
+Canvas Course Auto starts collapsed in both the floating card and Chrome side panel. When you open it for the first time, read the warning and walkthrough and select **I understand** before starting. Both panels share that acknowledgement. Status, progress, and **Stop Course Auto** stay visible while collapsed.
 
-The side panel and on-page controls share progress and recovery actions. This release expands support for SmartBook matching, Connect worksheets, Pearson linked data and MindTap graphs. Review answers before submitting.
+The README explains the shared controls, platform workflows, and NotebookLM settings. It also records the panel design requirements for future updates.
 
-The repository regression suite and package checks passed. The SmartBook matching selectors were verified against the live page. Automatic drops still need live verification.
+The full regression suite and installable ZIP checks passed. Live Canvas rendering remains to be verified.
 
-Extract `study-assistant-2.8.0.zip` and load **Study-Assistant-2.8.0** as an unpacked extension in Chrome. After updating, reopen assignment pages so they load the new adapter.
+Extract `study-assistant-2.8.1.zip`, load **Study-Assistant-2.8.1** in Chrome, and reopen Canvas or your assignment to load the new controls.
