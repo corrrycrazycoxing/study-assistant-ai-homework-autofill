@@ -36,6 +36,14 @@
       elapsed:clamp(timing.elapsedSeconds,0,7200,0)};
   }
   function duration(raw,suggestion,context){const o=options(raw);if(o.mode==='human')return estimate(raw,suggestion,context).seconds;const value=typeof suggestion==='object'?suggestion?.estimatedSeconds:suggestion;return o.ai&&finite(value)?clamp(value,o.min,o.max,o.seconds):o.seconds;}
+  function budgetDelay(ms,budget){
+    if(!budget||!Number.isFinite(budget.remainingMs))return ms;
+    const fields=Math.max(1,budget.remainingFields||1);
+    const reserve=budget.reserveMs??30000;
+    const futureAi=Math.max(0,budget.futureRequests||0)*Math.max(15000,(budget.responseMs||20000)*1.25);
+    const entry=fields*1000;
+    return Math.max(0,Math.min(ms,(budget.remainingMs-reserve-futureAi-entry)/fields));
+  }
   async function sleep(ms){
     // The extension worker owns short waits so a hidden tab cannot stretch each keystroke to a minute.
     if(globalThis.chrome?.runtime?.sendMessage&&ms<=1000){try{const r=await chrome.runtime.sendMessage({type:'studyDelay',ms});if(r?.waited)return;}catch{}}
@@ -124,7 +132,7 @@
     function cancel(){epoch++;if(state){clearTimeout(state.timer);const reject=state.reject;state=null;reject(Error('Stopped.'));}if(box)box.hidden=true;plan=null;}
     function begin(suggestion,count,context={}){
       cancel();const raw=getSettings(),o=options(raw),human=o.mode==='human'?estimate(raw,suggestion,context):null;
-      plan={options:o,seconds:duration(raw,suggestion,context),count:Math.max(1,count),suggested:human?human.ai:raw.useSuggestedTime!==false&&finite(typeof suggestion==='object'?suggestion?.estimatedSeconds:suggestion),human};
+      plan={options:o,seconds:duration(raw,suggestion,context),count:Math.max(1,count),budget:context.budget,suggested:human?human.ai:raw.useSuggestedTime!==false&&finite(typeof suggestion==='object'?suggestion?.estimatedSeconds:suggestion),human};
       if(human)plan.seconds=Math.max(0,human.seconds-human.elapsed);
     }
     function check(guard,mine=epoch){if(mine!==epoch||!guard())throw Error('The question changed or automation stopped.');}
@@ -136,7 +144,12 @@
         const current=state;
         function tick(){
           if(state!==current)return;
-          try{check(guard,mine);}catch(e){state=null;box.hidden=true;reject(e);return;}
+          try{
+            check(guard,mine);
+            const budget=plan?.budget?.();
+            if(budget?.remainingMs<=0)throw Error('Quiz time expired. Review Canvas’s submission status.');
+            if(!manual&&!current.paused)current.remaining=budgetDelay(current.remaining,budget);
+          }catch(error){state=null;box.hidden=true;reject(error);return;}
           const now=Date.now();if(!current.paused)current.remaining=Math.max(0,current.remaining-(now-current.last));current.last=now;
           render();
           if(current.skip||(!current.paused&&!manual&&current.remaining<=0)){state=null;box.hidden=true;resolve();return;}
@@ -170,10 +183,10 @@
       check(valid);el.dispatchEvent(new w.Event('change',{bubbles:true}));el.blur();
     }
     async function typeCharacters(value,write,guard){const mine=epoch;for(const char of String(value)){check(guard,mine);await write(char);check(guard,mine);await sleep(0);}check(guard,mine);}
-    async function scroll(el,guard){check(guard);const smooth=options(getSettings()).mode!=='normal'&&options(getSettings()).smooth;el.scrollIntoView({block:'center',behavior:smooth?'smooth':'instant'});if(smooth)await wait(400,'Scrolling to question',guard);check(guard);}
+    async function scroll(el,guard,{block='center'}={}){check(guard);const smooth=options(getSettings()).mode!=='normal'&&options(getSettings()).smooth;el.scrollIntoView({block,inline:'nearest',behavior:smooth?'smooth':'instant'});if(smooth)await wait(400,'Scrolling to question',guard);check(guard);}
     function attachControlsTo(root){attachControls(root||document.body);paceControls.hidden=false;return paceControls;}
     function hideControls(){if(paceControls)paceControls.hidden=true;}
     return {attach,attachControls:attachControlsTo,hideControls,begin,beforeField,afterQuestion,setText,typeCharacters,scroll,cancel,check,wait};
   }
-  globalThis.StudyPacing={options,duration,estimate,fallback,format,sleep,create};
+  globalThis.StudyPacing={options,duration,budgetDelay,estimate,fallback,format,sleep,create};
 })();

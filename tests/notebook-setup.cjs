@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-async function exercise({cached=false,cancel=false,sourceName='Reading.pdf',kind='drive',atLimit=false,transientLimit=false,quotaRecovery=false}={}){
+async function exercise({cached=false,cancel=false,sourceName='Reading.pdf',kind='drive',atLimit=false,transientLimit=false,quotaRecovery=false,failedSource=false}={}){
  let job={id:'job',phase:'opening',source:{id:'drive-file-id',kind,title:'Reading',url:'https://example.org/reading'},sourceName:cached?sourceName:'',notebookUrl:cached?'https://notebook.google.com/notebook/book':null},ui=cached?'loaded':'home',createCount=0,insertCount=0,insertedUrl='',renamed='',clock=0,cancelled=false;
  let quotaFreed=false,quotaCleanups=0;
  const location={hostname:'notebook.google.com',pathname:cached?'/notebook/book':'/'};
@@ -10,9 +10,10 @@ async function exercise({cached=false,cancel=false,sourceName='Reading.pdf',kind
  const title=new Input('Untitled notebook'),urls=new Textarea('','TEXTAREA','Enter URLs');
  const source={...visible,getAttribute:name=>name==='aria-label'?'Select '+sourceName:null};
  const create=makeButton('New notebook',()=>{createCount++;location.pathname='/notebook/book';ui='empty';});
- const add=makeButton('Add source',()=>{ui='add';}),web=makeButton('Websites',()=>{ui='urls';}),insert=makeButton('Insert',()=>{insertCount++;insertedUrl=urls.value;ui='loaded';});
+ const add=makeButton('Add source',()=>{ui='add';}),web=makeButton('Websites',()=>{ui='urls';}),insert=makeButton('Insert',()=>{insertCount++;insertedUrl=urls.value;ui=failedSource?'failedSource':'loaded';});
  const document={body:{get innerText(){return atLimit&&!quotaFreed||transientLimit&&clock<10000?'You have reached the maximum number of notebooks. Upgrade.':'';}},querySelector(selector){if(selector==='query-box .selected-num')return {textContent:(ui==='loaded'?'1':'0')+' source'};return null;},querySelectorAll(selector){
   if(selector==='button,[role="button"]')return ui==='home'?(atLimit&&!quotaFreed||transientLimit&&clock<10000?[]:[create]):ui==='add'?[web]:ui==='urls'?[insert]:[add];
+  if(selector.startsWith('[data-source-status')&&ui==='failedSource')return [visible];
   if(selector==='input')return ui==='home'?[]:[title];
   if(selector==='textarea')return ui==='urls'?[urls]:[];
   if(selector==='input[type="checkbox"],[role="checkbox"]')return ui==='loaded'?[source]:[];
@@ -48,6 +49,7 @@ async function exercise({cached=false,cancel=false,sourceName='Reading.pdf',kind
  const stopped=await exercise({cancel:true});assert.equal(stopped.insertCount,0);assert(!stopped.steps.includes('ready'),'Stop prevents a later source import or readiness receipt');
  const loading=await exercise({sourceName:'drive-file-id'});assert.equal(loading.job.phase,'failed','a temporary source placeholder cannot be treated as a processed PDF');
  const web=await exercise({kind:'web',sourceName:'Reading on the web'});assert.equal(web.job.phase,'ready');assert.equal(web.insertedUrl,'https://example.org/reading');
+ const failed=await exercise({failedSource:true});assert.equal(failed.job.phase,'failed');assert.match(failed.job.error,/Try source again/);assert.equal(failed.insertCount,1);
  const limit=await exercise({atLimit:true});assert.equal(limit.job.phase,'failed');assert.match(limit.job.error,/notebook limit/);assert.equal(limit.createCount,0);assert.equal(limit.insertCount,0);
  const recovered=await exercise({atLimit:true,quotaRecovery:true});assert.equal(recovered.job.phase,'ready');assert.equal(recovered.quotaCleanups,1);assert.equal(recovered.createCount,1);assert.equal(recovered.insertCount,1,'creation and source import resume after quota cleanup');
  const transient=await exercise({transientLimit:true});assert.equal(transient.job.phase,'ready','the transient pre-quota home banner is not a real notebook limit');assert.equal(transient.createCount,1);

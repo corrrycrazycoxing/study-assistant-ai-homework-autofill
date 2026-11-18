@@ -4,7 +4,7 @@
   const platforms=['mcgraw','pearson','canvas','mindtap'];
   const pacingNames={normal:'Instant Auto',slow:'Timed Auto',human:'Human pace',review:'Guided Answers'};
   const names={mcgraw:'McGraw-Hill',pearson:'Pearson MyLab',canvas:'Canvas',mindtap:'MindTap Aplia'};
-  const defaults=Object.fromEntries(platforms.map(p=>[p,{pauseBeforeSubmit:false,showExplanation:true,preferNotebook:p==='canvas',notebookUrl:'',doubleCreditMode:false,randomConfidence:false,replaceExisting:false,pacingMode:'normal',humanSpeed:'typical',humanMinSeconds:15,humanMaxSeconds:3600,useSuggestedTime:true,reviewSeconds:30,reviewMinSeconds:5,reviewMaxSeconds:120,advanceSeconds:3,smoothScroll:true,includePictures:false}]));
+  const defaults=Object.fromEntries(platforms.map(p=>[p,{pauseBeforeSubmit:false,showExplanation:true,preferNotebook:p==='canvas',notebookUrl:'',doubleCreditMode:false,randomConfidence:false,replaceExisting:false,pacingMode:'normal',humanSpeed:'typical',humanMinSeconds:15,humanMaxSeconds:3600,useSuggestedTime:true,reviewSeconds:30,reviewMinSeconds:5,reviewMaxSeconds:120,advanceSeconds:3,smoothScroll:true,quizOverviewEnabled:true,includePictures:false}]));
   const pacingKeys=['pacingMode','humanSpeed','humanMinSeconds','humanMaxSeconds','useSuggestedTime','reviewSeconds','reviewMinSeconds','reviewMaxSeconds','advanceSeconds'];
   const pacingDefaults=Object.fromEntries(pacingKeys.map(key=>[key,defaults.mcgraw[key]]));
   function detect(url,custom=[]){
@@ -17,8 +17,35 @@
     }catch{}
     return null;
   }
-  function allowed(platform,mode='auto'){return mode==='auto'||mode===platform;}
-  function preferences(data,platform){const legacy=data.platformSettings?.[platform]||{},legacyPacing=Object.fromEntries(pacingKeys.filter(key=>Object.hasOwn(legacy,key)).map(key=>[key,legacy[key]]));return {...defaults[platform],...legacy,...(data.pacingSettings?{...pacingDefaults,...data.pacingSettings}:legacyPacing),aiModel:data.aiModel||'gemini',watchAutomation:data.watchAutomation===true};}
+  function allowed(platform,mode='auto'){
+    const data=mode&&typeof mode==='object'?mode:null;
+    const selected=data?data.platformMode||'auto':mode;
+    return platforms.includes(platform)&&(selected==='auto'||selected===platform)&&data?.featureSettings?.platforms?.[platform]!==false;
+  }
+  function featureEnabled(data,feature){return data?.featureSettings?.[feature]!==false;}
+  function courseAllowed(platform,data={}){return allowed(platform,data)&&data.featureSettings?.courses?.[platform]!==false;}
+  // Hide disabled entry points immediately, including ones mounted after a setting changes.
+  function featureVisibility(data){
+    if(typeof document==='undefined')return;
+    let style=document.getElementById('study-feature-visibility');
+    if(!style){style=document.createElement('style');style.id='study-feature-visibility';(document.head||document.documentElement).append(style);}
+    const hidden=[];
+    if(!courseAllowed('canvas',data))hidden.push('#study-canvas-mcgraw-course');
+    if(!courseAllowed('pearson',data))hidden.push('#study-pearson-course-shell','#study-pearson-course');
+    if(!courseAllowed('mindtap',data))hidden.push('#study-mindtap-course');
+    if(!allowed('canvas',data)||!featureEnabled(data,'canvasQuizLauncher'))hidden.push('#study-canvas-quiz-launch');
+    const platform=detect(location.href,data.canvasOrigins||[]);
+    if(platform&&!allowed(platform,data))hidden.push('#study-assignment-ui','.study-pace-controls','#study-assistant-welcome','#study-connect-assistant','#canvas-assistant-panel','#mylab-assistant-panel','#mindtap-assistant-panel','.study-pacing');
+    style.textContent=hidden.length?hidden.join(',')+'{display:none!important}':'';
+  }
+  function watchFeatures(){
+    if(typeof document==='undefined'||!globalThis.chrome?.storage||globalThis.__studyFeatureWatch)return;
+    globalThis.__studyFeatureWatch=true;
+    let data={};const keys=['platformMode','featureSettings','canvasOrigins'];
+    chrome.storage.sync.get(keys).then(value=>{data={...value,...data};featureVisibility(data);}).catch(()=>{});
+    chrome.storage.onChanged.addListener((changes,area)=>{if(area!=='sync'||!keys.some(key=>changes[key]))return;for(const key of keys)if(changes[key])data[key]=changes[key].newValue;featureVisibility(data);});
+  }
+  function preferences(data,platform){const legacy=data.platformSettings?.[platform]||{},legacyPacing=Object.fromEntries(pacingKeys.filter(key=>Object.hasOwn(legacy,key)).map(key=>[key,legacy[key]]));return {...defaults[platform],...legacy,...(data.pacingSettings?{...pacingDefaults,...data.pacingSettings}:legacyPacing),quizOverviewEnabled:featureEnabled(data,'canvasQuizLauncher'),aiModel:data.aiModel||'gemini',watchAutomation:data.watchAutomation===true};}
   function tableColumn(table,row,cell,clean=value=>String(value||'').replace(/\s+/g,' ').trim()){
     if(!table||!row||!cell)return '';
     const headers=[...(table.tHead?.rows||[])];if(!headers.length)return '';
@@ -125,5 +152,6 @@
     }
     display.append(table);if(!data.guided)appendExplanation();if(data.sourceAnswer){const details=document.createElement('details'),summary=document.createElement('summary'),p=document.createElement('p');summary.textContent='Reading sources';p.textContent=data.sourceAnswer;details.append(summary,p);display.append(details);}
   }
-  globalThis.StudyConfig={onboardingVersion,onboardingMessage,platforms,names,pacingNames,defaults,pacingKeys,pacingDefaults,detect,allowed,preferences,tableColumn,assignLabels,answerLabel,answerGrid,plainExplanation,showPreview,clearPreview};
+  globalThis.StudyConfig={onboardingVersion,onboardingMessage,platforms,names,pacingNames,defaults,pacingKeys,pacingDefaults,detect,allowed,preferences,featureEnabled,courseAllowed,featureVisibility,watchFeatures,tableColumn,assignLabels,answerLabel,answerGrid,plainExplanation,showPreview,clearPreview};
+  watchFeatures();
 })();

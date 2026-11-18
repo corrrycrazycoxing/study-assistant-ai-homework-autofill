@@ -1,5 +1,9 @@
 # Start here when continuing in another chat
 
+## November 17, 2026 — Study Assistant 2.9.0
+
+The release brings the verified Canvas, NotebookLM, settings, and SmartBook changes from the installed production copy onto the 2.8.1 source baseline. The runtime and ZIP exclude internal testing modes and Target-related code. See RELEASE-NOTES.md for behavior and verification scope.
+
 ## November 3, 2026 — Canvas Course Auto panel onboarding (2.8.1)
 
 The page card and Chrome side-panel section share first-open onboarding and collapse behavior. Both keep status, progress, and Stop visible during a run. The README usage sections and contributor rules describe the controls. The full regression suite and ZIP checks pass. Live rendering remains to be verified.

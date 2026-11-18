@@ -6,9 +6,9 @@ Study Assistant is an independent educational review tool. By installing or usin
 
 ## What the extension does
 
-The extension extracts supported question data, sends a user-requested prompt to the selected AI service, shows a reviewable answer, and can enter declarative answers into reviewed controls. AI output may be incomplete or wrong. The user must review each answer and remains responsible for every submission, attempt, grade, and course-policy decision.
+The extension extracts supported question data, sends a user-requested prompt to the selected AI service, shows a reviewable answer, and can enter declarative answers into reviewed controls. AI output may be incomplete or wrong. The user remains responsible for reviewing answers and for every submission, attempt, grade, and course-policy decision. A user-started Auto run on a supported Canvas Classic quiz can submit the quiz after completeness checks.
 
-The extension does not promise support for every site layout or control. It does not bypass access controls, defeat anti-cheat systems, spoof a browser fingerprint, forge trusted events, or submit a final assignment on the user's behalf.
+The extension does not promise support for every site layout or control. It does not bypass access controls, defeat anti-cheat systems, spoof a browser fingerprint, or forge trusted events.
 
 ## Third-party services
 

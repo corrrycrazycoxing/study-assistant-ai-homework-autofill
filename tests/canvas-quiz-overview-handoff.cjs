@@ -1,0 +1,125 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const origin='https://demo.instructure.com',quiz=origin+'/courses/11/quizzes/31',list=origin+'/courses/11/assignments',title='A History of City Parks',book='https://notebook.google.com/notebook/reading';
+const canvas=fs.readFileSync('content-scripts/canvas.js','utf8');
+async function fixture({suffix='?module_item_id=123#instructions',slash=false,hold=false,missingDue=false,wrongDocument=false,wrapper=false,importFailure=false,pausedSource=false,retrySaved=false,submitted=false,availabilityDate=false}={}){
+ const state={canvasMcGrawCourse:{tab:1,origin,phase:'opening',index:0,listUrl:list,updated:Date.now(),includeCanvasQuizzes:true,assignmentTypes:{homework:false,quiz:true},skipPastDue:true,items:[{title,url:wrapper?list+'/99':quiz,kind:'quiz',dueAt:null}],issues:[],coursePolicies:{[list]:{types:{homework:false,quiz:true},metadata:missingDue?[]:[{title,url:quiz,assignmentUrl:list+'/99',type:'quiz',dueAt:Date.now()+86400000}]}}}};
+ if(pausedSource){
+  state.canvasMcGrawCourse.phase='attention';
+  state.canvasMcGrawCourse.issues.push({title,url:quiz,reason:'No reading matches this Canvas quiz title.'});
+ }
+ const local={readingNotebooks:{}},navigated=[],closed=[],sourceUrl='https://example.org/assigned-reading';
+ const area=data=>({get:async()=>structuredClone(data),set:async value=>Object.assign(data,structuredClone(value))});
+ const ctx={URL,Date,config:async()=>({}),sourcePlatform:async()=> 'canvas',chrome:{runtime:{id:'ext',getURL:path=>'chrome-extension://ext/'+path},storage:{session:area(state),local:area(local)},tabs:{query:async()=>[],update:async(id,options)=>navigated.push({id,...options}),get:async()=>({url:book}),remove:async id=>closed.push(id),sendMessage:async()=>({current:false})}}};vm.createContext(ctx);
+ for(const f of ['shared/config.js','shared/canvas-mcgraw-course.js','shared/canvas-quiz.js','background/readings.js','background/canvas-quiz-course.js','background/canvas-mcgraw-course.js'])vm.runInContext(fs.readFileSync(f,'utf8'),ctx);
+ if(retrySaved){
+  local.canvasCourseIssueBank={[origin]:{[quiz]:{title,url:quiz,assignmentUrl:list+'/99',reason:'Previous import failure',savedAt:Date.now()}}};
+  state.canvasMcGrawCourse.phase='done';
+  ctx.StudyConfig.detect=()=> 'canvas';
+  const owner={id:'ext',tab:{id:1,windowId:1},url:list,frameId:0};
+  const started=await ctx.canvasMcGrawCourse({type:'canvasCourseStart',retrySavedIssues:true,assignmentTypes:{homework:false,quiz:true},items:[{title,url:quiz,kind:'quiz',dueAt:Date.now()+86400000},{title:'Unrelated quiz',url:quiz+'9',kind:'quiz'}]},owner);
+  assert.equal(started.run.items.length,1,'retry includes only the saved assignment');
+  const next=await ctx.canvasMcGrawCourse({type:'canvasCourseListReady'},owner);
+  assert.equal(next.open,quiz,'retry bypasses the ordinary saved-issue skip');
+ }
+ const href=quiz+(slash?'/':'')+suffix,nodes=[],events=[],calls=[];let clicks=0,reloads=0,tick,release;
+ const element=tag=>{const e={tag,children:[],style:{},attrs:{},hidden:false,disabled:false,textContent:'',append(...children){this.children.push(...children);},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k]||null;},getClientRects(){return [{}];}};nodes.push(e);return e;};
+ const launch=element('a');launch.textContent='Take the Quiz';launch.click=()=>{events.push('click');clicks++;};
+ const location={href,pathname:new URL(href).pathname,protocol:'https:',reload:()=>reloads++};
+ const doc={title,querySelectorAll:()=>[],documentElement:{},body:element('body'),addEventListener(){},createElement:element,getElementById:id=>nodes.find(n=>n.id===id),querySelector:selector=>{
+  if(selector==='#take_quiz_link')return submitted?null:launch;
+  if(selector==='#quiz_title')return {textContent:title};
+  if(selector==='#quiz_title,h1.quiz-title,h1')return {textContent:'An unrelated earlier h1'};
+  if(selector==='#quiz_description,.quiz-description,[aria-label="Quiz Instructions"],.user_content')return {textContent:'Answer based on A History of City Parks.'};
+  if(selector==='#content,#quiz_show')return {innerText:submitted?'Your quiz has been submitted':'Instructions. Take the Quiz.'};
+  if(availabilityDate&&selector.startsWith('#quiz_show time'))return {getAttribute:name=>name==='datetime'?new Date(Date.now()-86400000).toISOString():null};
+  return null;
+ }};
+ const front={URL,Date,document:doc,location,window:{},StudyConfig:ctx.StudyConfig,StudyCanvasQuiz:ctx.StudyCanvasQuiz,settings:{pacingMode:'human',humanSpeed:'typical'},ready:Promise.resolve(),generation:0,readingConnection:null,readingJob:null,readingGeneration:null,preparingReadings:false,running:false,ui:null,sessionStorage:{setItem(){},removeItem(){}},clean:s=>String(s||'').trim(),usable:node=>!!node,setTimeout(){},setInterval:fn=>tick=fn,MutationObserver:class{observe(){}},delay:async()=>{},chrome:{storage:{local:{get:async()=>({canvasReadings:{entries:[{}]}})},onChanged:{addListener(){}}},runtime:{sendMessage:async msg=>{
+  calls.push(msg.type);
+  const sender={id:'ext',tab:{id:1,windowId:1},frameId:0,documentId:'overview',url:location.href};
+  if(msg.type==='canvasQuizSubmitted')return {received:true};
+  if(msg.type.startsWith('canvasCourse'))return ctx.canvasMcGrawCourse(msg,sender);
+  if(msg.type==='canvasPrepareReadings'){events.push('prepare');state.readingsJob={id:'job',started:Date.now(),phase:'adding',status:'Processing reading…',sourceName:'',notebookUrl:book,source:{url:sourceUrl},mappingKey:'reading',bookTab:10,createdByAutomation:true,owner:{tab:1,frame:0,url:href,documentId:wrongDocument?'other':'overview'}};local.readingNotebooks.reading={url:book,createdByAutomation:true,sourceName:''};return {received:true,id:'job',sourceTitle:title};}
+  if(msg.type==='readingsStatus'){if(hold)await new Promise(resolve=>release=resolve);if(importFailure){state.readingsJob.phase='failed';state.readingsJob.error='NotebookLM could not import the assigned source.';return {received:true,phase:'failed',error:state.readingsJob.error};}events.push('ready');state.readingsJob.phase='ready';state.readingsJob.sourceName='Reading.pdf';return {received:true,phase:'ready',url:book};}
+  if(msg.type==='readingsCancel')return {received:true};
+  throw Error('unexpected '+msg.type);
+ }}}};front.window.top=front.window;front.say=text=>{if(front.ui)front.ui.getElementById('status').textContent=text;};
+ vm.createContext(front);vm.runInContext(canvas.slice(canvas.indexOf('  async function prepareReadings('),canvas.indexOf('  // Reserve space')),front);
+ vm.runInContext(canvas.slice(canvas.indexOf("  const launchKey='studyCanvasQuizLaunch'"),canvas.indexOf('  function mount(){')),front);front.mountOverview();
+ vm.runInContext(fs.readFileSync('content-scripts/canvas-quiz-lifecycle.js','utf8'),front);
+ const settle=async()=>{for(let i=0;i<15;i++)await new Promise(setImmediate);};await settle();
+ return {state,events,calls,ctx,front,settle,local,navigated,closed,sourceUrl,button:label=>nodes.find(n=>n.textContent===label),status:()=>nodes.find(n=>n.attrs.role==='status').textContent,clicks:()=>clicks,reloads:()=>reloads,tick:async()=>{await tick();await settle();},release:async()=>{hold=false;release?.();await settle();}};
+}
+(async()=>{
+ const f=await fixture();assert.deepEqual(f.events,['prepare','ready','click']);assert.equal(f.state.canvasMcGrawCourse.phase,'quiz-launching');assert.equal(f.clicks(),1);await f.tick();await f.tick();assert.equal(f.clicks(),1,'watcher polling cannot replay the start');
+ const redirected=await fixture({wrapper:true});assert.deepEqual(redirected.events,['prepare','ready','click']);assert.equal(redirected.state.canvasMcGrawCourse.items[0].quizUrl,quiz,'a pre-existing assignment URL is reconciled from its verified inventory alias');
+ const trailing=await fixture({slash:true});assert.deepEqual(trailing.events,['prepare','ready','click'],'query, hash and trailing slash still hand off');
+ const waiting=await fixture({hold:true});assert.deepEqual(waiting.events,['prepare']);assert.equal(waiting.clicks(),0,'native quiz timer cannot start while NotebookLM is loading');await waiting.release();assert.equal(waiting.clicks(),1);
+ const stopped=await fixture({hold:true});stopped.button('Stop').onclick();await stopped.release();assert.equal(stopped.clicks(),0,'Stop prevents the deferred quiz start');
+ const bad=await fixture({missingDue:true});assert.equal(bad.clicks(),0);assert.match(bad.status(),/Course Auto paused:.*due date/);await bad.tick();assert.equal(bad.button('Retry Course Auto').hidden,false);await bad.button('Retry Course Auto').onclick();assert.equal(bad.reloads(),1);assert.equal(bad.state.canvasMcGrawCourse.phase,'opening');
+ const available=await fixture({availabilityDate:true});
+ assert.equal(available.clicks(),1,'an earlier availability timestamp cannot replace the verified future due date');
+ const disabled=await fixture({hold:true});disabled.ctx.chrome.storage.local={get:async()=>({canvasCoursePolicies:{[origin]:{[origin+'/courses/11']:{enabled:false,types:{quiz:true,homework:false}}}}})};await disabled.release();assert.equal(disabled.clicks(),0);assert.match(disabled.status(),/disabled in the Canvas inventory/);
+ const refreshed=await fixture({missingDue:true});refreshed.ctx.chrome.storage.local={get:async()=>({canvasCatalogs:{[origin]:{courses:[{url:origin+'/courses/11',items:[{title,url:quiz,type:'quiz',dueAt:Date.now()+86400000}]}]}}})};await refreshed.button('Retry Course Auto').onclick();await refreshed.tick();assert.equal(refreshed.clicks(),1,'a refreshed inventory repairs an older queue with missing date metadata');
+ const mismatched=await fixture({wrapper:true,missingDue:true});mismatched.ctx.chrome.storage.local={get:async()=>({canvasCatalogs:{[origin]:{courses:[{url:origin+'/courses/11',items:[{title,url:origin+'/courses/11/quizzes/999',assignmentUrl:list+'/99',type:'quiz',dueAt:Date.now()+86400000}]}]}}})};await mismatched.tick();assert.equal(mismatched.clicks(),0);assert.equal(mismatched.state.canvasMcGrawCourse.items[0].quizUrl,undefined,'a different inventory quiz cannot authorize this redirected page');
+ const patched=await fixture({retrySaved:true,hold:true});
+ assert(patched.local.canvasCourseIssueBank[origin][quiz],'starting a retry preserves its saved issue');
+ assert.deepEqual(patched.events,['prepare']);
+ await patched.release();assert.equal(patched.clicks(),1);
+ assert.equal(patched.local.canvasCourseIssueBank[origin][quiz],undefined,'verified preparation resolves the source issue');
+ const failedRetry=await fixture({retrySaved:true,importFailure:true});
+ assert.equal(failedRetry.clicks(),0);assert.equal(failedRetry.state.canvasMcGrawCourse.phase,'returning');
+ assert.match(failedRetry.local.canvasCourseIssueBank[origin][quiz].reason,/could not import/,'retry failure remains saved');
+ const completedRetry=await fixture({retrySaved:true,submitted:true});
+ assert.equal(completedRetry.clicks(),0);assert.equal(completedRetry.state.canvasMcGrawCourse.phase,'returning');
+ assert(!completedRetry.events.includes('prepare'),'a quiz submitted since the failure is not restarted');
+ const foreign=await fixture({wrongDocument:true});assert.equal(foreign.clicks(),0);assert.match(foreign.status(),/not finished loading/);
+ const retry=await fixture({importFailure:true});assert.equal(retry.clicks(),0);assert.match(retry.status(),/could not import/);
+ assert.equal(retry.state.canvasMcGrawCourse.phase,'returning','source errors automatically move back to the list');
+ assert.match(retry.local.canvasCourseIssueBank[origin][quiz].reason,/could not import/);
+ assert.equal(retry.navigated.at(-1).url,list);
+ retry.state.canvasMcGrawCourse.phase='attention';
+ await retry.button('Try source again').onclick();assert.equal(retry.reloads(),1);assert.equal(retry.state.canvasMcGrawCourse.phase,'opening');assert.equal(retry.state.readingsJob.phase,'cancelled');assert.deepEqual(retry.closed,[10,10]);assert.equal(retry.local.canvasCourseIssueBank[origin][quiz],undefined,'an explicit retry clears the saved skip');
+ assert.equal(retry.local.readingNotebooks.reading,undefined);assert.equal(retry.local.readingNotebooks['reading|failed|job'].url,book,'fresh retry preserves the failed notebook for review');
+ const skipped=await fixture({hold:true});skipped.state.canvasMcGrawCourse.items.push({title:'Next reading',url:origin+'/courses/11/quizzes/3',kind:'quiz'});
+ await skipped.button('Move on & save issue').onclick();await skipped.release();assert.equal(skipped.clicks(),0);assert.equal(skipped.state.canvasMcGrawCourse.phase,'returning');
+ const saved=skipped.local.canvasCourseIssueBank[origin][quiz];assert.equal(saved.readingUrl,skipped.sourceUrl);assert.equal(saved.notebookUrl,book);assert.match(saved.reason,/Skipped source/);assert.equal(skipped.navigated.at(-1).url,list);
+ const owner={id:'ext',tab:{id:1,windowId:1},url:list,frameId:0};const next=await skipped.ctx.canvasMcGrawCourse({type:'canvasCourseListReady'},owner);assert.equal(next.open,origin+'/courses/11/quizzes/3');
+ const legacyPause=await fixture({pausedSource:true});
+ assert.equal(legacyPause.state.canvasMcGrawCourse.phase,'returning','a previous source-error pause is migrated automatically');
+ assert.match(legacyPause.local.canvasCourseIssueBank[origin][quiz].reason,/No reading matches/);
+ assert.equal(legacyPause.clicks(),0);
+ assert(!legacyPause.calls.includes('canvasPrepareReadings'),'migration banks the existing issue without repeating import');
+ const automatic=await fixture({importFailure:true});
+ automatic.state.canvasMcGrawCourse.items.push({title:'Next reading',url:origin+'/courses/11/quizzes/3',kind:'quiz'});
+ const autoOwner={id:'ext',tab:{id:1,windowId:1},url:list,frameId:0};
+ const autoNext=await automatic.ctx.canvasMcGrawCourse({type:'canvasCourseListReady'},autoOwner);
+ assert.equal(autoNext.open,origin+'/courses/11/quizzes/3','automatic issue banking leaves the next quiz eligible');
+ automatic.state.canvasMcGrawCourse.phase='done';
+ vm.runInContext(fs.readFileSync('background/canvas-mcgraw-course.js','utf8'),automatic.ctx);
+ await automatic.ctx.canvasMcGrawCourse({type:'canvasCourseStart',assignmentTypes:{homework:false,quiz:true},items:[{title,url:quiz,kind:'quiz'},{title:'Next reading',url:origin+'/courses/11/quizzes/3',kind:'quiz'}]},autoOwner);
+ const blocked=await automatic.ctx.canvasMcGrawCourse({type:'canvasCourseListReady'},autoOwner);
+ assert.equal(blocked.open,undefined,'a later run does not reopen the saved failed quiz');
+ assert.equal(blocked.run.phase,'returning');
+ const laterNext=await automatic.ctx.canvasMcGrawCourse({type:'canvasCourseListReady'},autoOwner);
+ assert.equal(laterNext.open,origin+'/courses/11/quizzes/3');
+ await automatic.tick();
+ assert.equal(automatic.calls.filter(type=>type==='canvasPrepareReadings').length,1,'later polling cannot start a second import for the skipped quiz');
+ assert.equal(stopped.local.canvasCourseIssueBank,undefined,'Stop never banks a preparation problem');
+ assert.equal(stopped.state.canvasMcGrawCourse.phase,'done','Stop ends the queue instead of advancing');
+ const reloaded=await fixture({importFailure:true});const job=reloaded.state.readingsJob;const earlier={id:'ext',tab:{id:99},url:job.owner.url,documentId:'later',frameId:0};
+ assert.equal((await reloaded.ctx.StudyReadingTasks.recoverImport(earlier)).owned,false);
+ assert.equal((await reloaded.ctx.StudyReadingTasks.recoverImport({...earlier,tab:{id:1}})).owned,true,'same quiz in its original tab can recover the failed import after reload');
+ const issues=automatic.local.canvasCourseIssueBank[origin],C=automatic.ctx.StudyCanvasMcGrawCourse;
+ const banked=issues[quiz];
+ assert.equal(C.savedIssue({url:quiz+'/?module=1#instructions'},issues,list),banked);
+ assert.equal(C.savedIssue({url:origin+'/courses/999/quizzes/31'},issues,list),null,'same quiz number in another course cannot match');
+ assert.equal(C.savedIssue({url:origin+'/courses/11/quizzes/999',title},issues,list),null,'a shared title cannot suppress another quiz');
+ const linked={...banked,assignmentUrl:list+'/99'};
+ assert.equal(C.savedIssue({url:list+'/99'}, {[quiz]:linked},list),linked,'an assignment alias matches its saved native quiz issue');
+ const legacy={...banked};delete legacy.assignmentUrl;
+ assert.equal(C.savedIssue({url:quiz},{[quiz]:legacy},list),legacy,'previously saved issues continue to block retries');
+ assert.equal(C.savedIssue({url:quiz},{invalid:null},list),null);
+ const merged=C.applyMetadata([{title,url:quiz,kind:'quiz',dueAt:null}],list,[{title,url:quiz,type:'quiz',dueAt:12345}]);assert.equal(merged[0].dueAt,12345,'inventory due date survives generic list rows');const alias=C.applyMetadata([{title,url:list+'/99',dueAt:null}],list,[{title,url:quiz,assignmentUrl:list+'/99',type:'quiz',dueAt:12345}]);assert.equal(alias[0].url,quiz,'new queues use the verified native quiz overview URL');
+ console.log('PASS actual overview watcher → notebook preparation → guarded one-shot start, URL variants, preserved due date, readiness wait, Stop, visible pause and retry');
+})().catch(error=>{console.error(error);process.exitCode=1;});

@@ -172,9 +172,9 @@ async function processDoubleCreditResponse(responseText) {
     const container = document.querySelector(".probe-container");
     if (!container) return;
 
-    if (container.querySelector(".awd-probe-type-matching")) {
+    if (container.querySelector(".awd-probe-type-matching, .awd-probe-type-sortable")) {
       alert(
-        "Matching questions are not supported in double credit mode. Please complete manually."
+        "Matching and ordering questions are not supported in double credit mode. Please complete manually."
       );
       isAutomating = false;
   chrome.runtime.sendMessage({type:'mcgrawCancel'}).catch(()=>{});
@@ -403,6 +403,10 @@ function getQuestionSignature(container) {
   if (!container) return "";
 
   const questionType = detectQuestionType(container);
+  if (questionType === "sortable") {
+    const choices = getOrderingItems(container).map(item => item.id + ':' + getMatchingChoiceText(item)).sort();
+    return `sortable::${normalizeChoiceText(container.querySelector('.prompt')?.textContent || '')}::${JSON.stringify(choices)}`;
+  }
   if (questionType === "matching") {
     const promptText =
       container.querySelector(".prompt")?.textContent?.trim() || "";
@@ -599,6 +603,9 @@ function detectQuestionType(container) {
   }
   if (container.querySelector(".awd-probe-type-matching")) {
     return "matching";
+  }
+  if (container.querySelector(".awd-probe-type-sortable .sortable-component")) {
+    return "sortable";
   }
   return "";
 }
@@ -938,6 +945,64 @@ function getQuestionChoices(container, questionType) {
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getOrderingItems(container) {
+  return Array.from(container.querySelectorAll('.sortable-component .responses-container .choice-item[id^="choices:"]'));
+}
+
+async function applyOrderingAnswer(container, rawAnswer, isCurrent) {
+  const initial = getOrderingItems(container);
+  const component = container.querySelector('.sortable-component');
+  const labels = initial.map(getMatchingChoiceText);
+  const normalized = labels.map(text => normalizeChoiceText(text).toLowerCase());
+  if (!component || initial.length < 2 || !Array.isArray(rawAnswer) || rawAnswer.length !== initial.length ||
+      new Set(initial.map(item => item.id)).size !== initial.length ||
+      normalized.some(text => !text) || new Set(normalized).size !== initial.length) return false;
+  const desired = rawAnswer.map(answer => typeof answer === 'string' ? normalized.indexOf(normalizeChoiceText(answer).toLowerCase()) : -1);
+  if (desired.some(index => index < 0) || new Set(desired).size !== initial.length) return false;
+  const ids = initial.map(item => item.id);
+  const wanted = desired.map(index => ids[index]);
+  const valid = () => isCurrent() && container.isConnected && container.querySelector('.sortable-component') === component &&
+    getOrderingItems(container).length === ids.length && getOrderingItems(container).every(item => ids.includes(item.id) &&
+      getMatchingChoiceText(item) === labels[ids.indexOf(item.id)]);
+  const read = () => getOrderingItems(container).map(item => item.id);
+  const find = id => getOrderingItems(container).find(item => item.id === id);
+  async function key(id, name, code, keyCode) {
+    if (!valid()) return false;
+    const item = find(id);
+    if (!item || item.getAttribute('aria-disabled') === 'true') return false;
+    item.focus();
+    for (const type of ['keydown', 'keyup']) {
+      if (!valid()) return false;
+      find(id).dispatchEvent(new KeyboardEvent(type, {key:name,code,keyCode,which:keyCode,bubbles:true,cancelable:true,composed:true}));
+    }
+    await delay(100);
+    return valid();
+  }
+  let picked = null;
+  try {
+    for (const [target, id] of wanted.entries()) {
+      if (!valid()) return false;
+      if (read()[target] === id) continue;
+      picked = id;
+      if (!await key(id, ' ', 'Space', 32)) return false;
+      // Some SmartBook renderers retain the card in its original DOM slot
+      // while arrows move the keyboard drop target. Verify after Space drops,
+      // rather than treating an unchanged intermediate DOM as a rejected move.
+      const from = read().indexOf(id), up = from > target;
+      for (let move = 0; move < Math.abs(from - target); move++) {
+        if (!await key(id, up ? 'ArrowUp' : 'ArrowDown', up ? 'ArrowUp' : 'ArrowDown', up ? 38 : 40)) return false;
+      }
+      if (!await key(id, ' ', 'Space', 32)) return false;
+      picked = null;
+      if (read().slice(0, target + 1).some((value, index) => value !== wanted[index])) return false;
+    }
+    await delay(150);
+    return valid() && read().every((id, index) => id === wanted[index]);
+  } finally {
+    if (picked && valid()) await key(picked, 'Escape', 'Escape', 27);
+  }
 }
 
 function getMatchingComponent(container) {
@@ -1481,7 +1546,17 @@ async function processChatGPTResponse(responseText) {
   lastIncorrectQuestion = null;
   lastCorrectAnswer = null;
 
-  if (questionType === "matching") {
+  if (questionType === "sortable") {
+    await legacyPacer.beforeField(0,1,current);legacyPacer.check(current);
+    const applied = await applyOrderingAnswer(container, response.answer, current);
+    if (!current()) return;
+    if (!applied) {
+      isAutomating=false;updateUnifiedStopped();
+      globalThis.StudyMonitor?.showPreview('Suggested order:\n' + (Array.isArray(response.answer) ? response.answer.join('\n') : String(response.answer || 'No complete order returned.')));
+      globalThis.StudyMonitor?.notice('The ordering answer could not be retained. Review the choices before continuing. Nothing was submitted.');
+      return;
+    }
+  } else if (questionType === "matching") {
     await legacyPacer.beforeField(0,1,current);legacyPacer.check(current);
     const matchingCurrent = () => current() && document.querySelector(".probe-container") === container;
     const applied = await applyMatchingAnswer(container, response.answer, matchingCurrent);
@@ -1603,7 +1678,9 @@ function parseQuestion() {
   questionText = stablePromptText(promptEl, questionType);
 
   let options = [];
-  if (questionType === "matching") {
+  if (questionType === "sortable") {
+    options = getOrderingItems(container).map(getMatchingChoiceText);
+  } else if (questionType === "matching") {
     const prompts = getMatchingRows(container)
       .map((row) => getMatchingPromptText(row))
       .filter(Boolean);

@@ -141,9 +141,9 @@
   (async()=>{
     try{
       if(!contextAlive()){retire();return;}
-      const data=await chrome.storage.sync.get(['platformMode','canvasOrigins']);
+      const data=await chrome.storage.sync.get(['platformMode','featureSettings','canvasOrigins']);
       if(!contextAlive()){retire();return;}
-      platform=StudyConfig.detect(location.href,data.canvasOrigins||[]);if(!StudyConfig.allowed(platform,data.platformMode))return;
+      platform=StudyConfig.detect(location.href,data.canvasOrigins||[]);if(!StudyConfig.allowed(platform,data))return;
       const local=await chrome.storage.local.get('studyOnboarding');if(!contextAlive()){retire();return;}const valid=value=>value?.version===StudyConfig.onboardingVersion&&value.acknowledged===true&&value.completed===true;acknowledged=valid(local.studyOnboarding);
       storageListener=(changes,area)=>{if(area==='local'&&Object.hasOwn(changes,'studyOnboarding')){acknowledged=valid(changes.studyOnboarding.newValue);welcome();presence(leases.size>0);report();}};chrome.storage.onChanged?.addListener(storageListener);
       listen();listenLeases();heartbeat=setInterval(()=>{if(leases.size)presence(true);else if(lastPresence&&Date.now()-lastPresence>6500)presence(false);report();},1800);await report();

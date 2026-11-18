@@ -38,5 +38,5 @@ assert(source.includes("if(!retained(fields))throw Error('Canvas did not retain 
 assert(source.includes('StudyCanvasBatch.refresh(pending,snapshot)')&&source.includes('StudyCanvasBatch.refresh(snap,snapshot)'),'production guards refresh every question');
 assert(source.includes('StudyCanvasBatch.contains(pending,event.target)'),'editing any member stops the batch');
 const manifest=JSON.parse(fs.readFileSync('manifest.json'));assert(manifest.content_scripts.find(item=>item.js.includes('content-scripts/canvas.js')).js.includes('shared/canvas-batch.js'));
-assert(fs.readFileSync('popup/settings.js','utf8').includes("'shared/canvas-batch.js','content-scripts/canvas.js'"),'custom Canvas activation loads the batch helper');
+assert(/'shared\/canvas-batch\.js'[^;]*'content-scripts\/canvas\.js'/.test(fs.readFileSync('popup/settings.js','utf8')),'custom Canvas activation loads the batch helper before the adapter');
 console.log('PASS Canvas multi-question field mapping, stale-member guards, preserved targets, bounded batches, picture fallback and removal of autosave polling');

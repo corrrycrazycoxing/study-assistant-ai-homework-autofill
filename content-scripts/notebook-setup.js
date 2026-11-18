@@ -8,7 +8,7 @@
     const copy=node.cloneNode(true);copy.querySelectorAll('mat-icon,[aria-hidden="true"]').forEach(e=>e.remove());return clean(copy.textContent);
   };
   const button=(text,scope=document)=>{const hits=[...scope.querySelectorAll('button,[role="button"]')].filter(e=>visible(e)&&label(e).toLowerCase()===text.toLowerCase());return hits.length===1?hits[0]:null;};
-  const sourceNames=()=>[...new Set([...document.querySelectorAll('input[type="checkbox"],[role="checkbox"]')].filter(visible).map(e=>clean(e.getAttribute('aria-label'))).filter(s=>/^Select /i.test(s)&&!/^Select all sources$/i.test(s)).map(s=>s.replace(/^Select /i,'')))];
+  const sourceNames=()=>[...new Set([...document.querySelectorAll('input[type="checkbox"],[role="checkbox"]')].filter(visible).map(e=>clean(e.getAttribute('aria-label'))).filter(s=>/^Select /i.test(s)&&!/^Select all(?: sources)?$/i.test(s)).map(s=>s.replace(/^Select /i,'')))];
   const sourceCount=()=>Number((document.querySelector('query-box .selected-num')?.textContent||'').match(/(\d+)\s+sources?/i)?.[1]||0);
   const setText=(element,value)=>{const proto=element.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value').set.call(element,value);element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));};
   const send=async(message)=>{const result=await chrome.runtime.sendMessage(message);if(!result?.received)throw Error(result?.error||'Reading preparation disconnected.');return result;};
@@ -65,7 +65,7 @@
       let urls=[...document.querySelectorAll('textarea')].find(e=>visible(e)&&e.getAttribute('aria-label')==='Enter URLs');
       if(!urls){
         let websites=button('Websites');
-        if(!websites){const add=button('Add source')||button('add a source');if(!add)throw Error('NotebookLM’s Add source control is unavailable.');add.click();websites=await waitFor(id,()=>button('Websites'));}
+        if(!websites){const add=button('Add sources')||button('Add source')||button('add a source');if(!add)throw Error('NotebookLM’s Add source control is unavailable.');add.click();websites=await waitFor(id,()=>button('Websites'));}
         await current(id);websites.click();urls=await waitFor(id,()=>[...document.querySelectorAll('textarea')].find(e=>visible(e)&&e.getAttribute('aria-label')==='Enter URLs'));
       }
       if(clean(urls.value))throw Error('NotebookLM has an unsent source link. Clear it before preparing readings.');
@@ -75,7 +75,8 @@
     }
     const sourceName=await waitFor(id,()=>{
       const failure=[...document.querySelectorAll('[role="alert"]')].filter(visible).some(e=>/couldn.t|could not|failed|unable|unsupported|error/i.test(e.textContent));
-      if(failure)throw Error('NotebookLM could not import this reading. Open its link and add the file manually.');
+      const failedRow=[...document.querySelectorAll('[data-source-status="failed"],[data-status="error"],.source-error,.source-item-error,[aria-label*="failed to import" i],[aria-label*="error loading source" i],[aria-label*="unable to import" i]')].some(visible);
+      if(failure||failedRow)throw Error('NotebookLM could not import the assigned source. On Canvas, choose Try source again or Move on & save issue.');
       const names=sourceNames(),loading=[...document.querySelectorAll('[role="progressbar"],mat-progress-spinner,progress')].some(visible);
       return names.length===1&&sourceCount()===1&&!loading&&(job.source.kind==='web'||/\.pdf$/i.test(names[0]))?names[0]:null;
     },150000);

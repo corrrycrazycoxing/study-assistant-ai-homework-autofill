@@ -2,7 +2,7 @@
 // Stop and page navigation can cancel it while NotebookLM processes a source.
 (() => {
   'use strict';
-  const types=new Set(['readingsFetchCatalog','readingsSaveCatalog','canvasPrepareReadings','canvasReadingPreflight','readingsPrepareSelected','readingsStatus','readingsCurrent','readingsCancel','readingsJob','readingsStep','canvasCleanupAfterUse','readingsCleanupFinished']);
+  const types=new Set(['readingsCleanupDelete','readingsRecoverImport','readingsOpenSettings','readingsFetchCatalog','readingsSaveCatalog','canvasPrepareReadings','canvasReadingPreflight','readingsPrepareSelected','readingsStatus','readingsCurrent','readingsCancel','readingsJob','readingsStep','canvasCleanupAfterUse','readingsCleanupFinished']);
   const terminal=job=>!job||['ready','failed','cancelled'].includes(job.phase);
   const notebookUrl=value=>{try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&['notebook.google.com','notebooklm.google.com'].includes(u.hostname)&&/^\/notebook\/[\w-]+$/.test(u.pathname)&&!u.pathname.endsWith('/creating')?u.origin+u.pathname:null;}catch{return null;}};
   const settingsSender=sender=>{try{const u=new URL(sender.url);return sender.id===chrome.runtime.id&&u.origin===new URL(chrome.runtime.getURL('/')).origin&&u.pathname==='/popup/settings.html';}catch{return false;}};
@@ -44,7 +44,7 @@
       if(message.loadSource!==true&&(await openReadingNotebook(preferences)).tab)return {received:true,skipped:true};
     }
     if(!catalog?.enabled&&!settings&&message.loadSource!==true)return {received:true,skipped:true};
-    if(!catalog?.entries?.length)throw Error('Load your Google Doc reading list in Settings → Canvas → AI & readings.');
+    if(!catalog?.entries?.length)throw Error('No reading list is saved in this extension. Click Open reading settings to add your Google Doc once; Load source will then prepare the notebook.');
     const entry=settings&&message.key?catalog.entries.find(item=>item.key===message.key):StudyReadings.matchQuiz(message.title,typeof message.description==='string'?message.description.slice(0,12000):'',catalog.entries);
     if(!entry)throw Error('Choose a reading from the loaded list.');
     const current=await jobState();
@@ -68,6 +68,33 @@
     return {received:true,id:job.id,sourceTitle:entry.title};
   }
   async function handle(message,sender){
+    if(message.type==='readingsCleanupDelete')return mutate(async()=>{
+      const page=new URL(sender.url),actual=await chrome.tabs.get(sender.tab?.id).catch(()=>null);
+      if(sender.id!==chrome.runtime.id||sender.frameId!==0||!['https://notebook.google.com','https://notebooklm.google.com'].includes(page.origin)||page.pathname!=='/'||!actual||actual.pendingUrl||actual.url!==sender.url)throw Error('Open NotebookLM home to delete a tracked notebook.');
+      const url=notebookUrl(message.url),{readingNotebooks:books={}}=await chrome.storage.local.get('readingNotebooks');
+      const saved=Object.values(books).find(book=>book.createdByAutomation===true&&notebookUrl(book.url)===url);
+      if(!url||!saved)throw Error('This notebook no longer has verified automation ownership.');
+      const tabs=await chrome.tabs.query({});
+      if(tabs.some(tab=>[tab.url,tab.pendingUrl].some(value=>notebookUrl(value)&&new URL(value).pathname===new URL(url).pathname)))throw Error('This notebook is open in another tab. Close it before deleting.');
+      const {quizNotebookUses:uses={}}=await chrome.storage.session.get('quizNotebookUses');
+      if(Object.values(uses).some(use=>notebookUrl(use.url)&&new URL(use.url).pathname===new URL(url).pathname&&Date.now()-use.usedAt<14400000&&tabs.some(tab=>tab.id===use.tab&&tab.url===use.base+'/take')))throw Error('An active quiz is using this notebook.');
+      const key='notebookDelete:'+sender.tab.id;
+      if(message.step==='quota'){
+        const task={id:crypto.randomUUID(),url,created:Date.now(),documentId:sender.documentId,confirmed:false};
+        await chrome.storage.session.set({[key]:task});
+        return {received:true,id:task.id,candidate:{url,title:saved.title}};
+      }
+      const {[key]:task}=await chrome.storage.session.get(key);
+      if(!task||task.id!==message.id||task.url!==url||task.documentId!==sender.documentId||Date.now()-task.created>60000)throw Error('Notebook deletion expired. Try Delete notebook again.');
+      if(message.step==='quotaConfirm'&&!task.confirmed){
+        task.confirmed=true;await chrome.storage.session.set({[key]:task});return {received:true};
+      }
+      if(message.step==='quotaRemoved'&&task.confirmed){
+        for(const [key,book] of Object.entries(books))if(book.createdByAutomation===true&&notebookUrl(book.url)===url)delete books[key];
+        await chrome.storage.local.set({readingNotebooks:books});await chrome.storage.session.remove(key);return {received:true};
+      }
+      throw Error('Notebook deletion step is out of order.');
+    });
     if(message.type==='readingsCleanupFinished')return mutate(async()=>{
       const {afterUseCleanup:job}=await chrome.storage.session.get('afterUseCleanup');
       if(!job||job.id!==message.id||job.tab!==sender.tab?.id||sender.frameId!==0||Date.now()-job.created>1800000)throw Error('Notebook cleanup completion is no longer valid.');
@@ -97,6 +124,12 @@
         if(['notebook.google.com','notebooklm.google.com'].includes(original.hostname)&&current.origin===original.origin&&!tab.pendingUrl)sender={...sender,url:current.href};
       }catch{}
     }
+    if(message.type==='readingsRecoverImport'){if(sender.id!==chrome.runtime.id||await sourcePlatform(sender)!=='canvas')throw Error('Recover the source from its Canvas quiz.');return recoverImport(sender);}
+    if(message.type==='readingsOpenSettings'){
+      if(sender.id!==chrome.runtime.id||await sourcePlatform(sender)!=='canvas')throw Error('Open reading settings from a supported Canvas page.');
+      await chrome.tabs.create({url:chrome.runtime.getURL('popup/settings.html?platform=canvas&category=ai'),active:true});
+      return {received:true};
+    }
     if(message.type==='canvasReadingPreflight'){
       if(await sourcePlatform(sender)!=='canvas')throw Error('Open a Canvas quiz or the armed bundled test page.');
       const preferences=StudyConfig.preferences(await config(),'canvas'),{canvasReadings:catalog}=await chrome.storage.local.get('canvasReadings');
@@ -105,8 +138,11 @@
       return {received:true,preferNotebook:preferences.preferNotebook,notebookUrl:selection.tab?.url||'',sourceCount:selection.state?.sources||0,automatic:catalog?.enabled===true,matched,matchError};
     }
     if(message.type==='readingsFetchCatalog'){
-      if(!settingsSender(sender))throw Error('Load a reading list from Study Assistant settings.');
-      const url=StudyReadings.documentUrl(message.url);
+      const settings=settingsSender(sender),{canvasReadings:catalog}=await chrome.storage.local.get('canvasReadings');
+      if(!settings&&!(message.refreshSaved===true&&sender.id===chrome.runtime.id&&await sourcePlatform(sender)==='canvas'))throw Error('Load a reading list from Study Assistant settings.');
+      if(!settings&&!catalog?.docUrl)throw Error('Add your Google Doc once using Open reading settings, then click Load source.');
+      const url=StudyReadings.documentUrl(settings?message.url:catalog.docUrl);
+
       if(!await chrome.permissions.contains({origins:['https://docs.google.com/*']}))throw Error('Allow Google Docs access using Load reading list.');
       const response=await fetch(url.replace(/\/edit$/,'/export?format=html'),{credentials:'omit',signal:AbortSignal.timeout(20000)});
       if(!response.ok||!response.headers.get('content-type')?.includes('text/html'))throw Error('The reading document could not be exported. It must be accessible through its shared link.');
@@ -114,7 +150,8 @@
       return {received:true,url,html};
     }
     if(message.type==='readingsSaveCatalog')return mutate(async()=>{
-      if(!settingsSender(sender))throw Error('Save the reading list from Study Assistant settings.');
+      const settings=settingsSender(sender),{canvasReadings:catalog}=await chrome.storage.local.get('canvasReadings');
+      if(!settings&&!(message.refreshSaved===true&&sender.id===chrome.runtime.id&&await sourcePlatform(sender)==='canvas'&&catalog?.docUrl===message.url))throw Error('Save the reading list from Study Assistant settings.');
       const docUrl=StudyReadings.documentUrl(message.url);
       if(!Array.isArray(message.entries)||!message.entries.length||message.entries.length>500)throw Error('No linked readings were found in this document.');
       const entries=message.entries.map(item=>{
@@ -123,8 +160,16 @@
         return {...ref,title,label:StudyReadings.clean(item.label).slice(0,1000)};
       });
       if(new Set(entries.map(item=>item.key)).size!==entries.length)throw Error('The reading list contains duplicate sources.');
-      await chrome.storage.local.set({canvasReadings:{docUrl,entries,enabled:message.enabled===true,updatedAt:Date.now()}});
-      return {received:true,count:entries.length};
+      const {canvasCourseIssueBank:bank={}}=await chrome.storage.local.get('canvasCourseIssueBank');
+      let resolved=0;
+      for(const issues of Object.values(bank))for(const [key,issue] of Object.entries(issues||{})){
+        // Keep import/quota failures banked. Only repair a missing-title skip
+        // when the newly imported list identifies exactly one assigned source.
+        if(!/No reading matches this Canvas quiz title/i.test(issue?.reason||''))continue;
+        try{StudyReadings.match(issue.title,entries);delete issues[key];resolved++;}catch{}
+      }
+      await chrome.storage.local.set({canvasReadings:{docUrl,entries,enabled:settings?message.enabled===true:catalog.enabled===true,parserVersion:StudyReadings.catalogVersion,updatedAt:Date.now()},...(resolved?{canvasCourseIssueBank:bank}:{})});
+      return {received:true,count:entries.length,resolved};
     });
     if(['canvasPrepareReadings','readingsPrepareSelected'].includes(message.type))return mutate(()=>start(message,sender));
     if(message.type==='readingsCancel')return mutate(async()=>{
@@ -156,17 +201,36 @@
         if(!prefs.atLimit||job.phase!=='opening'||job.notebookUrl||new URL(sender.url).pathname!=='/')throw Error('Automatic quota cleanup is not enabled for this preparation.');
         const open=await chrome.tabs.query({url:['https://notebook.google.com/*','https://notebooklm.google.com/*']});
         const paths=new Set(open.map(tab=>notebookUrl(tab.url)).filter(Boolean).map(url=>new URL(url).pathname));
+        const {quizNotebookUses:uses={}}=await chrome.storage.session.get('quizNotebookUses');
+        if(Object.keys(uses).length){const tabs=await chrome.tabs.query({});for(const use of Object.values(uses)){if(Date.now()-use.usedAt<14400000&&notebookUrl(use.url)&&tabs.some(tab=>tab.id===use.tab&&tab.url===use.base+'/take'))paths.add(new URL(use.url).pathname);}}
         if(message.step==='quota'){
           if(job.quotaAttempted)throw Error('Automatic quota cleanup already ran once. Review NotebookLM before retrying.');
           const candidates=Object.entries(books).filter(([,b])=>b.createdByAutomation===true&&notebookUrl(b.url)&&!paths.has(new URL(b.url).pathname));
           candidates.sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0)||a[0].localeCompare(b[0]));
           if(!candidates.length)throw Error('No unused automation-created notebook is eligible for automatic cleanup.');
-          const [key,candidate]=candidates[0];job.quotaAttempted=true;job.quotaCandidate={key,url:notebookUrl(candidate.url),title:candidate.title};
+          const visiblePaths=new Set((Array.isArray(message.visibleNotebookUrls)?message.visibleNotebookUrls.slice(0,1000):[])
+            .map(notebookUrl).filter(Boolean).map(url=>new URL(url).pathname));
+          const selected=candidates.find(([,candidate])=>visiblePaths.has(new URL(candidate.url).pathname));
+          if(!selected){
+            const status='NotebookLM is full. Looking for an eligible notebook to remove…';
+            if(job.status!==status){job.status=status;await chrome.storage.session.set({readingsJob:job});}
+            return {received:true,waitingForCard:true};
+          }
+          const [key,candidate]=selected;
+          job.quotaAttempted=true;
+          job.quotaCandidate={key,url:notebookUrl(candidate.url),title:candidate.title};
+          job.status='Freeing a NotebookLM slot…';
           await chrome.storage.session.set({readingsJob:job});return {received:true,candidate:job.quotaCandidate};
         }
         const candidate=job.quotaCandidate;
         if(!candidate||books[candidate.key]?.createdByAutomation!==true||notebookUrl(books[candidate.key]?.url)!==candidate.url||paths.has(new URL(candidate.url).pathname))throw Error('The cleanup candidate changed or is in use.');
+        if(message.step==='quotaConfirm'){
+          if(job.quotaConfirmed)throw Error('Notebook deletion was already authorized.');
+          job.quotaConfirmed=true;
+          await chrome.storage.session.set({readingsJob:job});
+        }
         if(message.step==='quotaRemoved'){
+          if(!job.quotaConfirmed)throw Error('Notebook deletion was not authorized.');
           for(const [key,b] of Object.entries(books))if(b.createdByAutomation===true&&notebookUrl(b.url)===candidate.url)delete books[key];
           delete job.quotaCandidate;job.status='Notebook slot freed. Creating the reading notebook…';
           await chrome.storage.local.set({readingNotebooks:books});await chrome.storage.session.set({readingsJob:job});
@@ -182,21 +246,50 @@
         const url=notebookUrl(sender.url);if(!url||job.notebookUrl&&url!==job.notebookUrl)throw Error('The notebook changed during preparation.');
         job.notebookUrl=url;job.phase='importing';job.status='Importing '+job.source.title+'…';
         const {readingNotebooks:books={}}=await chrome.storage.local.get('readingNotebooks');
-        await chrome.storage.local.set({readingNotebooks:{...books,[job.mappingKey]:{url,sourceName:job.sourceName,title:job.source.title,createdByAutomation:job.createdByAutomation===true}}});
+        await chrome.storage.local.set({readingNotebooks:{...books,[job.mappingKey]:{url,sourceName:job.sourceName,title:job.source.title,createdByAutomation:job.createdByAutomation===true,createdAt:books[job.mappingKey]?.createdAt||Date.now()}}});
       }else if(message.step==='adding'&&job.phase==='importing'){job.phase='adding';job.status='Processing '+job.source.title+'…';}
       else if(message.step==='ready'&&['importing','adding'].includes(job.phase)){
         if(typeof message.sourceName!=='string'||!message.sourceName.trim()||message.sourceName.length>500||!job.notebookUrl)throw Error('Notebook source readiness was not confirmed.');
         job.phase='ready';job.status='Readings ready · '+job.source.title;job.sourceName=message.sourceName;
         const {readingNotebooks:books={}}=await chrome.storage.local.get('readingNotebooks');
-        await chrome.storage.local.set({readingNotebooks:{...books,[job.mappingKey]:{url:job.notebookUrl,sourceName:job.sourceName,title:job.source.title,createdByAutomation:job.createdByAutomation===true}}});
+        await chrome.storage.local.set({readingNotebooks:{...books,[job.mappingKey]:{url:job.notebookUrl,sourceName:job.sourceName,title:job.source.title,createdByAutomation:job.createdByAutomation===true,createdAt:books[job.mappingKey]?.createdAt||Date.now()}}});
         // Automatic associations are per reading, not a replacement for the
         // notebook the user explicitly selected in platform settings.
         if(!job.owner.settings)await focusTab(job.owner.tab);
-      }else if(message.step==='failed'){job.phase='failed';job.error=StudyReadings.clean(message.error||'Notebook preparation failed.').slice(0,700);}
+      }else if(message.step==='failed'){job.phase='failed';job.error=StudyReadings.clean(message.error||'Notebook preparation failed.').slice(0,700);job.status=job.error;}
       else throw Error('Invalid reading preparation transition.');
       await chrome.storage.session.set({readingsJob:job});return {received:true};
     });
   }
+  async function recoverImport(sender){return mutate(async()=>{
+    const job=await jobState();
+    if(!job)return {received:true,owned:false};
+    const quiz=globalThis.StudyCanvasQuiz;
+    const sameReloadedQuiz=quiz&&sender.tab?.id===job.owner.tab&&sender.frameId===0&&job.owner.frame===0&&
+      quiz.overview(sender.url)&&quiz.overview(job.owner.url)&&quiz.base(sender.url)===quiz.base(job.owner.url);
+    if(!owner(job,sender)&&!(sameReloadedQuiz&&(terminal(job)||!await ownerAlive(job))))return {received:true,owned:false};
+    const result={received:true,owned:true,sourceUrl:job.source?.url||'',notebookUrl:job.notebookUrl||'',reason:job.error||job.recoveryReason||job.status||'Source preparation did not finish.'};
+    if(job.phase==='ready'&&job.sourceName)return result;
+    const failedHome=job.phase==='failed'&&!job.notebookUrl;
+    job.phase='cancelled';
+    job.status='Source preparation stopped for recovery.';
+    job.recoveryReason=result.reason;
+    await chrome.storage.session.set({readingsJob:job});
+    // Preserve the failed notebook as a separate entry for manual review or quota cleanup.
+    const {readingNotebooks:books={}}=await chrome.storage.local.get('readingNotebooks');
+    const oldUrl=notebookUrl(job.notebookUrl),saved=books[job.mappingKey];
+    if(oldUrl&&saved?.createdByAutomation===true&&!saved.sourceName&&notebookUrl(saved.url)===oldUrl){
+      books[job.mappingKey+'|failed|'+job.id]={...saved,failureReason:result.reason};
+      delete books[job.mappingKey];
+      await chrome.storage.local.set({readingNotebooks:books});
+    }
+    if(job.bookTab&&job.createdByAutomation===true&&(oldUrl||failedHome)){
+      const tab=await chrome.tabs.get(job.bookTab).catch(()=>null);
+      const stillOwned=tab&&!tab.pendingUrl&&(oldUrl?notebookUrl(tab.url)===oldUrl:tab.url===job.bookOrigin+'/');
+      if(stillOwned)await chrome.tabs.remove(job.bookTab).catch(()=>{});
+    }
+    return result;
+  });}
   async function cancelOwner(sender){const job=await jobState();if(job&&!terminal(job)&&owner(job,sender))await handle({type:'readingsCancel',id:job.id},sender);}
   async function cancelAll(){return mutate(async()=>{const job=await jobState();if(job&&!terminal(job)){job.phase='cancelled';job.status='Reading preparation stopped.';await chrome.storage.session.set({readingsJob:job});}});}
   async function connection(message,sender){
@@ -209,5 +302,5 @@
     if(!saved?.sourceName||notebookUrl(saved.url)!==notebookUrl(message.readingNotebookUrl))throw Error('The prepared notebook does not match this quiz reading. Prepare its readings again.');
     return notebookUrl(saved.url);
   }
-  globalThis.StudyReadingTasks={handles:type=>types.has(type),handle,cancelOwner,cancelAll,connection};
+  globalThis.StudyReadingTasks={handles:type=>types.has(type),handle,recoverImport,cancelOwner,cancelAll,connection};
 })();

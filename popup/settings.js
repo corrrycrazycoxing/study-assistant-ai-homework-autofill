@@ -6,13 +6,13 @@
   const names={chatgpt:'ChatGPT',gemini:'Gemini',deepseek:'DeepSeek'};
   const notes={mcgraw:'SmartBook, older Connect and the newer Connect MAP player. Journal worksheets and native choice/text fields are supported. Confidence and duplicate options apply only to SmartBook.',pearson:'Pearson MyLab numeric editor, choices and automatic checking/navigation.',canvas:'Canvas Classic quizzes; New Quizzes support is experimental. NotebookLM is preferred by default.',mindtap:'MindTap Aplia only. Auto grades and checks each problem, retrying incorrect attempts when another version is available.'};
   const keys=['preferNotebook','pauseBeforeSubmit','showExplanation','randomConfidence','doubleCreditMode','replaceExisting','smoothScroll','includePictures'];
-  let state={watchAutomation:false,platformMode:'auto',aiModel:'gemini',platformSettings:{},canvasOrigins:[]},editing='mcgraw',saveQueue=Promise.resolve(),revision=0,bookRevision=0;
+  let state={watchAutomation:false,platformMode:'auto',aiModel:'gemini',platformSettings:{},canvasOrigins:[],featureSettings:{}},editing='mcgraw',saveQueue=Promise.resolve(),revision=0,bookRevision=0;
   const prefs=()=>StudyConfig.preferences(state,editing);
-  async function save(values){
+  async function save(values,{throwOnError=false}={}){
     Object.assign(state,values);$('saved').textContent='Saving…';
     const copy=structuredClone(values);
     saveQueue=saveQueue.catch(()=>{}).then(()=>chrome.storage.sync.set(copy));
-    try{await saveQueue;$('saved').textContent='Saved';}catch{$('saved').textContent='Settings could not be saved';}
+    try{await saveQueue;$('saved').textContent='Saved';}catch(error){$('saved').textContent='Settings could not be saved';if(throwOnError)throw error;}
   }
   async function platformSave(values){
     const platform=editing;
@@ -20,6 +20,9 @@
   }
   async function pacingSave(values){await save({pacingSettings:{...StudyConfig.pacingDefaults,...state.pacingSettings,...values}});}
   function render(){
+    for(const input of document.querySelectorAll('[data-feature-platform]'))input.checked=state.featureSettings?.platforms?.[input.dataset.featurePlatform]!==false;
+    for(const input of document.querySelectorAll('[data-feature-course]'))input.checked=state.featureSettings?.courses?.[input.dataset.featureCourse]!==false;
+    for(const input of document.querySelectorAll('[data-feature-mode]'))input.checked=StudyConfig.featureEnabled(state,input.dataset.featureMode);
     $('canvas-reading-setup').hidden=editing!=='canvas';
     $('platform-mode').value=state.platformMode;$('watchAutomation').checked=state.watchAutomation===true;
     for(const button of document.querySelectorAll('[data-model]')){const selected=button.dataset.model===state.aiModel;button.classList.toggle('selected',selected);button.setAttribute('aria-checked',String(selected));}
@@ -81,6 +84,16 @@
     next.reviewSeconds=Math.max(next.reviewMinSeconds,Math.min(next.reviewMaxSeconds,next.reviewSeconds));
     await pacingSave({[key]:value,reviewSeconds:next.reviewSeconds});render();
   };
+  for(const input of document.querySelectorAll('[data-feature-platform],[data-feature-course],[data-feature-mode]'))input.onchange=async()=>{
+    const previous=structuredClone(state.featureSettings||{}),next=structuredClone(previous);
+    const group=input.dataset.featurePlatform?'platforms':input.dataset.featureCourse?'courses':null;
+    const key=input.dataset.featurePlatform||input.dataset.featureCourse||input.dataset.featureMode;
+    if(group)next[group]={...next[group],[key]:input.checked};else next[key]=input.checked;
+    input.disabled=true;
+    try{if(!input.checked)await chrome.runtime.sendMessage({type:'studyStopAll'});await save({featureSettings:next},{throwOnError:true});render();}
+    catch(error){state.featureSettings=previous;render();$('saved').textContent=error.message;}
+    finally{input.disabled=false;}
+  };
   $('platform-mode').onchange=async event=>{
     await chrome.runtime.sendMessage({type:'studyStopAll'});await save({platformMode:event.target.value});render();
     $('saved').textContent='Saved — reload the assignment page';
@@ -114,14 +127,14 @@
       if(!builtIn){
         const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
         if(!tab?.id||new URL(tab.url).origin!==u.origin)throw Error('Open the HTTPS Canvas page in the active tab, then enable it again.');
-        await chrome.scripting.executeScript({target:{tabId:tab.id,allFrames:true},files:['shared/build.js','shared/config.js','shared/security.js','shared/platform.js','shared/review.js','shared/assignment-ui.js','shared/monitor.js','shared/pacing.js','shared/media.js','shared/capture-frame.js','shared/canvas-mcgraw-course.js','shared/course-ui.js','content-scripts/canvas-mcgraw-course.js','shared/canvas-batch.js','content-scripts/canvas.js']});
+        await chrome.scripting.executeScript({target:{tabId:tab.id,allFrames:true},files:['shared/build.js','shared/config.js','shared/security.js','shared/platform.js','shared/review.js','shared/assignment-ui.js','shared/monitor.js','shared/pacing.js','shared/media.js','shared/capture-frame.js','shared/canvas-mcgraw-course.js','shared/course-ui.js','content-scripts/canvas-mcgraw-course.js','shared/readings.js','shared/canvas-batch.js','shared/canvas-quiz.js','content-scripts/canvas.js','content-scripts/canvas-quiz-lifecycle.js']});
       }
       await save({canvasOrigins:[...new Set([...state.canvasOrigins,u.origin])]});
       $('domain-status').textContent='Enabled for this active tab: '+u.hostname+'. Enable again after a reload or origin change.';
     }catch(error){$('domain-status').textContent=error.message;}
   };
   (async()=>{
-    state={...state,...await chrome.storage.sync.get(['platformMode','aiModel','platformSettings','pacingSettings','canvasOrigins','watchAutomation'])};
+    state={...state,...await chrome.storage.sync.get(['platformMode','featureSettings','aiModel','platformSettings','pacingSettings','canvasOrigins','watchAutomation'])};
     if(!Object.hasOwn(names,state.aiModel))state.aiModel='gemini';
     state.platformSettings ||= {};state.canvasOrigins ||= [];
     const tab=(await chrome.tabs.query({active:true,currentWindow:true}))[0];
@@ -129,6 +142,6 @@
     if(platform)editing=platform;const requested=new URLSearchParams(location.search).get('platform');if(StudyConfig.platforms.includes(requested))editing=requested;
     $('detected').textContent=platform?'Current website: '+StudyConfig.names[platform]+'.':'No supported assignment website detected in this tab.';
     if(tab?.url){try{const u=new URL(tab.url);if(u.protocol==='https:'&&(platform==='canvas'||/\/courses\/\d+\/quizzes\//.test(u.pathname))){$('canvas-domain').value=u.origin;if(!platform)editing='canvas';}}catch{}}
-    render();availability();notebooks();
+    render();const section=new URLSearchParams(location.search).get('category');if(section)showCategory(section);availability();notebooks();
   })().catch(error=>{$('saved').textContent=error.message;});
 })();

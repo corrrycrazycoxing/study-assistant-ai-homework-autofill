@@ -88,7 +88,7 @@ const book=path=>({id:'extension-id',tab:{id:created.at(-1).id},frameId:0,url:'h
  const quotaHome=book('/');
  await assert.rejects(tasks.handle({type:'readingsStep',id:fresh.id,step:'quota'},quotaHome),/No unused/,'an open source notebook is protected');
  context.chrome.tabs.query=async()=>[];
- const quota=await tasks.handle({type:'readingsStep',id:fresh.id,step:'quota'},quotaHome);assert.equal(quota.candidate.url,originalUrl);
+ const quota=await tasks.handle({type:'readingsStep',id:fresh.id,step:'quota',visibleNotebookUrls:[originalUrl]},quotaHome);assert.equal(quota.candidate.url,originalUrl);
  await assert.rejects(tasks.handle({type:'readingsStep',id:fresh.id,step:'quota'},quotaHome),/already ran/,'one deletion maximum per preparation');
  local.notebookCleanupPreferences.atLimit=false;
  await assert.rejects(tasks.handle({type:'readingsStep',id:fresh.id,step:'quotaConfirm'},quotaHome),/not enabled/,'revoked preference prevents confirmation');

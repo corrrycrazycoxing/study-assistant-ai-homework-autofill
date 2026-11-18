@@ -6,7 +6,7 @@
   function adapterChrome(platform){
     const translate=data=>StudyConfig.preferences(data,platform);
     const sync={...real.storage.sync,get(keys,callback){
-      const task=real.storage.sync.get(['aiModel','platformSettings','pacingSettings']).then(data=>{
+      const task=real.storage.sync.get(['aiModel','platformSettings','pacingSettings','featureSettings']).then(data=>{
         const values=translate(data);
         if(keys==null)return values;
         const list=typeof keys==='string'?[keys]:Array.isArray(keys)?keys:Object.keys(keys);
@@ -22,6 +22,7 @@
         const after=translate({aiModel:changes.aiModel?.newValue,platformSettings:changes.platformSettings?.newValue,pacingSettings:changes.pacingSettings?.newValue});
         const mapped={};
         if(changes.aiModel)mapped.aiModel=changes.aiModel;
+        if(changes.featureSettings)mapped.quizOverviewEnabled={oldValue:changes.featureSettings.oldValue?.canvasQuizLauncher!==false,newValue:changes.featureSettings.newValue?.canvasQuizLauncher!==false};
         if(changes.platformSettings||changes.pacingSettings)for(const key of Object.keys(StudyConfig.defaults[platform]))if(JSON.stringify(before[key])!==JSON.stringify(after[key]))mapped[key]={oldValue:before[key],newValue:after[key]};
         if(Object.keys(mapped).length)fn(mapped,area);
       };listeners.set(fn,wrapped);real.storage.onChanged.addListener(wrapped);
@@ -31,8 +32,8 @@
   StudyConfig.boot=async function(platform,start){
     if(initialized.has(platform))return;
     initialized.add(platform);
-    const {platformMode='auto'}=await real.storage.sync.get('platformMode');
-    if(!StudyConfig.allowed(platform,platformMode))return;
+    const data=await real.storage.sync.get(['platformMode','featureSettings']);
+    if(!StudyConfig.allowed(platform,data))return;
     start(adapterChrome(platform));
   };
 })();

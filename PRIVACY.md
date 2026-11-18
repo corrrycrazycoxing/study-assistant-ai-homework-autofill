@@ -16,6 +16,8 @@ Settings are stored in Chrome extension storage. Active requests, answer preview
 
 The developer does not operate a server that stores question content, answers, images, or account credentials. AI providers and learning sites may have their own retention, logging, and deletion practices; use their controls for data held by those services.
 
+Canvas Course Auto keeps a local inventory of course and assignment metadata, including links, dates, and whether work is missing or submitted. It uses the signed-in Canvas session to request this information. A configured Google Docs reading list is used to store reading links and titles. Notebook preparation can create a source notebook in the connected Google account. Optional cleanup settings can remove notebooks the extension created and tracked.
+
 ## Sharing
 
 Question data is shared with the supported AI services used for the request and with the learning site already open in the user's browser as part of normal page interaction. The extension does not sell personal information, run advertising profiles, or add analytics trackers. It does not expose bundled extension resources through `web_accessible_resources`.
@@ -32,7 +34,7 @@ Question data is shared with the supported AI services used for the request and 
 
 The extension treats page text and AI responses as untrusted data. Modern adapters validate declarative answers against request IDs, question snapshots, field inventories and visible options. Legacy SmartBook/older Connect workflows have different validation and review paths; they do not have all modern snapshot protections. AI-generated JavaScript, selectors, HTML, and commands are never executed. The extension does not forge trusted browser events, change `Event.isTrusted`, spoof fingerprints, or attempt to conceal automation.
 
-Modern Ask AI requests show a preview by default. Auto Fill can be enabled, and a user-started Auto run may continue according to the selected settings. Legacy workflows may enter answers after an Ask AI request. Review the platform's settings before starting. The extension leaves final assignment submission to the user.
+Modern Ask AI requests show a preview by default. Auto Fill can be enabled, and a user-started Auto run may continue according to the selected settings. Legacy workflows may enter answers after an Ask AI request. Review the platform's settings before starting. When the user starts Auto on a supported Canvas Classic quiz, the extension can submit it through Canvas after checking that the quiz is complete. Review the Auto and pause settings before running a quiz.
 
 ## Deletion requests and contact
 

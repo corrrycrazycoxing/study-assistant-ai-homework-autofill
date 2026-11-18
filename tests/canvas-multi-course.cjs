@@ -1,8 +1,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const session={},updates=[],sent=[];
 let settings={platformMode:'auto'};
-const ctx={URL,Date,StudyBuild:{id:'test-build'},StudyConfig:{allowed:(p,m)=>m==='auto'},config:async()=>settings,chrome:{runtime:{id:'extension'},storage:{session:{get:async key=>({[key]:session[key]}),set:async data=>Object.assign(session,structuredClone(data))}},tabs:{query:async()=>[],update:async(id,data)=>{updates.push({id,...data});return {id,...data};},sendMessage:async(id,message)=>{sent.push({id,message});return {received:true};}}}};
-vm.createContext(ctx);for(const file of ['shared/canvas-mcgraw-course.js','background/canvas-mcgraw-course.js'])vm.runInContext(fs.readFileSync(file,'utf8'),ctx);
+const ctx={URL,Date,StudyBuild:{id:'test-build'},StudyConfig:{allowed:(p,m)=>(typeof m==='object'?m.platformMode:m)==='auto',courseAllowed:(p,d)=>d.featureSettings?.courses?.[p]!==false,featureEnabled:(d,k)=>d.featureSettings?.[k]!==false},config:async()=>settings,chrome:{runtime:{id:'extension'},storage:{session:{get:async key=>({[key]:session[key]}),set:async data=>Object.assign(session,structuredClone(data))}},tabs:{query:async()=>[],update:async(id,data)=>{updates.push({id,...data});return {id,...data};},sendMessage:async(id,message)=>{sent.push({id,message});return {received:true};}}}};
+vm.createContext(ctx);vm.runInContext(fs.readFileSync('shared/config.js','utf8'),ctx);ctx.StudyConfig.detect=()=> 'canvas';for(const file of ['shared/canvas-mcgraw-course.js','background/canvas-mcgraw-course.js'])vm.runInContext(fs.readFileSync(file,'utf8'),ctx);
 const C=ctx.StudyCanvasMcGrawCourse,origin='https://canvas.example.edu',hub=origin+'/',course=id=>({title:'Course '+id,url:origin+'/courses/'+id}),list=id=>origin+'/courses/'+id+'/assignments';
 const owner=(url=hub)=>({id:'extension',frameId:0,tab:{id:5,windowId:1},url});
 const send=(type,values={},url=hub)=>ctx.canvasMcGrawCourse({type,...values},owner(url));

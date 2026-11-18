@@ -14,7 +14,7 @@ async function scenario(responseKind='structured'){
   regularTab:async()=>{formatterCalls++;return null;},
   cancel:async()=>delete values.pending,releaseTabs:async()=>{},deliver:async(pending,message)=>{delivered.push({...message,grounded:pending.grounded,notebookUrl:pending.notebookUrl});return {received:true};}
  };
- vm.createContext(context);vm.runInContext(fs.readFileSync('shared/security.js','utf8')+fs.readFileSync('background/notebooks.js','utf8')+extract('function fromAssistant(','// Re-read at each transition')+extract('async function request(','chrome.runtime.onMessage.addListener'),context);
+ vm.createContext(context);vm.runInContext(fs.readFileSync('shared/config.js','utf8'),context);context.StudyConfig.preferences=()=>({preferNotebook:true,aiModel:'gemini'});vm.runInContext(fs.readFileSync('shared/security.js','utf8')+fs.readFileSync('background/notebooks.js','utf8')+extract('function fromAssistant(','// Re-read at each transition')+extract('async function request(','chrome.runtime.onMessage.addListener'),context);
  const prompt='Return only JSON with exactly requestId, snapshotHash, answer and explanation.\nQuestion:\nTwo mock questions.\n\nFields:\n'+JSON.stringify([{field:'q1_f0',type:'radio',options:['First','Second']},{field:'q2_f0',type:'checkbox',options:['A','B','C']}]);
  await context.request({type:'canvasQuestion',id:'live-test',snapshotHash:'1234abcd',prompt},sender,'canvas');
  assert.equal(formatterCalls,0,'ready NotebookLM dispatch does not wait for or reload a chatbot');

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.9.0 — 2026-11-17
+
+### Added
+- Canvas course inventory, course and assignment type filtering, **Only past-due assignments**, and **Retry saved issues**.
+- Classic Canvas quiz submission after completeness checks and independent platform and mode switches.
+- SmartBook ordering support using the question's keyboard controls.
+
+### Fixed
+- Find missing Classic quizzes without a rendered assignment link and distinguish an automatic missing zero from a submitted quiz.
+- Refresh outdated reading lists, preserve formatted syllabus links, and recover saved issues when a unique title match becomes available.
+- Close idle NotebookLM tabs used by submitted quizzes and support optional cleanup of eligible extension-created notebooks.
+- Respect the Canvas quiz clock while pacing and read due dates separately from availability.
+
+### Verification
+- Repository regression and ZIP checks passed. Live end-to-end verification of the new flows remains pending.
+
 Versions listed here describe source changes. A version is downloadable as a GitHub release only after its tag, release notes and package have been published.
 
 ## 2.8.1 — November 3, 2026

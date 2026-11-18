@@ -4,19 +4,19 @@
   let catalog=null,jobId=null,timer=null;
   const status=text=>{$('reading-list-status').textContent=text;};
   const cleanup=document.createElement('fieldset');const legend=document.createElement('legend');legend.textContent='Notebook cleanup';cleanup.append(legend);
-  for(const [key,text] of [['atLimit','Automatically delete one unused automation-created notebook at the limit and continue'],['afterUse','Open notebook cleanup automatically after Quiz Auto finishes visible questions']]){
+  for(const [key,text] of [['atLimit','Automatically delete one unused automation-created notebook at the limit and continue'],['afterUse','Open notebook cleanup confirmation after Canvas confirms quiz submission'],['afterSubmit','Automatically delete this quiz’s tracked notebook after confirmed submission']]){
     const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';label.append(input,document.createTextNode(text));cleanup.append(label,document.createElement('br'));
     chrome.storage.local.get('notebookCleanupPreferences').then(data=>{input.checked=data.notebookCleanupPreferences?.[key]===true;});
     input.onchange=async()=>{const data=await chrome.storage.local.get('notebookCleanupPreferences');await chrome.storage.local.set({notebookCleanupPreferences:{...data.notebookCleanupPreferences,[key]:input.checked}});};
   }
-  const note=document.createElement('small');note.textContent='At the limit, automatically deletes at most one tracked notebook that is not open, then resumes preparation. After-use cleanup opens confirmation for you. Personal and unverified older notebooks are excluded.';cleanup.append(note);$('reading-list-status').after(cleanup);
+  const note=document.createElement('small');note.textContent='At the limit, automatically deletes at most one tracked notebook that is not open, then resumes preparation. After-submit automatic deletion is a separate opt-in and only removes the tracked notebook used by that quiz. After confirmed submission, recorded idle notebook tabs close even when deletion is off. Drafts, generating answers and notebooks shared by an active quiz stay open. Unrecorded open copies block automatic deletion. Confirmation-only cleanup remains available. Personal and unverified older notebooks are excluded.';cleanup.append(note);$('reading-list-status').after(cleanup);
   async function send(message){const result=await chrome.runtime.sendMessage(message);if(!result?.received)throw Error(result?.error||'The extension did not respond.');return result;}
   function render(){
     $('reading-list-url').value=catalog?.docUrl||'';$('reading-list-enabled').checked=catalog?.enabled===true;
     $('reading-choice').replaceChildren(new Option('Choose a reading to prepare now',''));
     for(const item of catalog?.entries||[])$('reading-choice').append(new Option(item.title,item.key));
     $('prepare-reading').disabled=true;$('reading-list-stop').hidden=!jobId;
-    status(catalog?.entries?.length?catalog.entries.length+' readings loaded. Canvas quiz titles are matched to these readings.':'Load the document containing your linked readings.');
+    status(catalog?.entries?.length?catalog.entries.length+' linked readings loaded. Plain text titles need source links in the document.':'Load the document containing your linked readings.');
   }
   $('load-reading-list').onclick=async()=>{
     try{
